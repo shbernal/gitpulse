@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+BASE_API="https://api.github.com/"
+
+REPO_REF="repos/$1"
+
+API_CALL="$BASE_API$REPO_REF"
+
+curl -sS "$API_CALL"
+
+# display fields
+# .created_at (DD/MM/YYYY format)
+# .stargazers_count (in num.1decimalk format)
+# .language
+# .forks_count
+# .open_issues
+
+
+
