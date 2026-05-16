@@ -91,6 +91,15 @@ describe("terminal rendering", () => {
     expect(stripVTControlCharacters(output)).toContain("[active] [source] [branch main] [TypeScript] [MIT]");
   });
 
+  test("colors known programming languages in human-readable output", () => {
+    const output = renderRepo(snapshot("acme/tool"), { color: true });
+
+    expect(output).toContain("\u001b[38;2;49;120;198mTypeScript");
+    expect(output).toContain("\u001b[48;2;49;120;198m");
+    expect(stripVTControlCharacters(output)).toContain("Primary language  TypeScript");
+    expect(stripVTControlCharacters(output)).toContain("Language mix      TypeScript 90%, Shell 10%");
+  });
+
   test("keeps colored comparison table alignment equivalent to plain output", () => {
     const results: SnapshotResult[] = [
       { ok: true, snapshot: snapshot("acme/one") },

@@ -1,5 +1,6 @@
 import pc from "picocolors";
 import { stripVTControlCharacters } from "node:util";
+import { getLanguageColor, type Rgb } from "./language-colors";
 
 export type RenderOptions = {
   color?: boolean;
@@ -41,6 +42,22 @@ export function shouldUseColor(
 export function createTheme(options: RenderOptions = {}) {
   const color = Boolean(options.color);
   const colors = pc.createColors(color);
+  const paintForeground = (value: string, foreground: Rgb) =>
+    color ? `\u001b[38;2;${foreground.red};${foreground.green};${foreground.blue}m${value}\u001b[39m` : value;
+  const paintBlock = (value: string, background: Rgb) => {
+    if (!color) {
+      return value;
+    }
+
+    const foreground = readableForeground(background);
+    return [
+      `\u001b[48;2;${background.red};${background.green};${background.blue}m`,
+      `\u001b[38;2;${foreground.red};${foreground.green};${foreground.blue}m`,
+      value,
+      "\u001b[39m",
+      "\u001b[49m",
+    ].join("");
+  };
   const applyTone = (value: string, tone: Tone) => {
     switch (tone) {
       case "bad":
@@ -95,6 +112,14 @@ export function createTheme(options: RenderOptions = {}) {
     label(value: string): string {
       return colors.blue(value);
     },
+    language(value: string): string {
+      const languageColor = getLanguageColor(value);
+      return languageColor ? colors.bold(paintForeground(value, languageColor)) : colors.bold(colors.white(value));
+    },
+    languageBadge(value: string): string {
+      const languageColor = getLanguageColor(value);
+      return languageColor ? paintBlock(colors.bold(`[${value}]`), languageColor) : applyBadgeTone(`[${value}]`, "info");
+    },
     repo(value: string): string {
       return colors.bold(colors.cyan(value));
     },
@@ -136,4 +161,9 @@ export function visibleLength(value: string): number {
 export function padVisibleEnd(value: string, width: number): string {
   const padding = width - visibleLength(value);
   return padding > 0 ? `${value}${" ".repeat(padding)}` : value;
+}
+
+function readableForeground(background: Rgb): Rgb {
+  const brightness = (background.red * 299 + background.green * 587 + background.blue * 114) / 1000;
+  return brightness >= 140 ? { red: 0, green: 0, blue: 0 } : { red: 255, green: 255, blue: 255 };
 }

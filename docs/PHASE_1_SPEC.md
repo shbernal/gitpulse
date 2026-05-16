@@ -98,7 +98,7 @@ Expected behavior:
 - Use terminal color only for human-readable output.
 - Never emit terminal color in JSON output.
 - Honor `NO_COLOR` and `FORCE_COLOR` in automatic color mode.
-- Use color semantically for state, score bands, activity recency, documentation presence, warnings, and fetch errors.
+- Use color semantically for state, score bands, activity recency, documentation presence, warnings, fetch errors, and common programming languages.
 
 ### Cache, Config, and History
 

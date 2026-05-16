@@ -72,8 +72,8 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
     renderKeyValueList(
       [
         ["Default branch", theme.tone(snapshot.repository.defaultBranch, "info")],
-        ["Primary language", valueOrMissing(snapshot.repository.primaryLanguage ?? "n/a", theme)],
-        ["Language mix", valueOrMissing(formatLanguageMix(snapshot), theme)],
+        ["Primary language", formatPrimaryLanguage(snapshot.repository.primaryLanguage, theme)],
+        ["Language mix", formatLanguageMix(snapshot, theme)],
         ["License", formatLicense(snapshot.repository.license, theme)],
         ["Topics", valueOrMissing(snapshot.repository.topics.length > 0 ? snapshot.repository.topics.join(", ") : "n/a", theme)],
         ["Size", theme.value(`${formatInteger(snapshot.repository.sizeKb)} KB`)],
@@ -126,7 +126,7 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
       title: "Repository Facts",
       rows: [
         row("Created", snapshots, ({ snapshot }) => theme.value(formatMonthYear(snapshot.repository.createdAt))),
-        row("Primary language", snapshots, ({ snapshot }) => valueOrMissing(snapshot.repository.primaryLanguage ?? "n/a", theme)),
+        row("Primary language", snapshots, ({ snapshot }) => formatPrimaryLanguage(snapshot.repository.primaryLanguage, theme)),
         row("License", snapshots, ({ snapshot }) => formatLicense(snapshot.repository.license, theme)),
         row("Archived", snapshots, ({ snapshot }) => formatBoolTone(snapshot.repository.archived, theme, "bad")),
         row("Fork", snapshots, ({ snapshot }) => formatBoolTone(snapshot.repository.fork, theme, "warn")),
@@ -345,7 +345,7 @@ function repoBadges(snapshot: RepoSnapshot, theme: Theme): string[] {
     snapshot.repository.fork ? theme.badge("fork", "warn") : theme.badge("source", "muted"),
     snapshot.repository.template ? theme.badge("template", "info") : null,
     theme.badge(`branch ${snapshot.repository.defaultBranch}`, "info"),
-    theme.badge(snapshot.repository.primaryLanguage ?? "language n/a", snapshot.repository.primaryLanguage ? "info" : "muted"),
+    snapshot.repository.primaryLanguage ? theme.languageBadge(snapshot.repository.primaryLanguage) : theme.badge("language n/a", "muted"),
     theme.badge(snapshot.repository.license ?? "no license", snapshot.repository.license ? "good" : "warn"),
   ].filter((badge): badge is string => Boolean(badge));
 }
@@ -359,14 +359,18 @@ function renderMetricRows(metrics: Array<[string, CompositeMetric]>, theme: Them
   });
 }
 
-function formatLanguageMix(snapshot: RepoSnapshot): string {
+function formatPrimaryLanguage(language: string | null, theme: Theme): string {
+  return language ? theme.language(language) : theme.missing();
+}
+
+function formatLanguageMix(snapshot: RepoSnapshot, theme: Theme): string {
   if (snapshot.repository.languages.length === 0) {
-    return "n/a";
+    return theme.missing();
   }
 
   return snapshot.repository.languages
     .slice(0, 3)
-    .map((language) => `${language.name} ${formatPercent(language.percent)}`)
+    .map((language) => `${theme.language(language.name)} ${theme.value(formatPercent(language.percent))}`)
     .join(", ");
 }
 
