@@ -19,6 +19,12 @@ describe("terminal rendering", () => {
     expect(output).not.toContain("+-");
   });
 
+  test("renders cache source metadata when provided", () => {
+    const output = renderRepo(snapshot("acme/tool"), { color: false }, { kind: "cache", cachedAt: "2026-05-13T00:00:00.000Z", ageHours: 72 });
+
+    expect(output).toContain("data source: cache, fetched 3d ago");
+  });
+
   test("renders a comparison scoreboard", () => {
     const output = renderComparison(
       [
@@ -29,6 +35,7 @@ describe("terminal rendering", () => {
     );
 
     expect(output).toContain("Scoreboard");
+    expect(output).not.toContain("Data sources");
     expect(output).toContain("Repository");
     expect(output).toContain("Activity");
     expect(output).toContain("Repository Facts");
@@ -38,6 +45,42 @@ describe("terminal rendering", () => {
     expect(output).not.toContain("Summary");
     expect(output).not.toContain("Age");
     expect(output).not.toContain("+-");
+  });
+
+  test("renders compact comparison source metadata when provided", () => {
+    const output = renderComparison(
+      [
+        { ok: true, snapshot: snapshot("acme/one") },
+        { ok: true, snapshot: snapshot("acme/two") },
+      ],
+      { color: false },
+      [
+        { kind: "api" },
+        { kind: "stale-cache", cachedAt: "2026-05-01T00:00:00.000Z", ageHours: 360 },
+      ],
+    );
+
+    expect(output).toContain("data sources: api; stale cache, fetched 15d ago");
+    expect(output).not.toContain("Data sources");
+    expect(output).not.toContain("Repository  Source");
+    expect(output).toContain("stale cache, fetched 15d ago");
+  });
+
+  test("summarizes comparison cache source age ranges", () => {
+    const output = renderComparison(
+      [
+        { ok: true, snapshot: snapshot("acme/one") },
+        { ok: true, snapshot: snapshot("acme/two") },
+      ],
+      { color: false },
+      [
+        { kind: "cache", cachedAt: "2026-05-16T11:57:00.000Z", ageHours: 0.05 },
+        { kind: "cache", cachedAt: "2026-05-16T11:51:00.000Z", ageHours: 0.15 },
+      ],
+    );
+
+    expect(output).toContain("data sources: cache, fetched 3-9m ago");
+    expect(output).not.toContain("Repository  Source");
   });
 
   test("can render semantic ANSI color", () => {
@@ -68,10 +111,11 @@ describe("terminal rendering", () => {
 describe("JSON rendering", () => {
   test("wraps repo output in a stable envelope", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
-    const parsed = JSON.parse(renderRepoJson(result));
+    const parsed = JSON.parse(renderRepoJson(result, { kind: "api" }));
 
     expect(parsed.schemaVersion).toBe(2);
     expect(parsed.command).toBe("repo");
+    expect(parsed.source.kind).toBe("api");
     expect(parsed.result.ok).toBe(true);
     expect(parsed.result.snapshot.repository.fullName).toBe("acme/tool");
   });
@@ -81,11 +125,12 @@ describe("JSON rendering", () => {
       { ok: true, snapshot: snapshot("acme/one") },
       { ok: false, ref: null, input: "bad", error: { message: "Invalid repository reference." } },
     ];
-    const parsed = JSON.parse(renderComparisonJson(results));
+    const parsed = JSON.parse(renderComparisonJson(results, [{ kind: "cache", cachedAt: "2026-05-16T00:00:00.000Z", ageHours: 1 }]));
 
     expect(parsed.schemaVersion).toBe(2);
     expect(parsed.command).toBe("compare");
     expect(parsed.results).toHaveLength(2);
+    expect(parsed.results[0].source.kind).toBe("cache");
     expect(Array.isArray(parsed.summary)).toBe(true);
   });
 

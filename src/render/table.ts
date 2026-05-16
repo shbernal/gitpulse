@@ -1,4 +1,4 @@
-import type { CompositeMetric, DocumentationSignal, RepoSnapshot, SnapshotResult } from "../types";
+import type { CompositeMetric, DocumentationSignal, RepoSnapshot, SnapshotResult, SnapshotSource } from "../types";
 import { formatDate, formatDateWithAge, formatMonthYear, formatRelativeDays } from "../util/dates";
 import { formatBool, formatCompactNumber, formatInteger, formatPercent, truncate } from "../util/format";
 import { formatRepoRef } from "../util/repo-ref";
@@ -18,13 +18,14 @@ type Theme = ReturnType<typeof createTheme>;
 type ThemeTone = Parameters<Theme["tone"]>[1];
 type SnapshotSuccess = Extract<SnapshotResult, { ok: true }>;
 
-export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}): string {
+export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, source?: SnapshotSource): string {
   const theme = createTheme(options);
   const output = [
     theme.repo(`gitpulse ${formatRepoRef(snapshot.ref)}`),
     ...(snapshot.repository.description ? [`  ${truncate(snapshot.repository.description, 120)}`] : []),
     `  ${snapshot.repository.url}`,
     theme.muted(`  fetched ${snapshot.fetchedAt}`),
+    ...(source ? [`  ${theme.muted("data source:")} ${formatSnapshotSource(source)}`] : []),
     "",
     theme.section("Status"),
     `  ${repoBadges(snapshot, theme).join(" ")}`,
@@ -101,10 +102,13 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}):
   return output.join("\n").trimEnd();
 }
 
-export function renderComparison(results: SnapshotResult[], options: RenderOptions = {}): string {
+export function renderComparison(results: SnapshotResult[], options: RenderOptions = {}, sources: SnapshotSource[] = []): string {
   const theme = createTheme(options);
   const snapshots = results.filter((result): result is SnapshotSuccess => result.ok);
   const failures = results.filter((result) => !result.ok);
+  const sourceSummary = formatComparisonSourceSummary(
+    results.flatMap((result, index) => (result.ok && sources[index] ? [sources[index]] : [])),
+  );
 
   if (snapshots.length === 0) {
     return [
@@ -172,6 +176,7 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
   const output = [
     theme.bold("gitpulse compare"),
     `Compared ${theme.value(String(snapshots.length))} repositories`,
+    ...(sourceSummary ? [`${theme.muted("data sources:")} ${sourceSummary}`] : []),
     "",
     theme.section("Scoreboard"),
     renderTable(
@@ -238,6 +243,91 @@ function renderTable(headers: string[], rows: string[][], theme: Theme): string 
   const separator = widths.map((width) => "-".repeat(width)).join("  ");
 
   return [theme.bold(renderRow(headers)), theme.muted(separator), ...rows.map(renderRow)].join("\n");
+}
+
+function formatSnapshotSource(source: SnapshotSource): string {
+  if (source.kind === "api") {
+    return "api";
+  }
+
+  if (source.kind === "none") {
+    return "none";
+  }
+
+  const label = source.kind === "stale-cache" ? "stale cache" : "cache";
+  const refreshError = source.kind === "stale-cache" && source.refreshError ? `; refresh failed: ${source.refreshError.message}` : "";
+  return `${label}, fetched ${formatCacheAge(source.ageHours)}${refreshError}`;
+}
+
+function formatComparisonSourceSummary(sources: SnapshotSource[]): string | null {
+  if (sources.length === 0) {
+    return null;
+  }
+
+  const apiCount = sources.filter((source) => source.kind === "api").length;
+  const cacheAges = sources.flatMap((source) => (source.kind === "cache" ? [source.ageHours] : []));
+  const staleSources = sources.filter((source): source is Extract<SnapshotSource, { kind: "stale-cache" }> => source.kind === "stale-cache");
+  const noneCount = sources.filter((source) => source.kind === "none").length;
+  const parts = [
+    apiCount > 0 ? countLabel("api", apiCount, sources.length) : null,
+    cacheAges.length > 0 ? `${countLabel("cache", cacheAges.length, sources.length)}, fetched ${formatCacheAgeRange(cacheAges)}` : null,
+    staleSources.length > 0
+      ? `${countLabel("stale cache", staleSources.length, sources.length)}, fetched ${formatCacheAgeRange(staleSources.map((source) => source.ageHours))}${
+          staleSources.some((source) => source.refreshError) ? " (refresh failed)" : ""
+        }`
+      : null,
+    noneCount > 0 ? countLabel("none", noneCount, sources.length) : null,
+  ].filter((part): part is string => Boolean(part));
+
+  return parts.join("; ");
+}
+
+function countLabel(label: string, count: number, total: number): string {
+  return count > 1 && count !== total ? `${label} x${count}` : label;
+}
+
+function formatCacheAgeRange(ageHours: number[]): string {
+  const sorted = [...ageHours].sort((a, b) => a - b);
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+
+  if (first === last) {
+    return formatCacheAge(first);
+  }
+
+  const firstDuration = formatCacheAgeDuration(first);
+  const lastDuration = formatCacheAgeDuration(last);
+
+  if (firstDuration.unit && firstDuration.unit === lastDuration.unit) {
+    return `${firstDuration.value}-${lastDuration.value}${firstDuration.unit} ago`;
+  }
+
+  return firstDuration.unit && lastDuration.unit ? `${firstDuration.text}-${lastDuration.text} ago` : `${firstDuration.text}-${lastDuration.text}`;
+}
+
+function formatCacheAge(ageHours: number): string {
+  const duration = formatCacheAgeDuration(ageHours);
+  return duration.unit ? `${duration.text} ago` : duration.text;
+}
+
+function formatCacheAgeDuration(ageHours: number): { text: string; value: string; unit: string | null } {
+  if (!Number.isFinite(ageHours)) {
+    return { text: "unknown age", value: "unknown age", unit: null };
+  }
+
+  if (ageHours < 1) {
+    return { text: `${Math.max(1, Math.round(ageHours * 60))}m`, value: String(Math.max(1, Math.round(ageHours * 60))), unit: "m" };
+  }
+
+  if (ageHours < 48) {
+    return { text: `${formatAgeNumber(ageHours)}h`, value: formatAgeNumber(ageHours), unit: "h" };
+  }
+
+  return { text: `${formatAgeNumber(ageHours / 24)}d`, value: formatAgeNumber(ageHours / 24), unit: "d" };
+}
+
+function formatAgeNumber(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function row(

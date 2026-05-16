@@ -8,7 +8,7 @@ Gitpulse is not a replacement for `gh`. It is a project-health lens: facts first
 
 - Node.js 20 or newer for the published npm CLI.
 - Bun 1.3 or newer for development.
-- Network access to the GitHub API.
+- Network access to the GitHub API when cached data is missing or stale.
 - Optional: `GITHUB_TOKEN` for higher GitHub API rate limits.
 
 ## Install
@@ -66,6 +66,15 @@ gitpulse repo cli/cli --json
 gitpulse compare cli/cli charmbracelet/gum --json
 ```
 
+Refresh and cache controls:
+
+```bash
+gitpulse repo cli/cli --refresh
+gitpulse repo cli/cli --offline
+gitpulse compare cli/cli charmbracelet/gum --max-cache-hours 24
+gitpulse history
+```
+
 Control terminal color:
 
 ```bash
@@ -80,17 +89,64 @@ Human-readable output is the default. Repository reports use a compact status st
 
 Gitpulse uses semantic terminal color for repository state, score bands, activity freshness, documentation presence, warnings, and fetch errors. Color defaults to `--color auto`, which enables color for TTY output, disables it for non-TTY output, honors `NO_COLOR`, and honors `FORCE_COLOR`. Use `--color always` to force color or `--color never` to disable it.
 
+Repository and comparison reports disclose whether each snapshot came from the GitHub API, a fresh cache entry, or stale cache after a failed refresh.
+
 Use `--json` for scripts and integrations. JSON output is not colorized and includes a stable envelope:
 
 ```json
 {
   "schemaVersion": 2,
   "command": "repo",
+  "source": {
+    "kind": "cache",
+    "cachedAt": "2026-05-16T12:00:00.000Z",
+    "ageHours": 4
+  },
   "result": {
     "ok": true
   }
 }
 ```
+
+## Cache and Config
+
+Gitpulse is cache-first by default. It uses a cached snapshot when one exists and is newer than the configured freshness window. If the cache is missing or stale, Gitpulse refreshes from the GitHub API and stores the new snapshot.
+
+Default freshness is one week:
+
+```json
+{
+  "cache": {
+    "enabled": true,
+    "maxCacheHours": 168,
+    "staleIfError": true
+  }
+}
+```
+
+The config file is read from:
+
+```text
+${XDG_CONFIG_HOME:-~/.config}/gitpulse/config.json
+```
+
+Snapshots are stored under:
+
+```text
+${XDG_CACHE_HOME:-~/.cache}/gitpulse/snapshots/github/
+```
+
+Consultation history is appended to:
+
+```text
+${XDG_STATE_HOME:-~/.local/state}/gitpulse/history.jsonl
+```
+
+Useful overrides:
+
+- `--refresh`: bypass cache reads, fetch from GitHub, and update the cache.
+- `--offline`: use local cache only, even if stale; fail when no cache entry exists.
+- `--max-cache-hours <hours>`: override `cache.maxCacheHours` for one invocation.
 
 ## Authentication
 
@@ -101,7 +157,7 @@ gitpulse repo cli/cli
 gitpulse compare Jguer/yay Morganamilo/paru
 ```
 
-Gitpulse uses GitHub's unauthenticated public API in that case. The tradeoff is that unauthenticated requests have much lower rate limits, and Gitpulse calls several endpoints per repository. For regular use, comparisons, or repeated runs, set `GITHUB_TOKEN`:
+Gitpulse uses GitHub's unauthenticated public API for refreshes in that case. The tradeoff is that unauthenticated requests have much lower rate limits, and Gitpulse calls several endpoints per repository. For regular use, comparisons, or repeated refreshes, set `GITHUB_TOKEN`:
 
 ```bash
 export GITHUB_TOKEN=ghp_...

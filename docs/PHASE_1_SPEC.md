@@ -40,10 +40,11 @@ gitpulse owner/repo
 
 Expected behavior:
 
-- Fetch repository metadata from GitHub.
+- Use fresh cached repository data by default when available.
+- Fetch repository metadata from GitHub when cached data is missing, stale, or explicitly refreshed.
 - Fetch selected supporting endpoints where useful.
 - Render a readable terminal report.
-- Exit non-zero for invalid input, missing repository, rate-limit failure, or network failure.
+- Exit non-zero for invalid input, missing repository, rate-limit failure, or network failure when no usable cached snapshot can be shown.
 - Show actionable error messages.
 
 ### Comparison
@@ -55,7 +56,8 @@ gitpulse compare owner/a owner/b [owner/c...]
 Expected behavior:
 
 - Accept at least two repositories.
-- Fetch the same core metrics for each repository.
+- Use the same cache policy for each compared repository.
+- Fetch the same core metrics for each repository when cached data is missing, stale, or explicitly refreshed.
 - Render a compact scoreboard plus side-by-side details.
 - Highlight missing data and warning states such as archived repositories.
 
@@ -78,6 +80,7 @@ Expected behavior:
 
 - Emit structured JSON without terminal colors.
 - Include a `schemaVersion` and `command` envelope.
+- Include source metadata showing whether data came from the API, fresh cache, or stale cache.
 - Include raw key fields and computed metrics.
 - Include fetch errors per repository for comparison commands when partial data is available.
 
@@ -96,6 +99,51 @@ Expected behavior:
 - Never emit terminal color in JSON output.
 - Honor `NO_COLOR` and `FORCE_COLOR` in automatic color mode.
 - Use color semantically for state, score bands, activity recency, documentation presence, warnings, and fetch errors.
+
+### Cache, Config, and History
+
+Gitpulse should be cache-first by default because the tool favors long-term project-health signals over minute-level freshness.
+
+Default behavior:
+
+- Read config from `${XDG_CONFIG_HOME:-~/.config}/gitpulse/config.json`.
+- Use a cached snapshot when it exists and is no older than `cache.maxCacheHours`.
+- Default `cache.maxCacheHours` to `168`, expressed in hours.
+- Refresh from the GitHub API when the cache is missing or stale.
+- Write successful refreshes to `${XDG_CACHE_HOME:-~/.cache}/gitpulse/snapshots/github/`.
+- Append consulted repositories to `${XDG_STATE_HOME:-~/.local/state}/gitpulse/history.jsonl`.
+- Show data source and cache age in human-readable output.
+
+Default config:
+
+```json
+{
+  "cache": {
+    "enabled": true,
+    "maxCacheHours": 168,
+    "staleIfError": true
+  }
+}
+```
+
+Cache control flags:
+
+```bash
+gitpulse repo owner/repo --refresh
+gitpulse repo owner/repo --offline
+gitpulse repo owner/repo --max-cache-hours 24
+gitpulse compare owner/a owner/b --max-cache-hours 24
+```
+
+Expected behavior:
+
+- `--refresh` bypasses cache reads, fetches from GitHub, and updates the cache.
+- `--offline` never calls the API and uses cache even when stale.
+- `--max-cache-hours <hours>` overrides the configured freshness window for one invocation.
+- `--refresh` and `--offline` are mutually exclusive.
+- If stale cache exists and refresh fails while `cache.staleIfError` is true, render the stale cache with a visible refresh warning.
+- If no cache exists and refresh fails, keep the normal non-zero failure behavior.
+- `gitpulse history` shows recently consulted repositories.
 
 ## GitHub Data Sources
 
@@ -241,6 +289,13 @@ src/
   github/
     client.ts
     types.ts
+  cache/
+    history.ts
+    paths.ts
+    policy.ts
+    resolve.ts
+    store.ts
+  config.ts
   metrics/
     snapshot.ts
     compare.ts
@@ -255,6 +310,8 @@ src/
 Responsibilities:
 
 - `cli.ts`: argument parsing and command dispatch.
+- `config.ts`: config loading and validation.
+- `cache/*`: XDG paths, snapshot cache storage, freshness policy, cache/API resolution, and consultation history.
 - `github/client.ts`: HTTP calls, headers, error handling, pagination helpers.
 - `metrics/snapshot.ts`: convert API responses into `RepoSnapshot`.
 - `metrics/compare.ts`: align snapshots for side-by-side comparison.
@@ -286,6 +343,7 @@ Handle:
 - GitHub 404 responses.
 - GitHub rate limits.
 - Network failures.
+- Cache read failures.
 - Missing optional endpoints.
 - Archived repositories.
 - Empty release lists.
@@ -301,6 +359,10 @@ Phase 1 is complete when:
 - `gitpulse repo owner/repo` returns a richer repository report than the Bash prototype.
 - `gitpulse compare owner/a owner/b` renders a side-by-side comparison.
 - `--json` works for both commands.
+- Repository and comparison commands are cache-first by default with a one-week freshness window.
+- `--refresh`, `--offline`, and `--max-cache-hours` work for repository and comparison commands.
+- Output shows data source and cache age when cache metadata is available.
+- `gitpulse history` shows recently consulted repositories.
 - The GitHub token path is supported through `GITHUB_TOKEN`.
 - Errors are clear and exit codes are meaningful.
 - Basic tests cover repo reference parsing, date/number formatting, metric normalization, and comparison alignment.

@@ -109,3 +109,27 @@ export type SnapshotResult =
       input: string;
       error: SnapshotError;
     };
+
+export type SnapshotSource =
+  | {
+      kind: "api";
+    }
+  | {
+      kind: "cache";
+      cachedAt: string;
+      ageHours: number;
+    }
+  | {
+      kind: "stale-cache";
+      cachedAt: string;
+      ageHours: number;
+      refreshError?: SnapshotError;
+    }
+  | {
+      kind: "none";
+    };
+
+export type SnapshotWithSource = {
+  result: SnapshotResult;
+  source: SnapshotSource;
+};
