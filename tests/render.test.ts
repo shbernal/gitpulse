@@ -19,6 +19,14 @@ describe("terminal rendering", () => {
     expect(output).not.toContain("+-");
   });
 
+  test("renders repository size in human units", () => {
+    const output = renderRepo(snapshot("acme/tool", { sizeKb: 1_221_981 }), { color: false });
+
+    expect(output).toContain("Size");
+    expect(output).toContain("1.2 GB");
+    expect(output).not.toContain("1,221,981 KB");
+  });
+
   test("renders cache source metadata when provided", () => {
     const output = renderRepo(snapshot("acme/tool"), { color: false }, { kind: "cache", cachedAt: "2026-05-13T00:00:00.000Z", ageHours: 72 });
 
@@ -156,6 +164,7 @@ function snapshot(
   options: {
     archived?: boolean;
     commitDays?: number;
+    sizeKb?: number;
     stars?: number;
   } = {},
 ): RepoSnapshot {
@@ -190,7 +199,7 @@ function snapshot(
       fork: false,
       disabled: false,
       template: false,
-      sizeKb: 512,
+      sizeKb: options.sizeKb ?? 512,
     },
     activity: {
       ageDays: 2327,

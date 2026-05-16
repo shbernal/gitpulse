@@ -1,6 +1,6 @@
 import type { CompositeMetric, DocumentationSignal, RepoSnapshot, SnapshotResult, SnapshotSource } from "../types";
 import { formatDate, formatDateWithAge, formatMonthYear, formatRelativeDays } from "../util/dates";
-import { formatBool, formatCompactNumber, formatInteger, formatPercent, truncate } from "../util/format";
+import { formatBool, formatCompactNumber, formatInteger, formatPercent, formatSizeKb, truncate } from "../util/format";
 import { formatRepoRef } from "../util/repo-ref";
 import { createTheme, padVisibleEnd, scoreTone, type RenderOptions, visibleLength } from "./terminal";
 
@@ -76,7 +76,7 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
         ["Language mix", formatLanguageMix(snapshot, theme)],
         ["License", formatLicense(snapshot.repository.license, theme)],
         ["Topics", valueOrMissing(snapshot.repository.topics.length > 0 ? snapshot.repository.topics.join(", ") : "n/a", theme)],
-        ["Size", theme.value(`${formatInteger(snapshot.repository.sizeKb)} KB`)],
+        ["Size", theme.value(formatSizeKb(snapshot.repository.sizeKb))],
       ],
       theme,
     ),

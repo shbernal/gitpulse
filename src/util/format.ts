@@ -28,6 +28,24 @@ export function formatInteger(value: number | null | undefined): string {
   return new Intl.NumberFormat("en").format(value);
 }
 
+export function formatSizeKb(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "n/a";
+  }
+
+  const abs = Math.abs(value);
+
+  if (abs >= 1_000_000) {
+    return `${trimDecimal(value / 1_000_000)} GB`;
+  }
+
+  if (abs >= 1_000) {
+    return `${trimDecimal(value / 1_000)} MB`;
+  }
+
+  return `${formatInteger(value)} KB`;
+}
+
 export function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return "n/a";

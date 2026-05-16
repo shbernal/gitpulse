@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { formatDate, formatMonthYear, formatRelativeDays } from "../src/util/dates";
-import { formatCompactNumber, formatPercent, truncate } from "../src/util/format";
+import { formatCompactNumber, formatPercent, formatSizeKb, truncate } from "../src/util/format";
 
 describe("format helpers", () => {
   test("formats compact numbers", () => {
@@ -12,6 +12,15 @@ describe("format helpers", () => {
   test("formats percentages", () => {
     expect(formatPercent(42)).toBe("42%");
     expect(formatPercent(42.5)).toBe("42.5%");
+  });
+
+  test("formats repository sizes from GitHub kilobytes", () => {
+    expect(formatSizeKb(999)).toBe("999 KB");
+    expect(formatSizeKb(1_000)).toBe("1 MB");
+    expect(formatSizeKb(1_250)).toBe("1.3 MB");
+    expect(formatSizeKb(1_221_981)).toBe("1.2 GB");
+    expect(formatSizeKb(null)).toBe("n/a");
+    expect(formatSizeKb(Number.NaN)).toBe("n/a");
   });
 
   test("formats dates and relative days", () => {
