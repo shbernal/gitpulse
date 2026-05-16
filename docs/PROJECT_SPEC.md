@@ -214,6 +214,7 @@ Possible later phases:
 - Package registry signals for ecosystems such as npm, crates.io, PyPI, Go, RubyGems, and Arch/AUR.
 - Security and supply-chain signals.
 - Local repository analysis.
+- Source size and line-of-code analysis as a later source-inspection feature, not a near-term API-only metric. See [Future LOC Analysis](FUTURE_LOC_ANALYSIS.md).
 - Organization-level project comparison.
 - Historical trend charts.
 - Configurable scoring profiles for different decision contexts, such as "dependency," "CLI install," or "contribution target."

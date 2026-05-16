@@ -108,6 +108,8 @@ GET /repos/{owner}/{repo}/contents/SECURITY.md
 
 Implementation should account for common filename variants later. The first pass may use a small case-sensitive candidate list per file type.
 
+The languages endpoint reports byte counts by language, not lines of code. Phase 1 may use it for language distribution, but it should not present that data as LOC. See [Future LOC Analysis](FUTURE_LOC_ANALYSIS.md) for the deferred source-inspection version.
+
 ## Authentication
 
 Unauthenticated requests should work for basic public repository checks.
@@ -306,3 +308,4 @@ Phase 1 is complete when:
 - Configurable scoring profiles.
 - Non-GitHub forge support.
 - Deep pagination across every endpoint.
+- Actual line-of-code analysis. See [Future LOC Analysis](FUTURE_LOC_ANALYSIS.md).
