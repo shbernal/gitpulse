@@ -48,8 +48,10 @@ export type GitHubContributor = {
   contributions: number;
 };
 
+export type GitHubContentItemType = "dir" | "file" | "submodule" | "symlink";
+
 export type GitHubContentItem = {
-  type: string;
+  type: GitHubContentItemType;
   name: string;
   path: string;
 };

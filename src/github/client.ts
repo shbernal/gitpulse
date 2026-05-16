@@ -10,6 +10,8 @@ import type {
   ReleaseOverview,
 } from "./types";
 
+export const githubApiVersion = "2026-03-10";
+
 export class GitHubApiError extends Error {
   readonly status?: number;
   readonly code: string;
@@ -30,10 +32,17 @@ export class GitHubClient {
   constructor(token = process.env.GITHUB_TOKEN) {
     this.octokit = new Octokit({
       auth: token || undefined,
+      log: {
+        debug: console.debug,
+        error: console.error,
+        info: console.info,
+        warn: suppressGitHubApiVersionDeprecationWarnings,
+      },
       userAgent: "gitpulse/0.1.0",
       request: {
         headers: {
-          "X-GitHub-Api-Version": "2022-11-28",
+          accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": githubApiVersion,
         },
       },
     });
@@ -142,7 +151,7 @@ export class GitHubClient {
       }
 
       return response.data
-        .filter((item) => item.type === "file")
+        .filter((item) => isFileContentItem(item.type))
         .map((item) => ({
           type: item.type,
           name: item.name,
@@ -156,6 +165,23 @@ export class GitHubClient {
       throw normalizeGitHubError(error, `Could not fetch directory ${path || "/"} for ${formatRepoRef(ref)}.`);
     }
   }
+}
+
+function isFileContentItem(type: string): type is "file" {
+  return type === "file";
+}
+
+function suppressGitHubApiVersionDeprecationWarnings(message?: unknown, ...args: unknown[]): void {
+  if (
+    typeof message === "string" &&
+    message.startsWith("[@octokit/request]") &&
+    message.includes(" is deprecated.") &&
+    message.includes("rest/about-the-rest-api/api-versions")
+  ) {
+    return;
+  }
+
+  console.warn(message, ...args);
 }
 
 function normalizeGitHubError(error: unknown, fallbackMessage: string): GitHubApiError {
