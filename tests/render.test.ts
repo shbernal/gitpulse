@@ -47,8 +47,16 @@ describe("terminal rendering", () => {
     expect(output).toContain("Repository");
     expect(output).toContain("one");
     expect(output).toContain("two");
+    expect(output).toContain("82/100");
+    expect(output).toContain("48/100");
+    expect(output).toContain("67/100");
     expect(output).not.toContain("acme/one");
     expect(output).not.toContain("acme/two");
+    expect(output).not.toContain("Signals");
+    expect(output).not.toContain("Activity freshness");
+    expect(output).not.toContain("Community footprint");
+    expect(output).not.toContain("Maintenance visibility");
+    expect(output).not.toContain("82 strong");
     expect(output).toContain("Activity");
     expect(output).toContain("Repository Facts");
     expect(output).toContain("jan 2020");

@@ -164,14 +164,6 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
         row("Security policy", snapshots, ({ snapshot }) => formatPresence(snapshot.documentation.security.present, theme)),
       ],
     },
-    {
-      title: "Signals",
-      rows: [
-        row("Activity freshness", snapshots, ({ snapshot }) => formatScore(snapshot.metrics.activityFreshness.score, theme)),
-        row("Community footprint", snapshots, ({ snapshot }) => formatScore(snapshot.metrics.communityFootprint.score, theme)),
-        row("Maintenance visibility", snapshots, ({ snapshot }) => formatScore(snapshot.metrics.maintenanceVisibility.score, theme)),
-      ],
-    },
   ];
 
   const output = [
@@ -404,7 +396,7 @@ function formatContributorCount(snapshot: RepoSnapshot): string {
 
 function formatMetricCompact(metric: CompositeMetric, theme: Theme): string {
   const tone = scoreTone(metric.score);
-  return `${theme.tone(String(metric.score), tone)} ${theme.tone(metric.label, tone)}`;
+  return theme.tone(`${metric.score}/100`, tone);
 }
 
 function documentationCount(snapshot: RepoSnapshot): number {
@@ -458,10 +450,6 @@ function formatBoolTone(value: boolean, theme: Theme, trueTone: ThemeTone, false
 
 function formatPresence(present: boolean, theme: Theme): string {
   return theme.tone(formatBool(present), present ? "good" : "warn");
-}
-
-function formatScore(score: number, theme: Theme): string {
-  return theme.tone(String(score), scoreTone(score));
 }
 
 function formatDocumentationCount(snapshot: RepoSnapshot, theme: Theme): string {
