@@ -1,4 +1,5 @@
 const millisPerDay = 24 * 60 * 60 * 1000;
+const shortMonths = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
 export function daysSince(isoDate: string | null | undefined, now = new Date()): number | null {
   if (!isoDate) {
@@ -26,6 +27,20 @@ export function formatDate(isoDate: string | null | undefined): string {
   }
 
   return date.toISOString().slice(0, 10);
+}
+
+export function formatMonthYear(isoDate: string | null | undefined): string {
+  if (!isoDate) {
+    return "n/a";
+  }
+
+  const date = new Date(isoDate);
+
+  if (Number.isNaN(date.getTime())) {
+    return isoDate;
+  }
+
+  return `${shortMonths[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
 }
 
 export function formatRelativeDays(days: number | null): string {

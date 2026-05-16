@@ -32,6 +32,7 @@ describe("terminal rendering", () => {
     expect(output).toContain("Repository");
     expect(output).toContain("Activity");
     expect(output).toContain("Repository Facts");
+    expect(output).toContain("jan 2020");
     expect(output).toContain("Watchers");
     expect(output).not.toContain("Subscribers");
     expect(output).not.toContain("Summary");

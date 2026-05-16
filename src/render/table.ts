@@ -1,5 +1,5 @@
 import type { CompositeMetric, DocumentationSignal, RepoSnapshot, SnapshotResult } from "../types";
-import { formatDate, formatDateWithAge, formatRelativeDays } from "../util/dates";
+import { formatDate, formatDateWithAge, formatMonthYear, formatRelativeDays } from "../util/dates";
 import { formatBool, formatCompactNumber, formatInteger, formatPercent, truncate } from "../util/format";
 import { formatRepoRef } from "../util/repo-ref";
 import { createTheme, padVisibleEnd, scoreTone, type RenderOptions, visibleLength } from "./terminal";
@@ -121,7 +121,7 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
     {
       title: "Repository Facts",
       rows: [
-        row("Created", snapshots, ({ snapshot }) => theme.value(formatDate(snapshot.repository.createdAt))),
+        row("Created", snapshots, ({ snapshot }) => theme.value(formatMonthYear(snapshot.repository.createdAt))),
         row("Primary language", snapshots, ({ snapshot }) => valueOrMissing(snapshot.repository.primaryLanguage ?? "n/a", theme)),
         row("License", snapshots, ({ snapshot }) => formatLicense(snapshot.repository.license, theme)),
         row("Archived", snapshots, ({ snapshot }) => formatBoolTone(snapshot.repository.archived, theme, "bad")),
