@@ -76,7 +76,7 @@ gitpulse repo cli/cli --color never
 
 ## Output
 
-Human-readable output is the default. Repository reports use a compact status strip, score bars for explainable composite signals, and grouped metric sections. Comparison reports start with a scoreboard, then show side-by-side details and a deterministic summary when there is enough data.
+Human-readable output is the default. Repository reports use a compact status strip, score bars for explainable composite signals, and grouped metric sections. Comparison reports start with a scoreboard, then show side-by-side grouped details.
 
 Gitpulse uses semantic terminal color for repository state, score bands, activity freshness, documentation presence, warnings, and fetch errors. Color defaults to `--color auto`, which enables color for TTY output, disables it for non-TTY output, honors `NO_COLOR`, and honors `FORCE_COLOR`. Use `--color always` to force color or `--color never` to disable it.
 

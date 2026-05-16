@@ -58,7 +58,6 @@ Expected behavior:
 - Fetch the same core metrics for each repository.
 - Render a compact scoreboard plus side-by-side details.
 - Highlight missing data and warning states such as archived repositories.
-- Keep summary language evidence-based.
 
 The comparison view should group metrics by practical lens where possible:
 
@@ -206,14 +205,6 @@ Suggested examples:
 - Maintenance visibility: based on release presence and documentation file presence.
 
 If implemented, each composite metric must expose its inputs. Avoid a single final "winner" score in phase 1.
-
-Phase 1 may also produce a deterministic narrative summary from metric differences. Example:
-
-```text
-ffuf has more recent repository activity and a newer latest release. gobuster has a larger star count. Both repositories are not archived.
-```
-
-This summary should be generated from visible metrics only and should avoid claims such as "best," "safe," or "will win."
 
 ## Data Model
 

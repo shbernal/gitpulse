@@ -1,4 +1,3 @@
-import { buildComparisonSummary } from "../metrics/compare";
 import type { CompositeMetric, DocumentationSignal, RepoSnapshot, SnapshotResult } from "../types";
 import { formatDate, formatDateWithAge, formatRelativeDays } from "../util/dates";
 import { formatBool, formatCompactNumber, formatInteger, formatPercent, truncate } from "../util/format";
@@ -118,13 +117,11 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
   }
 
   const headers = ["Metric", ...snapshots.map(({ snapshot }) => snapshot.repository.fullName)];
-  const summary = buildComparisonSummary(results);
   const sections = [
     {
       title: "Repository Facts",
       rows: [
         row("Created", snapshots, ({ snapshot }) => theme.value(formatDate(snapshot.repository.createdAt))),
-        row("Age", snapshots, ({ snapshot }) => theme.value(formatRelativeDays(snapshot.activity.ageDays))),
         row("Primary language", snapshots, ({ snapshot }) => valueOrMissing(snapshot.repository.primaryLanguage ?? "n/a", theme)),
         row("License", snapshots, ({ snapshot }) => formatLicense(snapshot.repository.license, theme)),
         row("Archived", snapshots, ({ snapshot }) => formatBoolTone(snapshot.repository.archived, theme, "bad")),
@@ -195,10 +192,6 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
     ),
     "",
   ];
-
-  if (summary.length > 0) {
-    output.push(theme.section("Summary"), ...summary.map((line) => `  - ${line}`), "");
-  }
 
   output.push(...sections.flatMap((section) => [theme.section(section.title), renderTable(headers, section.rows, theme), ""]));
 

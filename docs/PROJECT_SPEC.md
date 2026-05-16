@@ -91,10 +91,10 @@ gitpulse compare OJ/gobuster ffuf/ffuf
 
 Gitpulse should avoid declaring one project as "best" or "safe." Instead, it should present evidence and explain tradeoffs.
 
-Good output:
+Good comparison framing:
 
 ```text
-paru has a newer latest release and more recent commits. yay has more stars and forks. Both projects have recent activity.
+Show latest release, latest commit, stars, and forks side by side so the user can see those differences directly.
 ```
 
 Bad output:
@@ -180,10 +180,10 @@ Default output should be optimized for humans in a terminal:
 - Consistent labels.
 - Clear missing-data indicators.
 - Dates shown in understandable absolute form.
-- Relative age where helpful, such as "18 days ago."
+- Relative recency where helpful, such as "18 days ago."
 - Light color usage when supported.
 
-Comparison output should include a short deterministic summary when enough data is available. The summary should describe observable differences, not prescribe a choice.
+Comparison output should emphasize the scoreboard and grouped side-by-side metrics, without prescribing a choice.
 
 Machine-readable output should be available:
 
@@ -223,6 +223,6 @@ Possible later phases:
 
 - Should Gitpulse eventually include a normalized score, or only grouped metrics?
 - How should metrics differ for libraries, CLIs, frameworks, and applications?
-- Which comparison summary language is helpful without becoming prescriptive?
+- Should Gitpulse eventually include deterministic comparison summary language, and how can it avoid becoming prescriptive?
 - Should Gitpulse support a config file for custom metric weighting?
 - How much historical data can be collected without making the CLI slow or rate-limit prone?

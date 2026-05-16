@@ -29,7 +29,9 @@ describe("terminal rendering", () => {
     expect(output).toContain("Scoreboard");
     expect(output).toContain("Repository");
     expect(output).toContain("Activity");
-    expect(output).toContain("Summary");
+    expect(output).toContain("Repository Facts");
+    expect(output).not.toContain("Summary");
+    expect(output).not.toContain("Age");
     expect(output).not.toContain("+-");
   });
 
