@@ -82,6 +82,22 @@ Expected behavior:
 - Include raw key fields and computed metrics.
 - Include fetch errors per repository for comparison commands when partial data is available.
 
+### Terminal Color
+
+```bash
+gitpulse repo owner/repo --color auto
+gitpulse compare owner/a owner/b --color never
+gitpulse repo owner/repo --color always
+```
+
+Expected behavior:
+
+- Default to `--color auto`.
+- Use terminal color only for human-readable output.
+- Never emit terminal color in JSON output.
+- Honor `NO_COLOR` and `FORCE_COLOR` in automatic color mode.
+- Use color semantically for state, score bands, activity recency, documentation presence, warnings, and fetch errors.
+
 ## GitHub Data Sources
 
 Phase 1 should start with the GitHub REST API.

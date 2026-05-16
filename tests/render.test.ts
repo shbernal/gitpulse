@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { stripVTControlCharacters } from "node:util";
 import { renderComparisonJson, renderRepoJson } from "../src/render/json";
 import { renderComparison, renderRepo } from "../src/render/table";
+import { shouldUseColor } from "../src/render/terminal";
 import type { RepoSnapshot, SnapshotResult } from "../src/types";
 
 describe("terminal rendering", () => {
@@ -30,6 +32,30 @@ describe("terminal rendering", () => {
     expect(output).toContain("Summary");
     expect(output).not.toContain("+-");
   });
+
+  test("can render semantic ANSI color", () => {
+    const output = renderRepo(snapshot("acme/tool"), { color: true });
+
+    expect(output).toContain("\u001b[");
+    expect(output).toContain("\u001b[4m");
+    expect(stripVTControlCharacters(output)).toContain("[active] [source] [branch main] [TypeScript] [MIT]");
+  });
+
+  test("keeps colored comparison table alignment equivalent to plain output", () => {
+    const results: SnapshotResult[] = [
+      { ok: true, snapshot: snapshot("acme/one") },
+      { ok: true, snapshot: snapshot("acme/two", { stars: 20, commitDays: 400 }) },
+    ];
+
+    expect(stripVTControlCharacters(renderComparison(results, { color: true }))).toBe(renderComparison(results, { color: false }));
+  });
+
+  test("resolves terminal color mode from flags and environment", () => {
+    expect(shouldUseColor("always", {}, { isTTY: false })).toBe(true);
+    expect(shouldUseColor("never", { FORCE_COLOR: "1" }, { isTTY: true })).toBe(false);
+    expect(shouldUseColor("auto", { NO_COLOR: "1" }, { isTTY: true })).toBe(false);
+    expect(shouldUseColor("auto", { FORCE_COLOR: "1" }, { isTTY: false })).toBe(true);
+  });
 });
 
 describe("JSON rendering", () => {
@@ -54,6 +80,13 @@ describe("JSON rendering", () => {
     expect(parsed.command).toBe("compare");
     expect(parsed.results).toHaveLength(2);
     expect(Array.isArray(parsed.summary)).toBe(true);
+  });
+
+  test("does not emit ANSI escapes in JSON output", () => {
+    const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
+
+    expect(renderRepoJson(result)).not.toContain("\u001b[");
+    expect(renderComparisonJson([result])).not.toContain("\u001b[");
   });
 });
 

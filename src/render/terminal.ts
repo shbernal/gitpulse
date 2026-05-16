@@ -1,25 +1,37 @@
+import pc from "picocolors";
+import { stripVTControlCharacters } from "node:util";
+
 export type RenderOptions = {
   color?: boolean;
 };
 
+export type ColorMode = "always" | "auto" | "never";
+
 type Tone = "bad" | "good" | "info" | "muted" | "warn";
 
-const ansi = {
-  bad: "31",
-  bold: "1",
-  good: "32",
-  info: "36",
-  muted: "90",
-  reset: "0",
-  warn: "33",
+type Env = Record<string, string | undefined>;
+type ColorStream = {
+  isTTY?: boolean;
 };
 
-export function shouldUseColor(env = process.env, stream = process.stdout): boolean {
-  if (env.NO_COLOR !== undefined) {
+export function shouldUseColor(
+  mode: ColorMode = "auto",
+  env: Env = process.env,
+  stream: ColorStream = process.stdout,
+): boolean {
+  if (mode === "never") {
     return false;
   }
 
-  if (env.FORCE_COLOR !== undefined && env.FORCE_COLOR !== "0") {
+  if (mode === "always") {
+    return true;
+  }
+
+  if (env.NO_COLOR !== undefined || env.FORCE_COLOR === "0") {
+    return false;
+  }
+
+  if (env.FORCE_COLOR !== undefined) {
     return true;
   }
 
@@ -28,29 +40,75 @@ export function shouldUseColor(env = process.env, stream = process.stdout): bool
 
 export function createTheme(options: RenderOptions = {}) {
   const color = Boolean(options.color);
-  const paint = (code: string, value: string) => (color ? `\u001b[${code}m${value}\u001b[${ansi.reset}m` : value);
-  const toneCode = (tone: Tone) => ansi[tone];
+  const colors = pc.createColors(color);
+  const applyTone = (value: string, tone: Tone) => {
+    switch (tone) {
+      case "bad":
+        return colors.bold(colors.red(value));
+      case "good":
+        return colors.bold(colors.green(value));
+      case "info":
+        return colors.bold(colors.cyan(value));
+      case "muted":
+        return colors.dim(value);
+      case "warn":
+        return colors.bold(colors.yellow(value));
+    }
+  };
+  const applyBadgeTone = (value: string, tone: Tone) => {
+    switch (tone) {
+      case "bad":
+        return colors.bgRed(colors.white(colors.bold(value)));
+      case "good":
+        return colors.bgGreen(colors.black(colors.bold(value)));
+      case "info":
+        return colors.bgCyan(colors.black(colors.bold(value)));
+      case "muted":
+        return colors.inverse(colors.dim(value));
+      case "warn":
+        return colors.bgYellow(colors.black(colors.bold(value)));
+    }
+  };
 
   return {
     badge(label: string, tone: Tone = "muted"): string {
-      return paint(toneCode(tone), `[${label}]`);
+      return applyBadgeTone(`[${label}]`, tone);
     },
     bar(score: number): string {
       const filled = Math.max(0, Math.min(10, Math.round(score / 10)));
-      const bar = `[${"#".repeat(filled)}${"-".repeat(10 - filled)}]`;
-      return paint(toneCode(scoreTone(score)), bar);
+      const fill = applyTone("#".repeat(filled), scoreTone(score));
+      const empty = colors.dim("-".repeat(10 - filled));
+      return `[${fill}${empty}]`;
     },
     bold(value: string): string {
-      return paint(ansi.bold, value);
+      return colors.bold(value);
+    },
+    error(value: string): string {
+      return applyTone(value, "bad");
+    },
+    missing(value = "n/a"): string {
+      return applyTone(value, "muted");
     },
     muted(value: string): string {
-      return paint(ansi.muted, value);
+      return applyTone(value, "muted");
+    },
+    label(value: string): string {
+      return colors.blue(value);
+    },
+    repo(value: string): string {
+      return colors.bold(colors.cyan(value));
     },
     section(value: string): string {
-      return paint(ansi.bold, value);
+      return colors.bold(colors.underline(colors.magenta(value)));
     },
     tone(value: string, tone: Tone): string {
-      return paint(toneCode(tone), value);
+      return applyTone(value, tone);
+    },
+    value(value: string): string {
+      return colors.bold(colors.white(value));
+    },
+    warning(value: string): string {
+      return applyTone(value, "warn");
     },
   };
 }
@@ -71,3 +129,11 @@ export function scoreTone(score: number): Tone {
   return "bad";
 }
 
+export function visibleLength(value: string): number {
+  return stripVTControlCharacters(value).length;
+}
+
+export function padVisibleEnd(value: string, width: number): string {
+  const padding = width - visibleLength(value);
+  return padding > 0 ? `${value}${" ".repeat(padding)}` : value;
+}
