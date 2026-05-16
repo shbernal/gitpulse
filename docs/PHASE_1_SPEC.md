@@ -1,0 +1,307 @@
+# Phase 1 Spec
+
+## Goal
+
+Migrate Gitpulse from a Bash prototype to a TypeScript CLI that can fetch richer GitHub repository data, display a useful single-repository report, and compare multiple repositories side by side.
+
+Phase 1 should establish the architecture and command shape for future work while staying deterministic. No AI or natural-language content analysis should be included in this phase.
+
+## Current Starting Point
+
+The current `gitpulse` Bash script accepts one `owner/repo` argument, calls:
+
+```text
+https://api.github.com/repos/:owner/:repo
+```
+
+It displays:
+
+- Creation date.
+- Stars.
+- Primary language.
+- Forks.
+- Open issues.
+
+This validates the core idea but should be replaced by a maintainable TypeScript implementation.
+
+## Command Scope
+
+### Single Repository
+
+```bash
+gitpulse repo owner/repo
+```
+
+The CLI may also accept the current shorthand during migration:
+
+```bash
+gitpulse owner/repo
+```
+
+Expected behavior:
+
+- Fetch repository metadata from GitHub.
+- Fetch selected supporting endpoints where useful.
+- Render a readable terminal report.
+- Exit non-zero for invalid input, missing repository, rate-limit failure, or network failure.
+- Show actionable error messages.
+
+### Comparison
+
+```bash
+gitpulse compare owner/a owner/b [owner/c...]
+```
+
+Expected behavior:
+
+- Accept at least two repositories.
+- Fetch the same core metrics for each repository.
+- Render a side-by-side table.
+- Highlight missing data and warning states such as archived repositories.
+- Keep summary language evidence-based.
+
+The comparison view should group metrics by practical lens where possible:
+
+- Adoption.
+- Activity.
+- Maintenance.
+- Documentation.
+- Repository facts.
+
+### JSON Output
+
+```bash
+gitpulse repo owner/repo --json
+gitpulse compare owner/a owner/b --json
+```
+
+Expected behavior:
+
+- Emit structured JSON without terminal colors.
+- Include raw key fields and computed metrics.
+- Include fetch errors per repository for comparison commands when partial data is available.
+
+## GitHub Data Sources
+
+Phase 1 should start with the GitHub REST API.
+
+Core endpoint:
+
+```text
+GET /repos/{owner}/{repo}
+```
+
+Useful supporting endpoints:
+
+```text
+GET /repos/{owner}/{repo}/languages
+GET /repos/{owner}/{repo}/contributors
+GET /repos/{owner}/{repo}/releases
+GET /repos/{owner}/{repo}/commits
+GET /repos/{owner}/{repo}/contents/README.md
+GET /repos/{owner}/{repo}/contents/CHANGELOG.md
+GET /repos/{owner}/{repo}/contents/CONTRIBUTING.md
+GET /repos/{owner}/{repo}/contents/CODE_OF_CONDUCT.md
+GET /repos/{owner}/{repo}/contents/SECURITY.md
+```
+
+Implementation should account for common filename variants later. The first pass may use a small case-sensitive candidate list per file type.
+
+## Authentication
+
+Unauthenticated requests should work for basic public repository checks.
+
+If `GITHUB_TOKEN` is present, Gitpulse should use it:
+
+```text
+Authorization: Bearer $GITHUB_TOKEN
+```
+
+The CLI should expose rate-limit errors clearly and should avoid excessive endpoint calls.
+
+## Phase 1 Metrics
+
+### Direct Metrics
+
+Collect and display:
+
+- Repository full name.
+- Description.
+- URL.
+- Created date.
+- Last pushed date.
+- Last updated date.
+- Default branch.
+- Primary language.
+- Language distribution.
+- License identifier.
+- Stars.
+- Forks.
+- Watchers.
+- Open issues.
+- Repository topics.
+- Archived status.
+- Fork status.
+- Repository size.
+
+### Activity Metrics
+
+Compute:
+
+- Repository age in days.
+- Days since last push.
+- Days since latest release, when a release exists.
+- Days since latest commit on the default branch, when available.
+- Release count from the fetched release page.
+
+### Documentation Presence
+
+Detect:
+
+- README.
+- Changelog.
+- Contributing guide.
+- Code of conduct.
+- Security policy.
+
+Use presence detection only. Do not summarize contents in phase 1.
+
+### Contributor Metrics
+
+Collect:
+
+- Contributor count from the fetched contributor page.
+- Top contributor contribution count.
+- Top contributor share of fetched contributions.
+
+Document that GitHub contributor endpoints are paginated and that phase-1 counts may be limited unless pagination is implemented.
+
+## Composite Metrics
+
+Phase 1 may include small explainable derived metrics if they are useful.
+
+Suggested examples:
+
+- Activity freshness: based on recent push, latest release, and default-branch commit dates.
+- Community footprint: based on stars, forks, watchers, and contributor count.
+- Maintenance visibility: based on release presence and documentation file presence.
+
+If implemented, each composite metric must expose its inputs. Avoid a single final "winner" score in phase 1.
+
+Phase 1 may also produce a deterministic narrative summary from metric differences. Example:
+
+```text
+ffuf has more recent repository activity and a newer latest release. gobuster has a larger star count. Both repositories are not archived.
+```
+
+This summary should be generated from visible metrics only and should avoid claims such as "best," "safe," or "will win."
+
+## Data Model
+
+The implementation should separate raw API data from normalized report data.
+
+Suggested internal types:
+
+```ts
+type RepoRef = {
+  owner: string;
+  name: string;
+};
+
+type RepoSnapshot = {
+  ref: RepoRef;
+  fetchedAt: string;
+  repository: RepositoryFacts;
+  activity: ActivityMetrics;
+  documentation: DocumentationSignals;
+  contributors: ContributorSignals;
+  warnings: string[];
+};
+```
+
+Raw GitHub responses should be mapped into these internal types before rendering.
+
+## Architecture
+
+Suggested module layout:
+
+```text
+src/
+  cli.ts
+  github/
+    client.ts
+    types.ts
+  metrics/
+    snapshot.ts
+    compare.ts
+  render/
+    table.ts
+    json.ts
+  util/
+    dates.ts
+    format.ts
+```
+
+Responsibilities:
+
+- `cli.ts`: argument parsing and command dispatch.
+- `github/client.ts`: HTTP calls, headers, error handling, pagination helpers.
+- `metrics/snapshot.ts`: convert API responses into `RepoSnapshot`.
+- `metrics/compare.ts`: align snapshots for side-by-side comparison.
+- `render/table.ts`: terminal output.
+- `render/json.ts`: machine-readable output.
+- `util/dates.ts`: age and freshness calculations.
+- `util/format.ts`: number and text formatting.
+
+## Suggested Dependencies
+
+Keep dependencies modest.
+
+Candidates:
+
+- TypeScript for implementation.
+- `tsx` for local development.
+- `commander` or `yargs` for CLI parsing.
+- `undici` or built-in `fetch` depending on the supported Node.js version.
+- A small table-rendering library, or a local renderer if that remains simple.
+- A test runner such as `vitest`.
+
+The project should choose a current supported Node.js LTS baseline.
+
+## Error Handling
+
+Handle:
+
+- Invalid repo references.
+- GitHub 404 responses.
+- GitHub rate limits.
+- Network failures.
+- Missing optional endpoints.
+- Archived repositories.
+- Empty release lists.
+- Empty contributor lists.
+
+Comparison commands should try to return partial results when one repository fails, while making the failure visible.
+
+## Acceptance Criteria
+
+Phase 1 is complete when:
+
+- The CLI is implemented in TypeScript.
+- `gitpulse repo owner/repo` returns a richer repository report than the Bash prototype.
+- `gitpulse compare owner/a owner/b` renders a side-by-side comparison.
+- `--json` works for both commands.
+- The GitHub token path is supported through `GITHUB_TOKEN`.
+- Errors are clear and exit codes are meaningful.
+- Basic tests cover repo reference parsing, date/number formatting, metric normalization, and comparison alignment.
+- The README documents install, usage, authentication, and examples.
+
+## Deferred To Later Phases
+
+- AI summaries of README, changelog, issues, or releases.
+- Package registry integrations.
+- Historical star growth unless an API or data source is selected.
+- TUI mode.
+- Configurable scoring profiles.
+- Non-GitHub forge support.
+- Deep pagination across every endpoint.
