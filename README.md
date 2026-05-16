@@ -66,6 +66,22 @@ gitpulse repo cli/cli --json
 gitpulse compare cli/cli charmbracelet/gum --json
 ```
 
+## Output
+
+Human-readable output is the default. Repository reports use a compact status strip, score bars for explainable composite signals, and grouped metric sections. Comparison reports start with a scoreboard, then show side-by-side details and a deterministic summary when there is enough data. Gitpulse uses light color in TTYs and honors `NO_COLOR` and `FORCE_COLOR`.
+
+Use `--json` for scripts and integrations. JSON output is not colorized and includes a stable envelope:
+
+```json
+{
+  "schemaVersion": 1,
+  "command": "repo",
+  "result": {
+    "ok": true
+  }
+}
+```
+
 ## Authentication
 
 You do not need a GitHub token for occasional checks against public repositories:

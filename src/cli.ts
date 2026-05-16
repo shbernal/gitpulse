@@ -3,6 +3,7 @@ import { GitHubClient } from "./github/client";
 import { collectSnapshot } from "./metrics/snapshot";
 import { renderComparisonJson, renderRepoJson } from "./render/json";
 import { renderComparison, renderRepo } from "./render/table";
+import { shouldUseColor } from "./render/terminal";
 
 type CommandOptions = {
   json?: boolean;
@@ -56,7 +57,7 @@ async function runRepo(repo: string, json: boolean): Promise<void> {
   if (json) {
     console.log(renderRepoJson(result));
   } else if (result.ok) {
-    console.log(renderRepo(result.snapshot));
+    console.log(renderRepo(result.snapshot, { color: shouldUseColor() }));
   } else {
     console.error(`gitpulse: ${result.error.message}`);
   }
@@ -79,7 +80,7 @@ async function runCompare(repos: string[], json: boolean): Promise<void> {
   if (json) {
     console.log(renderComparisonJson(results));
   } else {
-    console.log(renderComparison(results));
+    console.log(renderComparison(results, { color: shouldUseColor() }));
   }
 
   if (results.some((result) => !result.ok)) {

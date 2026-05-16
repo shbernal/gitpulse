@@ -175,7 +175,8 @@ Composite metrics may be added, but they must be explainable. If Gitpulse comput
 
 Default output should be optimized for humans in a terminal:
 
-- Compact tables.
+- Compact reports with grouped sections.
+- Score bars or similarly scannable presentations for explainable composite metrics.
 - Consistent labels.
 - Clear missing-data indicators.
 - Dates shown in understandable absolute form.
@@ -192,6 +193,7 @@ gitpulse compare owner/a owner/b --json
 ```
 
 JSON output should remain stable enough to support scripts.
+It should use an explicit envelope with a schema version and command name so the scripting surface can evolve deliberately.
 
 ## Non-Goals
 

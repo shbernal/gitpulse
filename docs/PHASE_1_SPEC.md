@@ -56,7 +56,7 @@ Expected behavior:
 
 - Accept at least two repositories.
 - Fetch the same core metrics for each repository.
-- Render a side-by-side table.
+- Render a compact scoreboard plus side-by-side details.
 - Highlight missing data and warning states such as archived repositories.
 - Keep summary language evidence-based.
 
@@ -78,6 +78,7 @@ gitpulse compare owner/a owner/b --json
 Expected behavior:
 
 - Emit structured JSON without terminal colors.
+- Include a `schemaVersion` and `command` envelope.
 - Include raw key fields and computed metrics.
 - Include fetch errors per repository for comparison commands when partial data is available.
 
