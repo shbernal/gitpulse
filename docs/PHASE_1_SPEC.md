@@ -123,6 +123,9 @@ Default config:
     "enabled": true,
     "maxCacheHours": 168,
     "staleIfError": true
+  },
+  "contributors": {
+    "fetchLimit": 100
   }
 }
 ```
@@ -133,6 +136,7 @@ Cache control flags:
 gitpulse repo owner/repo --refresh
 gitpulse repo owner/repo --offline
 gitpulse repo owner/repo --max-cache-hours 24
+gitpulse repo owner/repo --contributor-fetch-limit 250
 gitpulse compare owner/a owner/b --max-cache-hours 24
 ```
 
@@ -141,6 +145,8 @@ Expected behavior:
 - `--refresh` bypasses cache reads, fetches from GitHub, and updates the cache.
 - `--offline` never calls the API and uses cache even when stale.
 - `--max-cache-hours <hours>` overrides the configured freshness window for one invocation.
+- `--contributor-fetch-limit <count>` overrides the configured contributor fetch limit for one invocation.
+- Fresh cache entries collected with a different contributor fetch limit should refresh unless `--offline` is used.
 - `--refresh` and `--offline` are mutually exclusive.
 - If stale cache exists and refresh fails while `cache.staleIfError` is true, render the stale cache with a visible refresh warning.
 - If no cache exists and refresh fails, keep the normal non-zero failure behavior.
@@ -220,6 +226,7 @@ Compute:
 - Days since latest release, when a release exists.
 - Days since latest commit on the default branch, when available.
 - Release count from the fetched release page.
+- Total commits reachable from the default branch, inferred from GitHub REST pagination when available.
 
 ### Documentation Presence
 
@@ -238,10 +245,12 @@ Use presence detection only. Do not summarize contents in phase 1.
 Collect:
 
 - Contributor count from the fetched contributor page.
+- Total contributor count inferred from GitHub REST pagination with `anon=true` when available.
 - Top contributor contribution count.
 - Top contributor share of fetched contributions.
+- Configurable contributor fetch limit, defaulting to 100 and overridable by config or flag.
 
-Document that GitHub contributor endpoints are paginated and that phase-1 counts may be limited unless pagination is implemented.
+Document that GitHub contributor endpoints are paginated and cached by GitHub. Total contributor counts should include anonymous contributor identities via `anon=true` and should be treated as GitHub API-reported counts rather than perfect counts of unique humans.
 
 ## Composite Metrics
 

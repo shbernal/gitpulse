@@ -46,11 +46,8 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
         { label: "Stars", value: theme.value(formatCompactNumber(snapshot.repository.stars)) },
         { label: "Forks", value: theme.value(formatCompactNumber(snapshot.repository.forks)) },
         { label: "Watchers", value: theme.value(formatCompactNumber(snapshot.repository.watchers)) },
-        { label: "Contributors", value: theme.value(formatContributorCount(snapshot)) },
         { label: "Open issues", value: theme.value(formatInteger(snapshot.repository.openIssues)) },
         { label: "Open PRs", value: theme.value(formatInteger(snapshot.repository.openPullRequests)) },
-        { label: "Top contributor", value: formatTopContributor(snapshot, theme) },
-        { label: "Top share", value: valueOrMissing(formatPercent(snapshot.contributors.topContributorShare), theme) },
       ],
       theme,
     ),
@@ -64,6 +61,16 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
         { label: "Latest commit", value: formatDateWithAgeTone(snapshot.activity.latestCommitAt, snapshot.activity.daysSinceLatestCommit, theme) },
         { label: "Latest release", value: formatRelease(snapshot, theme) },
         { label: "Releases", value: theme.value(formatInteger(snapshot.activity.releaseCount)) },
+      ],
+      theme,
+    ),
+    "",
+    theme.section("Contributors"),
+    renderKeyValueList(
+      [
+        ["Total contributors", formatContributorCount(snapshot, theme)],
+        ["Top contributor", formatTopContributor(snapshot, theme)],
+        ["Total number of commits", valueOrMissing(formatInteger(snapshot.activity.totalCommitCount), theme)],
       ],
       theme,
     ),
@@ -139,7 +146,7 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
         row("Stars", snapshots, ({ snapshot }) => theme.value(formatCompactNumber(snapshot.repository.stars))),
         row("Forks", snapshots, ({ snapshot }) => theme.value(formatCompactNumber(snapshot.repository.forks))),
         row("Watchers", snapshots, ({ snapshot }) => theme.value(formatCompactNumber(snapshot.repository.watchers))),
-        row("Fetched contributors", snapshots, ({ snapshot }) => theme.value(formatInteger(snapshot.contributors.fetchedCount))),
+        row("Total contributors", snapshots, ({ snapshot }) => formatContributorCount(snapshot, theme)),
         row("Top contributor share", snapshots, ({ snapshot }) => valueOrMissing(formatPercent(snapshot.contributors.topContributorShare), theme)),
       ],
     },
@@ -149,6 +156,7 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
         row("Last push", snapshots, ({ snapshot }) => formatRelativeDaysTone(snapshot.activity.daysSinceLastPush, theme)),
         row("Latest commit", snapshots, ({ snapshot }) => formatRelativeDaysTone(snapshot.activity.daysSinceLatestCommit, theme)),
         row("Latest release", snapshots, ({ snapshot }) => formatRelativeDaysTone(snapshot.activity.daysSinceLatestRelease, theme)),
+        row("Total number of commits", snapshots, ({ snapshot }) => valueOrMissing(formatInteger(snapshot.activity.totalCommitCount), theme)),
         row("Release count", snapshots, ({ snapshot }) => theme.value(formatInteger(snapshot.activity.releaseCount))),
         row("Open issues", snapshots, ({ snapshot }) => theme.value(formatInteger(snapshot.repository.openIssues))),
         row("Open PRs", snapshots, ({ snapshot }) => theme.value(formatInteger(snapshot.repository.openPullRequests))),
@@ -387,11 +395,26 @@ function formatTopContributor(snapshot: RepoSnapshot, theme: Theme): string {
     return theme.missing();
   }
 
-  return `${theme.value(snapshot.contributors.topContributor.login)} (${theme.value(formatInteger(snapshot.contributors.topContributor.contributions))})`;
+  const contributionCount = snapshot.contributors.topContributor.contributions;
+  const share = formatPercent(snapshot.contributors.topContributorShare);
+  const details = [`${theme.value(formatInteger(contributionCount))} ${contributionCount === 1 ? "commit" : "commits"}`];
+
+  if (share !== "n/a") {
+    details.push(theme.value(share));
+  }
+
+  return `${theme.value(snapshot.contributors.topContributor.login)} (${details.join(", ")})`;
 }
 
-function formatContributorCount(snapshot: RepoSnapshot): string {
-  return `${formatInteger(snapshot.contributors.fetchedCount)}${snapshot.contributors.truncated ? " first page" : ""}`;
+function formatContributorCount(snapshot: RepoSnapshot, theme: Theme): string {
+  const totalCount = snapshot.contributors.totalCount;
+
+  if (totalCount !== null && totalCount !== undefined) {
+    return theme.value(formatInteger(totalCount));
+  }
+
+  const fetchedCount = formatInteger(snapshot.contributors.fetchedCount);
+  return snapshot.contributors.truncated ? `${theme.value(fetchedCount)} ${theme.muted("fetched")}` : theme.value(fetchedCount);
 }
 
 function formatMetricCompact(metric: CompositeMetric, theme: Theme): string {

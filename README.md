@@ -112,7 +112,7 @@ Use `--json` for scripts and integrations. JSON output is not colorized and incl
 
 Gitpulse is cache-first by default. It uses a cached snapshot when one exists and is newer than the configured freshness window. If the cache is missing or stale, Gitpulse refreshes from the GitHub API and stores the new snapshot.
 
-Default freshness is one week:
+Default config:
 
 ```json
 {
@@ -120,6 +120,9 @@ Default freshness is one week:
     "enabled": true,
     "maxCacheHours": 168,
     "staleIfError": true
+  },
+  "contributors": {
+    "fetchLimit": 100
   }
 }
 ```
@@ -147,6 +150,9 @@ Useful overrides:
 - `--refresh`: bypass cache reads, fetch from GitHub, and update the cache.
 - `--offline`: use local cache only, even if stale; fail when no cache entry exists.
 - `--max-cache-hours <hours>`: override `cache.maxCacheHours` for one invocation.
+- `--contributor-fetch-limit <count>`: override `contributors.fetchLimit` for one invocation.
+
+A cached snapshot is reused only when it was collected with the same contributor fetch limit, unless `--offline` is used.
 
 ## Authentication
 
@@ -171,12 +177,14 @@ Phase 1 collects deterministic GitHub API data:
 
 - Repository facts: description, URL, created date, updated date, default branch, primary language, language mix, license, topics, archive/fork/template state, size.
 - Adoption signals: stars, forks, watchers, open issues, open pull requests.
-- Activity signals: latest push, latest default-branch commit, latest release, release count.
+- Activity signals: latest push, latest default-branch commit, total default-branch commits, latest release, release count.
 - Documentation presence: README, changelog, contributing guide, code of conduct, security policy.
-- Contributor signals: fetched contributor count, top contributor, top contributor share.
+- Contributor signals: total contributor count, fetched contributor rows for concentration metrics, top contributor, top contributor share.
 - Explainable composite signals: activity freshness, community footprint, maintenance visibility.
 
 Watcher counts are sourced from GitHub REST `subscribers_count`, because GitHub's legacy `watchers_count` mirrors `stargazers_count`.
+
+Total contributor and total commit counts are inferred from GitHub REST pagination. Contributor collection uses GitHub's `anon=true` contributor mode so anonymous author identities are included. Contributor concentration metrics use the first `contributors.fetchLimit` rows returned by GitHub's contributor endpoint, sorted by contribution count.
 
 Composite signals are evidence grouping helpers, not verdicts.
 

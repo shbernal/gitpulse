@@ -15,6 +15,11 @@ describe("terminal rendering", () => {
     expect(output).toContain("[########--]");
     expect(output).toContain("At a glance");
     expect(output).toContain("Watchers");
+    expect(output).toContain("Contributors");
+    expect(output).toContain("Total contributors");
+    expect(output).toContain("Top contributor");
+    expect(output).toContain("42 commits, 42%");
+    expect(output).toContain("Total number of commits");
     expect(output).not.toContain("Subscribers");
     expect(output).not.toContain("+-");
   });
@@ -236,6 +241,7 @@ function snapshot(
       latestReleaseTag: "v1.0.0",
       daysSinceLatestRelease: 15,
       releaseCount: 4,
+      totalCommitCount: 144,
     },
     documentation: {
       readme: { present: true, path: "README.md" },
@@ -246,6 +252,8 @@ function snapshot(
     },
     contributors: {
       fetchedCount: 10,
+      totalCount: 12,
+      fetchLimit: 100,
       truncated: false,
       topContributor: { login: "octo", contributions: 42 },
       topContributorShare: 42,

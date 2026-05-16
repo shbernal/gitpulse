@@ -14,7 +14,7 @@ export function buildComparisonSummary(results: SnapshotResult[]): string[] {
   const mostStars = maxBy(labeledSnapshots, ({ snapshot }) => snapshot.repository.stars);
   const freshest = minByNullable(labeledSnapshots, ({ snapshot }) => snapshot.activity.daysSinceLatestCommit);
   const newestRelease = minByNullable(labeledSnapshots, ({ snapshot }) => snapshot.activity.daysSinceLatestRelease);
-  const mostContributors = maxBy(labeledSnapshots, ({ snapshot }) => snapshot.contributors.fetchedCount);
+  const mostContributors = maxBy(labeledSnapshots, ({ snapshot }) => contributorCount(snapshot));
   const archived = labeledSnapshots.filter(({ snapshot }) => snapshot.repository.archived);
 
   if (mostStars && isDistinctMax(labeledSnapshots, ({ snapshot }) => snapshot.repository.stars)) {
@@ -29,8 +29,8 @@ export function buildComparisonSummary(results: SnapshotResult[]): string[] {
     lines.push(`${newestRelease.label} has the newest latest release.`);
   }
 
-  if (mostContributors && isDistinctMax(labeledSnapshots, ({ snapshot }) => snapshot.contributors.fetchedCount)) {
-    lines.push(`${mostContributors.label} has the largest fetched contributor set.`);
+  if (mostContributors && isDistinctMax(labeledSnapshots, ({ snapshot }) => contributorCount(snapshot))) {
+    lines.push(`${mostContributors.label} has the largest contributor count.`);
   }
 
   if (archived.length === 0) {
@@ -40,6 +40,10 @@ export function buildComparisonSummary(results: SnapshotResult[]): string[] {
   }
 
   return lines;
+}
+
+function contributorCount(snapshot: RepoSnapshot): number {
+  return snapshot.contributors.totalCount ?? snapshot.contributors.fetchedCount;
 }
 
 function maxBy<T>(items: T[], selector: (item: T) => number): T | null {

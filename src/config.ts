@@ -10,6 +10,9 @@ export type GitpulseConfig = {
     maxCacheHours: number;
     staleIfError: boolean;
   };
+  contributors: {
+    fetchLimit: number;
+  };
 };
 
 export const defaultConfig: GitpulseConfig = {
@@ -17,6 +20,9 @@ export const defaultConfig: GitpulseConfig = {
     enabled: true,
     maxCacheHours: 168,
     staleIfError: true,
+  },
+  contributors: {
+    fetchLimit: 100,
   },
 };
 
@@ -59,6 +65,9 @@ export function parseConfig(value: unknown): GitpulseConfig {
     cache: {
       ...defaultConfig.cache,
     },
+    contributors: {
+      ...defaultConfig.contributors,
+    },
   };
 
   if (value.cache !== undefined) {
@@ -91,6 +100,20 @@ export function parseConfig(value: unknown): GitpulseConfig {
     }
   }
 
+  if (value.contributors !== undefined) {
+    if (!isRecord(value.contributors)) {
+      throw new ConfigError("Config field contributors must be an object.");
+    }
+
+    if (value.contributors.fetchLimit !== undefined) {
+      if (!isPositiveInteger(value.contributors.fetchLimit)) {
+        throw new ConfigError("Config field contributors.fetchLimit must be a positive integer.");
+      }
+
+      config.contributors.fetchLimit = value.contributors.fetchLimit;
+    }
+  }
+
   return config;
 }
 
@@ -100,6 +123,10 @@ function xdgConfigDir(env: Env): string {
 
 function isNonNegativeNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

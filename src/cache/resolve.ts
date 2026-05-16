@@ -1,6 +1,6 @@
 import type { GitHubClient } from "../github/client";
 import { collectSnapshot, createSnapshotFailure } from "../metrics/snapshot";
-import type { RepoRef, SnapshotError, SnapshotResult, SnapshotWithSource } from "../types";
+import type { RepoRef, RepoSnapshot, SnapshotError, SnapshotResult, SnapshotWithSource } from "../types";
 import { parseRepoRef } from "../util/repo-ref";
 import { cacheAgeHours, cacheSource, isFreshCache, type CacheMode } from "./policy";
 import { readCachedSnapshot, writeCachedSnapshot, type CachedSnapshot } from "./store";
@@ -9,6 +9,7 @@ type Env = Record<string, string | undefined>;
 
 export type SnapshotResolverOptions = {
   cacheEnabled: boolean;
+  contributorFetchLimit?: number;
   maxCacheHours: number;
   staleIfError: boolean;
   mode: CacheMode;
@@ -46,7 +47,10 @@ export async function resolveSnapshot(
   if (cached.entry) {
     const source = cacheSource(cached.entry.cachedAt, options.maxCacheHours, now);
 
-    if (options.mode === "offline" || isFreshCache(cached.entry.cachedAt, options.maxCacheHours, now)) {
+    if (
+      options.mode === "offline" ||
+      (isFreshCache(cached.entry.cachedAt, options.maxCacheHours, now) && snapshotMatchesOptions(cached.entry.snapshot, options))
+    ) {
       return {
         result: { ok: true, snapshot: cached.entry.snapshot },
         source,
@@ -61,7 +65,9 @@ export async function resolveSnapshot(
     };
   }
 
-  const apiResult = await collectSnapshot(client, input, now);
+  const apiResult = await collectSnapshot(client, input, now, {
+    contributorFetchLimit: options.contributorFetchLimit,
+  });
 
   if (apiResult.ok) {
     if (options.cacheEnabled) {
@@ -90,6 +96,10 @@ export async function resolveSnapshot(
     result: apiResult,
     source: { kind: "api" },
   };
+}
+
+function snapshotMatchesOptions(snapshot: RepoSnapshot, options: SnapshotResolverOptions): boolean {
+  return options.contributorFetchLimit === undefined || snapshot.contributors.fetchLimit === options.contributorFetchLimit;
 }
 
 async function tryWriteCache(

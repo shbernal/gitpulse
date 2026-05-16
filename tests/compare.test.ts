@@ -66,6 +66,7 @@ function snapshot(fullName: string, stars: number, commitDays: number, contribut
       latestReleaseTag: null,
       daysSinceLatestRelease: null,
       releaseCount: 0,
+      totalCommitCount: 100,
     },
     documentation: {
       readme: { present: false, path: null },
@@ -76,6 +77,8 @@ function snapshot(fullName: string, stars: number, commitDays: number, contribut
     },
     contributors: {
       fetchedCount: contributors,
+      totalCount: contributors,
+      fetchLimit: 100,
       truncated: false,
       topContributor: null,
       topContributorShare: null,

@@ -29,11 +29,19 @@ describe("config parsing", () => {
         maxCacheHours: 168,
         staleIfError: true,
       },
+      contributors: {
+        fetchLimit: 100,
+      },
     });
   });
 
   test("rejects invalid cache freshness", () => {
     expect(() => parseConfig({ cache: { maxCacheHours: -1 } })).toThrow("cache.maxCacheHours");
+  });
+
+  test("parses contributor fetch limits", () => {
+    expect(parseConfig({ contributors: { fetchLimit: 250 } }).contributors.fetchLimit).toBe(250);
+    expect(() => parseConfig({ contributors: { fetchLimit: 0 } })).toThrow("contributors.fetchLimit");
   });
 });
 
@@ -54,6 +62,27 @@ describe("snapshot cache resolution", () => {
 
       expect(resolved.result.ok).toBe(true);
       expect(resolved.source.kind).toBe("cache");
+    });
+  });
+
+  test("refreshes fresh cache when contributor fetch limit changes", async () => {
+    await withTempEnv(async (env) => {
+      const ref = { owner: "acme", name: "tool" };
+      await writeCachedSnapshot(ref, snapshot("acme/tool"), new Date("2026-05-16T00:00:00.000Z"), env);
+
+      const resolved = await resolveSnapshot(failingClient(), "acme/tool", {
+        cacheEnabled: true,
+        contributorFetchLimit: 250,
+        maxCacheHours: 168,
+        staleIfError: true,
+        mode: "default",
+        now: new Date("2026-05-16T12:00:00.000Z"),
+        env,
+      });
+
+      expect(resolved.result.ok).toBe(true);
+      expect(resolved.source.kind).toBe("stale-cache");
+      expect(resolved.source.kind === "stale-cache" ? resolved.source.refreshError?.message : null).toContain("api down");
     });
   });
 
@@ -157,6 +186,7 @@ function snapshot(fullName: string): RepoSnapshot {
       latestReleaseTag: null,
       daysSinceLatestRelease: null,
       releaseCount: 0,
+      totalCommitCount: 10,
     },
     documentation: {
       readme: { present: false, path: null },
@@ -167,6 +197,8 @@ function snapshot(fullName: string): RepoSnapshot {
     },
     contributors: {
       fetchedCount: 0,
+      totalCount: 0,
+      fetchLimit: 100,
       truncated: false,
       topContributor: null,
       topContributorShare: null,

@@ -42,10 +42,22 @@ export type GitHubCommit = {
   };
 };
 
+export type CommitOverview = {
+  latest: GitHubCommit | null;
+  count: number | null;
+};
+
 export type GitHubContributor = {
   login?: string | null;
   name?: string | null;
   contributions: number;
+};
+
+export type ContributorOverview = {
+  contributors: GitHubContributor[];
+  totalCount: number | null;
+  fetchLimit: number;
+  truncated: boolean;
 };
 
 export type GitHubContentItemType = "dir" | "file" | "submodule" | "symlink";

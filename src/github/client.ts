@@ -2,6 +2,8 @@ import { Octokit } from "octokit";
 import type { RepoRef } from "../types";
 import { formatRepoRef } from "../util/repo-ref";
 import type {
+  CommitOverview,
+  ContributorOverview,
   GitHubCommit,
   GitHubContentItem,
   GitHubContributor,
@@ -11,6 +13,8 @@ import type {
 } from "./types";
 
 export const githubApiVersion = "2026-03-10";
+const defaultContributorFetchLimit = 100;
+const githubPageSizeLimit = 100;
 
 export class GitHubApiError extends Error {
   readonly status?: number;
@@ -74,7 +78,7 @@ export class GitHubClient {
     }
   }
 
-  async getLatestCommit(ref: RepoRef, branch: string): Promise<GitHubCommit | null> {
+  async getCommitOverview(ref: RepoRef, branch: string): Promise<CommitOverview> {
     try {
       const response = await this.octokit.rest.repos.listCommits({
         owner: ref.owner,
@@ -83,10 +87,17 @@ export class GitHubClient {
         per_page: 1,
       });
 
-      return (response.data[0] as GitHubCommit | undefined) ?? null;
+      return {
+        latest: (response.data[0] as GitHubCommit | undefined) ?? null,
+        count: countFromLinkHeader(response.headers.link, response.data.length),
+      };
     } catch (error) {
-      throw normalizeGitHubError(error, `Could not fetch latest commit for ${formatRepoRef(ref)}.`);
+      throw normalizeGitHubError(error, `Could not fetch commits for ${formatRepoRef(ref)}.`);
     }
+  }
+
+  async getLatestCommit(ref: RepoRef, branch: string): Promise<GitHubCommit | null> {
+    return (await this.getCommitOverview(ref, branch)).latest;
   }
 
   async getReleaseOverview(ref: RepoRef): Promise<ReleaseOverview> {
@@ -106,20 +117,68 @@ export class GitHubClient {
     }
   }
 
-  async getContributors(ref: RepoRef): Promise<{ contributors: GitHubContributor[]; truncated: boolean }> {
+  async getContributors(ref: RepoRef, fetchLimit = defaultContributorFetchLimit): Promise<ContributorOverview> {
+    try {
+      const limit = normalizeContributorFetchLimit(fetchLimit);
+      const perPage = Math.min(limit, githubPageSizeLimit);
+      const contributors: GitHubContributor[] = [];
+      let page = 1;
+      let hasMorePages = false;
+      let collectedAllPages = false;
+      let exactTotalCount: number | null = null;
+
+      while (contributors.length < limit) {
+        const response = await this.octokit.rest.repos.listContributors({
+          owner: ref.owner,
+          repo: ref.name,
+          anon: "true",
+          per_page: perPage,
+          page,
+        });
+        const pageContributors = response.data as GitHubContributor[];
+
+        if (page === 1 && perPage === 1) {
+          exactTotalCount = countFromLinkHeader(response.headers.link, pageContributors.length);
+        }
+
+        contributors.push(...pageContributors);
+        hasMorePages = hasNextPage(response.headers.link);
+
+        if (!hasMorePages || pageContributors.length === 0) {
+          collectedAllPages = true;
+          break;
+        }
+
+        page += 1;
+      }
+
+      const fetchedContributors = contributors.slice(0, limit);
+      const totalCount =
+        exactTotalCount ?? (collectedAllPages ? contributors.length : await this.getContributorTotalCount(ref));
+
+      return {
+        contributors: fetchedContributors,
+        totalCount,
+        fetchLimit: limit,
+        truncated: totalCount === null ? hasMorePages : fetchedContributors.length < totalCount,
+      };
+    } catch (error) {
+      throw normalizeGitHubError(error, `Could not fetch contributors for ${formatRepoRef(ref)}.`);
+    }
+  }
+
+  private async getContributorTotalCount(ref: RepoRef): Promise<number | null> {
     try {
       const response = await this.octokit.rest.repos.listContributors({
         owner: ref.owner,
         repo: ref.name,
-        per_page: 100,
+        anon: "true",
+        per_page: 1,
       });
 
-      return {
-        contributors: response.data as GitHubContributor[],
-        truncated: hasNextPage(response.headers.link),
-      };
-    } catch (error) {
-      throw normalizeGitHubError(error, `Could not fetch contributors for ${formatRepoRef(ref)}.`);
+      return countFromLinkHeader(response.headers.link, response.data.length);
+    } catch {
+      return null;
     }
   }
 
@@ -232,6 +291,10 @@ function isNotFound(error: unknown): boolean {
 
 function hasNextPage(linkHeader: string | undefined): boolean {
   return Boolean(linkHeader?.includes('rel="next"'));
+}
+
+function normalizeContributorFetchLimit(value: number): number {
+  return Number.isInteger(value) && value > 0 ? value : defaultContributorFetchLimit;
 }
 
 function countFromLinkHeader(linkHeader: string | undefined, fallback: number): number {

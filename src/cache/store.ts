@@ -3,12 +3,12 @@ import path from "node:path";
 import type { RepoRef, RepoSnapshot } from "../types";
 import { snapshotCachePath } from "./paths";
 
-export const cacheSchemaVersion = 1;
+export const cacheSchemaVersion = 3 as const;
 
 type Env = Record<string, string | undefined>;
 
 export type CachedSnapshot = {
-  schemaVersion: 1;
+  schemaVersion: typeof cacheSchemaVersion;
   forge: "github";
   key: string;
   cachedAt: string;

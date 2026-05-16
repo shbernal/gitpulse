@@ -12,6 +12,7 @@ import type { SnapshotWithSource } from "./types";
 
 type CommandOptions = {
   color?: ColorMode;
+  contributorFetchLimit?: number;
   json?: boolean;
   maxCacheHours?: number;
   offline?: boolean;
@@ -78,6 +79,7 @@ function addSharedOptions(command: Command): Command {
     .addOption(colorOption())
     .option("--refresh", "bypass the cache and refresh from the GitHub API")
     .option("--offline", "use the local cache only, even when cached data is stale")
+    .addOption(contributorFetchLimitOption())
     .addOption(maxCacheHoursOption());
 }
 
@@ -89,6 +91,12 @@ function maxCacheHoursOption(): Option {
   return new Option("--max-cache-hours <hours>", "override cache freshness in hours").argParser(parseMaxCacheHours);
 }
 
+function contributorFetchLimitOption(): Option {
+  return new Option("--contributor-fetch-limit <count>", "override how many contributors are fetched for concentration metrics").argParser(
+    parsePositiveInteger,
+  );
+}
+
 function parseMaxCacheHours(value: string): number {
   const hours = Number(value);
 
@@ -97,6 +105,16 @@ function parseMaxCacheHours(value: string): number {
   }
 
   return hours;
+}
+
+function parsePositiveInteger(value: string): number {
+  const count = Number(value);
+
+  if (!Number.isInteger(count) || count <= 0) {
+    throw new InvalidArgumentError("Expected a positive integer.");
+  }
+
+  return count;
 }
 
 async function runRepo(repo: string, options: CommandOptions): Promise<void> {
@@ -110,7 +128,11 @@ async function runRepo(repo: string, options: CommandOptions): Promise<void> {
 
   const client = new GitHubClient();
   const now = new Date();
-  const snapshot = await resolveSnapshot(client, repo, { ...runtime.value.cache, now });
+  const snapshot = await resolveSnapshot(client, repo, {
+    ...runtime.value.cache,
+    contributorFetchLimit: runtime.value.contributorFetchLimit,
+    now,
+  });
   const result = snapshot.result;
 
   await recordHistory("repo", [repo], [snapshot], now);
@@ -145,7 +167,15 @@ async function runCompare(repos: string[], options: CommandOptions): Promise<voi
 
   const client = new GitHubClient();
   const now = new Date();
-  const snapshots = await Promise.all(repos.map((repo) => resolveSnapshot(client, repo, { ...runtime.value.cache, now })));
+  const snapshots = await Promise.all(
+    repos.map((repo) =>
+      resolveSnapshot(client, repo, {
+        ...runtime.value.cache,
+        contributorFetchLimit: runtime.value.contributorFetchLimit,
+        now,
+      }),
+    ),
+  );
   const results = snapshots.map((snapshot) => snapshot.result);
   const sources = snapshots.map((snapshot) => snapshot.source);
 
@@ -184,6 +214,7 @@ type RuntimeOptions = {
     staleIfError: boolean;
     mode: CacheMode;
   };
+  contributorFetchLimit: number;
   json: boolean;
   renderOptions: RenderOptions;
 };
@@ -219,6 +250,7 @@ async function loadRuntimeOptions(options: CommandOptions): Promise<RuntimeOptio
           staleIfError: config.cache.staleIfError,
           mode,
         },
+        contributorFetchLimit: options.contributorFetchLimit ?? config.contributors.fetchLimit,
         json: Boolean(options.json),
         renderOptions: {
           color: shouldUseColor(options.color ?? "auto"),

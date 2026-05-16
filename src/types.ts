@@ -44,6 +44,7 @@ export type ActivityMetrics = {
   latestReleaseTag: string | null;
   daysSinceLatestRelease: number | null;
   releaseCount: number;
+  totalCommitCount: number | null;
 };
 
 export type DocumentationSignal = {
@@ -61,6 +62,8 @@ export type DocumentationSignals = {
 
 export type ContributorSignals = {
   fetchedCount: number;
+  totalCount: number | null;
+  fetchLimit: number;
   truncated: boolean;
   topContributor: {
     login: string;

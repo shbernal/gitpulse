@@ -1,5 +1,11 @@
 import { GitHubApiError, GitHubClient } from "../github/client";
-import type { GitHubContentItem, GitHubContributor, GitHubRepository, ReleaseOverview } from "../github/types";
+import type {
+  CommitOverview,
+  ContributorOverview,
+  GitHubContentItem,
+  GitHubRepository,
+  ReleaseOverview,
+} from "../github/types";
 import type {
   CompositeMetric,
   CompositeMetrics,
@@ -20,6 +26,10 @@ type OptionalData<T> = {
   warning: string | null;
 };
 
+export type SnapshotCollectionOptions = {
+  contributorFetchLimit?: number;
+};
+
 const docsCandidates = {
   readme: ["README.md", "README", "README.rst", "README.txt"],
   changelog: ["CHANGELOG.md", "CHANGELOG", "HISTORY.md", "NEWS.md"],
@@ -28,7 +38,14 @@ const docsCandidates = {
   security: ["SECURITY.md", "SECURITY"],
 } as const;
 
-export async function collectSnapshot(client: GitHubClient, input: string, now = new Date()): Promise<SnapshotResult> {
+const defaultContributorFetchLimit = 100;
+
+export async function collectSnapshot(
+  client: GitHubClient,
+  input: string,
+  now = new Date(),
+  options: SnapshotCollectionOptions = {},
+): Promise<SnapshotResult> {
   let ref: RepoRef;
 
   try {
@@ -44,19 +61,20 @@ export async function collectSnapshot(client: GitHubClient, input: string, now =
 
   try {
     const repository = await client.getRepository(ref);
-    const [languages, latestCommit, releaseOverview, contributors, openPullRequests, documentation] =
+    const contributorFetchLimit = options.contributorFetchLimit ?? defaultContributorFetchLimit;
+    const [languages, commitOverview, releaseOverview, contributors, openPullRequests, documentation] =
       await Promise.all([
         optional(() => client.getLanguages(ref), "languages"),
-        optional(() => client.getLatestCommit(ref, repository.default_branch), "latest commit"),
+        optional(() => client.getCommitOverview(ref, repository.default_branch), "commits"),
         optional(() => client.getReleaseOverview(ref), "releases"),
-        optional(() => client.getContributors(ref), "contributors"),
+        optional(() => client.getContributors(ref, contributorFetchLimit), "contributors"),
         optional(() => client.getOpenPullRequestCount(ref), "open pull requests"),
         optional(() => detectDocumentation(client, ref), "documentation"),
       ]);
 
     const warnings = [
       languages.warning,
-      latestCommit.warning,
+      commitOverview.warning,
       releaseOverview.warning,
       contributors.warning,
       openPullRequests.warning,
@@ -67,9 +85,14 @@ export async function collectSnapshot(client: GitHubClient, input: string, now =
       ref,
       repository,
       languages: languages.value ?? {},
-      latestCommit: latestCommit.value,
+      commitOverview: commitOverview.value ?? { latest: null, count: null },
       releaseOverview: releaseOverview.value ?? { latest: null, count: 0 },
-      contributors: contributors.value ?? { contributors: [], truncated: false },
+      contributors: contributors.value ?? {
+        contributors: [],
+        totalCount: null,
+        fetchLimit: contributorFetchLimit,
+        truncated: false,
+      },
       openPullRequests: openPullRequests.value,
       documentation: documentation.value ?? emptyDocumentation(),
       warnings,
@@ -91,16 +114,16 @@ function buildSnapshot(input: {
   ref: RepoRef;
   repository: GitHubRepository;
   languages: Record<string, number>;
-  latestCommit: Awaited<ReturnType<GitHubClient["getLatestCommit"]>> | null;
+  commitOverview: CommitOverview;
   releaseOverview: ReleaseOverview;
-  contributors: { contributors: GitHubContributor[]; truncated: boolean };
+  contributors: ContributorOverview;
   openPullRequests: number | null;
   documentation: DocumentationSignals;
   warnings: string[];
   now: Date;
 }): RepoSnapshot {
   const latestCommitAt =
-    input.latestCommit?.commit.committer?.date ?? input.latestCommit?.commit.author?.date ?? null;
+    input.commitOverview.latest?.commit.committer?.date ?? input.commitOverview.latest?.commit.author?.date ?? null;
   const latestRelease = input.releaseOverview.latest;
   const latestReleaseAt = latestRelease?.published_at ?? latestRelease?.created_at ?? null;
   const daysSinceLastPush = daysSince(input.repository.pushed_at, input.now);
@@ -129,10 +152,14 @@ function buildSnapshot(input: {
   }
 
   if (input.contributors.truncated) {
-    warnings.push("Contributor metrics are based on the first 100 contributors.");
+    warnings.push(`Contributor concentration metrics are based on the first ${input.contributors.fetchLimit} contributors.`);
   }
 
-  const contributors = buildContributorSignals(input.contributors.contributors, input.contributors.truncated);
+  if (input.contributors.totalCount === null && input.contributors.truncated) {
+    warnings.push("Total contributor count could not be determined.");
+  }
+
+  const contributors = buildContributorSignals(input.contributors);
 
   const snapshot: RepoSnapshot = {
     ref: input.ref,
@@ -171,6 +198,7 @@ function buildSnapshot(input: {
       latestReleaseTag: latestRelease?.tag_name ?? null,
       daysSinceLatestRelease,
       releaseCount: input.releaseOverview.count,
+      totalCommitCount: input.commitOverview.count,
     },
     documentation: input.documentation,
     contributors,
@@ -251,14 +279,16 @@ function buildLanguageBreakdown(languages: Record<string, number>): LanguageBrea
   }));
 }
 
-function buildContributorSignals(contributors: GitHubContributor[], truncated: boolean): ContributorSignals {
-  const sorted = [...contributors].sort((a, b) => b.contributions - a.contributions);
+function buildContributorSignals(overview: ContributorOverview): ContributorSignals {
+  const sorted = [...overview.contributors].sort((a, b) => b.contributions - a.contributions);
   const top = sorted[0];
   const total = sorted.reduce((sum, contributor) => sum + contributor.contributions, 0);
 
   return {
-    fetchedCount: contributors.length,
-    truncated,
+    fetchedCount: overview.contributors.length,
+    totalCount: overview.totalCount,
+    fetchLimit: overview.fetchLimit,
+    truncated: overview.truncated,
     topContributor: top
       ? {
           login: top.login ?? top.name ?? "unknown",
@@ -307,11 +337,12 @@ function buildCompositeMetrics(input: {
     (input.releaseCount > 0 ? 10 : 0) +
     (input.repository.archived ? -30 : 10);
 
+  const contributorCount = input.contributors.totalCount ?? input.contributors.fetchedCount;
   const communityScore =
     logScore(input.repository.stargazers_count, 100_000, 35) +
     logScore(input.repository.forks_count, 25_000, 25) +
     logScore(input.repository.subscribers_count, 10_000, 15) +
-    logScore(input.contributors.fetchedCount, 100, 25);
+    logScore(contributorCount, 100, 25);
 
   const documentationCount = Object.values(input.documentation).filter((signal) => signal.present).length;
   const maintenanceScore =
@@ -332,7 +363,7 @@ function buildCompositeMetrics(input: {
       stars: input.repository.stargazers_count,
       forks: input.repository.forks_count,
       watchers: input.repository.subscribers_count,
-      fetchedContributors: input.contributors.fetchedCount,
+      contributors: contributorCount,
     }),
     maintenanceVisibility: metric(clampScore(maintenanceScore), {
       documentationFiles: documentationCount,
