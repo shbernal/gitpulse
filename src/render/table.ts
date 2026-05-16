@@ -1,7 +1,7 @@
 import type { CompositeMetric, DocumentationSignal, RepoSnapshot, SnapshotResult, SnapshotSource } from "../types";
 import { formatDate, formatDateWithAge, formatMonthYear, formatRelativeDays } from "../util/dates";
 import { formatBool, formatCompactNumber, formatInteger, formatPercent, formatSizeKb, truncate } from "../util/format";
-import { formatRepoRef } from "../util/repo-ref";
+import { formatComparisonRepoLabels, formatRepoRef } from "../util/repo-ref";
 import { createTheme, padVisibleEnd, scoreTone, type RenderOptions, visibleLength } from "./terminal";
 
 type Section = {
@@ -120,7 +120,8 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
     ].join("\n");
   }
 
-  const headers = ["Metric", ...snapshots.map(({ snapshot }) => snapshot.repository.fullName)];
+  const repoLabels = formatComparisonRepoLabels(snapshots.map(({ snapshot }) => snapshot.repository.fullName));
+  const headers = ["Metric", ...repoLabels];
   const sections = [
     {
       title: "Repository Facts",
@@ -181,8 +182,8 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
     theme.section("Scoreboard"),
     renderTable(
       ["Repository", "Activity", "Community", "Maintenance", "Stars", "Forks", "Last commit", "Release", "Docs", "State"],
-      snapshots.map(({ snapshot }) => [
-        theme.repo(snapshot.repository.fullName),
+      snapshots.map(({ snapshot }, index) => [
+        theme.repo(repoLabels[index]),
         formatMetricCompact(snapshot.metrics.activityFreshness, theme),
         formatMetricCompact(snapshot.metrics.communityFootprint, theme),
         formatMetricCompact(snapshot.metrics.maintenanceVisibility, theme),
@@ -200,8 +201,8 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
 
   output.push(...sections.flatMap((section) => [theme.section(section.title), renderTable(headers, section.rows, theme), ""]));
 
-  const warnings = snapshots.flatMap(({ snapshot }) =>
-    snapshot.warnings.map((warning) => `${snapshot.repository.fullName}: ${warning}`),
+  const warnings = snapshots.flatMap(({ snapshot }, index) =>
+    snapshot.warnings.map((warning) => `${repoLabels[index]}: ${warning}`),
   );
   if (warnings.length > 0) {
     output.push(theme.section("Warnings"), ...warnings.map((warning) => `  - ${theme.warning(warning)}`), "");

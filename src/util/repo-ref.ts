@@ -36,3 +36,27 @@ export function parseRepoRef(input: string): RepoRef {
 export function formatRepoRef(ref: RepoRef): string {
   return `${ref.owner}/${ref.name}`;
 }
+
+export function formatComparisonRepoLabels(fullNames: string[]): string[] {
+  const nameCounts = new Map<string, number>();
+  const names = fullNames.map(repoNameFromFullName);
+
+  for (const name of names) {
+    const key = comparisonNameKey(name);
+    nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
+  }
+
+  return fullNames.map((fullName, index) => {
+    const name = names[index];
+    return (nameCounts.get(comparisonNameKey(name)) ?? 0) > 1 ? fullName : name;
+  });
+}
+
+function repoNameFromFullName(fullName: string): string {
+  const slashIndex = fullName.indexOf("/");
+  return slashIndex === -1 ? fullName : fullName.slice(slashIndex + 1);
+}
+
+function comparisonNameKey(name: string): string {
+  return name.toLowerCase();
+}

@@ -59,6 +59,7 @@ Expected behavior:
 - Use the same cache policy for each compared repository.
 - Fetch the same core metrics for each repository when cached data is missing, stale, or explicitly refreshed.
 - Render a compact scoreboard plus side-by-side details.
+- In human-readable comparison labels, use the repository name alone unless multiple compared repositories share that name, in which case show `owner/repo` for those labels.
 - Highlight missing data and warning states such as archived repositories.
 
 The comparison view should group metrics by practical lens where possible:

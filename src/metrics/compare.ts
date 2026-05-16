@@ -1,5 +1,5 @@
 import type { RepoSnapshot, SnapshotResult } from "../types";
-import { formatRepoRef } from "../util/repo-ref";
+import { formatComparisonRepoLabels } from "../util/repo-ref";
 
 export function buildComparisonSummary(results: SnapshotResult[]): string[] {
   const snapshots = results.filter((result): result is { ok: true; snapshot: RepoSnapshot } => result.ok);
@@ -8,40 +8,38 @@ export function buildComparisonSummary(results: SnapshotResult[]): string[] {
     return [];
   }
 
+  const labels = formatComparisonRepoLabels(snapshots.map(({ snapshot }) => snapshot.repository.fullName));
+  const labeledSnapshots = snapshots.map(({ snapshot }, index) => ({ snapshot, label: labels[index] }));
   const lines: string[] = [];
-  const mostStars = maxBy(snapshots, ({ snapshot }) => snapshot.repository.stars);
-  const freshest = minByNullable(snapshots, ({ snapshot }) => snapshot.activity.daysSinceLatestCommit);
-  const newestRelease = minByNullable(snapshots, ({ snapshot }) => snapshot.activity.daysSinceLatestRelease);
-  const mostContributors = maxBy(snapshots, ({ snapshot }) => snapshot.contributors.fetchedCount);
-  const archived = snapshots.filter(({ snapshot }) => snapshot.repository.archived);
+  const mostStars = maxBy(labeledSnapshots, ({ snapshot }) => snapshot.repository.stars);
+  const freshest = minByNullable(labeledSnapshots, ({ snapshot }) => snapshot.activity.daysSinceLatestCommit);
+  const newestRelease = minByNullable(labeledSnapshots, ({ snapshot }) => snapshot.activity.daysSinceLatestRelease);
+  const mostContributors = maxBy(labeledSnapshots, ({ snapshot }) => snapshot.contributors.fetchedCount);
+  const archived = labeledSnapshots.filter(({ snapshot }) => snapshot.repository.archived);
 
-  if (mostStars && isDistinctMax(snapshots, ({ snapshot }) => snapshot.repository.stars)) {
-    lines.push(`${name(mostStars.snapshot)} has the largest star count among the compared repositories.`);
+  if (mostStars && isDistinctMax(labeledSnapshots, ({ snapshot }) => snapshot.repository.stars)) {
+    lines.push(`${mostStars.label} has the largest star count among the compared repositories.`);
   }
 
-  if (freshest && isDistinctMinNullable(snapshots, ({ snapshot }) => snapshot.activity.daysSinceLatestCommit)) {
-    lines.push(`${name(freshest.snapshot)} has the most recent default-branch commit.`);
+  if (freshest && isDistinctMinNullable(labeledSnapshots, ({ snapshot }) => snapshot.activity.daysSinceLatestCommit)) {
+    lines.push(`${freshest.label} has the most recent default-branch commit.`);
   }
 
-  if (newestRelease && isDistinctMinNullable(snapshots, ({ snapshot }) => snapshot.activity.daysSinceLatestRelease)) {
-    lines.push(`${name(newestRelease.snapshot)} has the newest latest release.`);
+  if (newestRelease && isDistinctMinNullable(labeledSnapshots, ({ snapshot }) => snapshot.activity.daysSinceLatestRelease)) {
+    lines.push(`${newestRelease.label} has the newest latest release.`);
   }
 
-  if (mostContributors && isDistinctMax(snapshots, ({ snapshot }) => snapshot.contributors.fetchedCount)) {
-    lines.push(`${name(mostContributors.snapshot)} has the largest fetched contributor set.`);
+  if (mostContributors && isDistinctMax(labeledSnapshots, ({ snapshot }) => snapshot.contributors.fetchedCount)) {
+    lines.push(`${mostContributors.label} has the largest fetched contributor set.`);
   }
 
   if (archived.length === 0) {
     lines.push("None of the compared repositories are archived.");
   } else {
-    lines.push(`${archived.map(({ snapshot }) => name(snapshot)).join(", ")} ${archived.length === 1 ? "is" : "are"} archived.`);
+    lines.push(`${archived.map(({ label }) => label).join(", ")} ${archived.length === 1 ? "is" : "are"} archived.`);
   }
 
   return lines;
-}
-
-function name(snapshot: RepoSnapshot): string {
-  return formatRepoRef(snapshot.ref);
 }
 
 function maxBy<T>(items: T[], selector: (item: T) => number): T | null {

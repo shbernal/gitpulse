@@ -45,6 +45,10 @@ describe("terminal rendering", () => {
     expect(output).toContain("Scoreboard");
     expect(output).not.toContain("Data sources");
     expect(output).toContain("Repository");
+    expect(output).toContain("one");
+    expect(output).toContain("two");
+    expect(output).not.toContain("acme/one");
+    expect(output).not.toContain("acme/two");
     expect(output).toContain("Activity");
     expect(output).toContain("Repository Facts");
     expect(output).toContain("jan 2020");
@@ -53,6 +57,19 @@ describe("terminal rendering", () => {
     expect(output).not.toContain("Summary");
     expect(output).not.toContain("Age");
     expect(output).not.toContain("+-");
+  });
+
+  test("keeps owner prefixes in comparison output when repo names match", () => {
+    const output = renderComparison(
+      [
+        { ok: true, snapshot: snapshot("acme/tool") },
+        { ok: true, snapshot: snapshot("octo/tool", { stars: 20, commitDays: 4 }) },
+      ],
+      { color: false },
+    );
+
+    expect(output).toContain("acme/tool");
+    expect(output).toContain("octo/tool");
   });
 
   test("renders compact comparison source metadata when provided", () => {
