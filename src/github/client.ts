@@ -1,0 +1,227 @@
+import { Octokit } from "octokit";
+import type { RepoRef } from "../types";
+import { formatRepoRef } from "../util/repo-ref";
+import type {
+  GitHubCommit,
+  GitHubContentItem,
+  GitHubContributor,
+  GitHubRelease,
+  GitHubRepository,
+  ReleaseOverview,
+} from "./types";
+
+export class GitHubApiError extends Error {
+  readonly status?: number;
+  readonly code: string;
+  readonly rateLimitReset?: string;
+
+  constructor(message: string, options: { status?: number; code?: string; rateLimitReset?: string } = {}) {
+    super(message);
+    this.name = "GitHubApiError";
+    this.status = options.status;
+    this.code = options.code ?? "github_error";
+    this.rateLimitReset = options.rateLimitReset;
+  }
+}
+
+export class GitHubClient {
+  private readonly octokit: Octokit;
+
+  constructor(token = process.env.GITHUB_TOKEN) {
+    this.octokit = new Octokit({
+      auth: token || undefined,
+      userAgent: "gitpulse/0.1.0",
+      request: {
+        headers: {
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      },
+    });
+  }
+
+  async getRepository(ref: RepoRef): Promise<GitHubRepository> {
+    try {
+      const response = await this.octokit.rest.repos.get({
+        owner: ref.owner,
+        repo: ref.name,
+      });
+
+      return response.data as GitHubRepository;
+    } catch (error) {
+      throw normalizeGitHubError(error, `Could not fetch ${formatRepoRef(ref)}.`);
+    }
+  }
+
+  async getLanguages(ref: RepoRef): Promise<Record<string, number>> {
+    try {
+      const response = await this.octokit.rest.repos.listLanguages({
+        owner: ref.owner,
+        repo: ref.name,
+      });
+
+      return response.data as Record<string, number>;
+    } catch (error) {
+      throw normalizeGitHubError(error, `Could not fetch languages for ${formatRepoRef(ref)}.`);
+    }
+  }
+
+  async getLatestCommit(ref: RepoRef, branch: string): Promise<GitHubCommit | null> {
+    try {
+      const response = await this.octokit.rest.repos.listCommits({
+        owner: ref.owner,
+        repo: ref.name,
+        sha: branch,
+        per_page: 1,
+      });
+
+      return (response.data[0] as GitHubCommit | undefined) ?? null;
+    } catch (error) {
+      throw normalizeGitHubError(error, `Could not fetch latest commit for ${formatRepoRef(ref)}.`);
+    }
+  }
+
+  async getReleaseOverview(ref: RepoRef): Promise<ReleaseOverview> {
+    try {
+      const response = await this.octokit.rest.repos.listReleases({
+        owner: ref.owner,
+        repo: ref.name,
+        per_page: 1,
+      });
+
+      return {
+        latest: (response.data[0] as GitHubRelease | undefined) ?? null,
+        count: countFromLinkHeader(response.headers.link, response.data.length),
+      };
+    } catch (error) {
+      throw normalizeGitHubError(error, `Could not fetch releases for ${formatRepoRef(ref)}.`);
+    }
+  }
+
+  async getContributors(ref: RepoRef): Promise<{ contributors: GitHubContributor[]; truncated: boolean }> {
+    try {
+      const response = await this.octokit.rest.repos.listContributors({
+        owner: ref.owner,
+        repo: ref.name,
+        per_page: 100,
+      });
+
+      return {
+        contributors: response.data as GitHubContributor[],
+        truncated: hasNextPage(response.headers.link),
+      };
+    } catch (error) {
+      throw normalizeGitHubError(error, `Could not fetch contributors for ${formatRepoRef(ref)}.`);
+    }
+  }
+
+  async getOpenPullRequestCount(ref: RepoRef): Promise<number> {
+    try {
+      const response = await this.octokit.rest.pulls.list({
+        owner: ref.owner,
+        repo: ref.name,
+        state: "open",
+        per_page: 1,
+      });
+
+      return countFromLinkHeader(response.headers.link, response.data.length);
+    } catch (error) {
+      throw normalizeGitHubError(error, `Could not fetch open pull requests for ${formatRepoRef(ref)}.`);
+    }
+  }
+
+  async listDirectory(ref: RepoRef, path: string): Promise<GitHubContentItem[]> {
+    try {
+      const response = await this.octokit.rest.repos.getContent({
+        owner: ref.owner,
+        repo: ref.name,
+        path,
+      });
+
+      if (!Array.isArray(response.data)) {
+        return [];
+      }
+
+      return response.data
+        .filter((item) => item.type === "file")
+        .map((item) => ({
+          type: item.type,
+          name: item.name,
+          path: item.path,
+        }));
+    } catch (error) {
+      if (isNotFound(error)) {
+        return [];
+      }
+
+      throw normalizeGitHubError(error, `Could not fetch directory ${path || "/"} for ${formatRepoRef(ref)}.`);
+    }
+  }
+}
+
+function normalizeGitHubError(error: unknown, fallbackMessage: string): GitHubApiError {
+  const candidate = error as {
+    status?: number;
+    message?: string;
+    response?: {
+      headers?: Record<string, string | undefined>;
+    };
+  };
+
+  const status = candidate.status;
+  const headers = candidate.response?.headers ?? {};
+  const reset = headers["x-ratelimit-reset"];
+  const remaining = headers["x-ratelimit-remaining"];
+
+  if (status === 404) {
+    return new GitHubApiError(candidate.message || fallbackMessage, {
+      status,
+      code: "not_found",
+    });
+  }
+
+  if (status === 403 && remaining === "0") {
+    return new GitHubApiError("GitHub API rate limit exceeded.", {
+      status,
+      code: "rate_limited",
+      rateLimitReset: reset ? new Date(Number(reset) * 1000).toISOString() : undefined,
+    });
+  }
+
+  if (status === 401) {
+    return new GitHubApiError("GitHub authentication failed. Check GITHUB_TOKEN.", {
+      status,
+      code: "unauthorized",
+    });
+  }
+
+  return new GitHubApiError(candidate.message || fallbackMessage, {
+    status,
+    code: "github_error",
+  });
+}
+
+function isNotFound(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "status" in error && error.status === 404;
+}
+
+function hasNextPage(linkHeader: string | undefined): boolean {
+  return Boolean(linkHeader?.includes('rel="next"'));
+}
+
+function countFromLinkHeader(linkHeader: string | undefined, fallback: number): number {
+  if (!linkHeader) {
+    return fallback;
+  }
+
+  const lastLink = linkHeader
+    .split(",")
+    .map((link) => link.trim())
+    .find((link) => link.includes('rel="last"'));
+
+  if (!lastLink) {
+    return fallback;
+  }
+
+  const match = /[?&]page=(\d+)/.exec(lastLink);
+  return match ? Number(match[1]) : fallback;
+}
