@@ -150,7 +150,7 @@ function buildSnapshot(input: {
       license: normalizeLicense(input.repository),
       stars: input.repository.stargazers_count,
       forks: input.repository.forks_count,
-      watchers: input.repository.watchers_count,
+      watchers: input.repository.subscribers_count,
       openIssues,
       openPullRequests: input.openPullRequests,
       openIssuesAndPullRequests: input.repository.open_issues_count,
@@ -310,7 +310,7 @@ function buildCompositeMetrics(input: {
   const communityScore =
     logScore(input.repository.stargazers_count, 100_000, 35) +
     logScore(input.repository.forks_count, 25_000, 25) +
-    logScore(input.repository.watchers_count, 10_000, 15) +
+    logScore(input.repository.subscribers_count, 10_000, 15) +
     logScore(input.contributors.fetchedCount, 100, 25);
 
   const documentationCount = Object.values(input.documentation).filter((signal) => signal.present).length;
@@ -331,7 +331,7 @@ function buildCompositeMetrics(input: {
     communityFootprint: metric(clampScore(communityScore), {
       stars: input.repository.stargazers_count,
       forks: input.repository.forks_count,
-      watchers: input.repository.watchers_count,
+      watchers: input.repository.subscribers_count,
       fetchedContributors: input.contributors.fetchedCount,
     }),
     maintenanceVisibility: metric(clampScore(maintenanceScore), {

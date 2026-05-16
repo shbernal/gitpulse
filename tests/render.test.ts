@@ -14,6 +14,8 @@ describe("terminal rendering", () => {
     expect(output).toContain("Pulse");
     expect(output).toContain("[########--]");
     expect(output).toContain("At a glance");
+    expect(output).toContain("Watchers");
+    expect(output).not.toContain("Subscribers");
     expect(output).not.toContain("+-");
   });
 
@@ -30,6 +32,8 @@ describe("terminal rendering", () => {
     expect(output).toContain("Repository");
     expect(output).toContain("Activity");
     expect(output).toContain("Repository Facts");
+    expect(output).toContain("Watchers");
+    expect(output).not.toContain("Subscribers");
     expect(output).not.toContain("Summary");
     expect(output).not.toContain("Age");
     expect(output).not.toContain("+-");
@@ -65,7 +69,7 @@ describe("JSON rendering", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
     const parsed = JSON.parse(renderRepoJson(result));
 
-    expect(parsed.schemaVersion).toBe(1);
+    expect(parsed.schemaVersion).toBe(2);
     expect(parsed.command).toBe("repo");
     expect(parsed.result.ok).toBe(true);
     expect(parsed.result.snapshot.repository.fullName).toBe("acme/tool");
@@ -78,7 +82,7 @@ describe("JSON rendering", () => {
     ];
     const parsed = JSON.parse(renderComparisonJson(results));
 
-    expect(parsed.schemaVersion).toBe(1);
+    expect(parsed.schemaVersion).toBe(2);
     expect(parsed.command).toBe("compare");
     expect(parsed.results).toHaveLength(2);
     expect(Array.isArray(parsed.summary)).toBe(true);

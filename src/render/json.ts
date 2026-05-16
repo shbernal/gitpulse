@@ -1,7 +1,7 @@
 import { buildComparisonSummary } from "../metrics/compare";
 import type { SnapshotResult } from "../types";
 
-const schemaVersion = 1;
+const schemaVersion = 2;
 
 export function renderRepoJson(result: SnapshotResult): string {
   return JSON.stringify(

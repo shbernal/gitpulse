@@ -120,7 +120,7 @@ These are direct GitHub fields:
 - License.
 - Star count.
 - Fork count.
-- Watcher count.
+- Watcher count, sourced from GitHub REST `subscribers_count` rather than legacy `watchers_count`.
 - Open issue count.
 - Topics.
 - Repository size.

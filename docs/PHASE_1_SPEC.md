@@ -155,7 +155,7 @@ Collect and display:
 - License identifier.
 - Stars.
 - Forks.
-- Watchers.
+- Watchers, sourced from GitHub REST `subscribers_count`.
 - Open issues.
 - Repository topics.
 - Archived status.

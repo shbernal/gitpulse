@@ -14,7 +14,7 @@ export type GitHubRepository = {
   } | null;
   stargazers_count: number;
   forks_count: number;
-  watchers_count: number;
+  subscribers_count: number;
   open_issues_count: number;
   topics?: string[];
   archived: boolean;

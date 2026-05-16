@@ -84,7 +84,7 @@ Use `--json` for scripts and integrations. JSON output is not colorized and incl
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "command": "repo",
   "result": {
     "ok": true
@@ -119,6 +119,8 @@ Phase 1 collects deterministic GitHub API data:
 - Documentation presence: README, changelog, contributing guide, code of conduct, security policy.
 - Contributor signals: fetched contributor count, top contributor, top contributor share.
 - Explainable composite signals: activity freshness, community footprint, maintenance visibility.
+
+Watcher counts are sourced from GitHub REST `subscribers_count`, because GitHub's legacy `watchers_count` mirrors `stargazers_count`.
 
 Composite signals are evidence grouping helpers, not verdicts.
 
