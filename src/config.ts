@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -54,6 +54,13 @@ export async function loadConfig(env: Env = process.env): Promise<GitpulseConfig
 
 export function configPath(env: Env = process.env): string {
   return path.join(xdgConfigDir(env), "gitpulse", "config.json");
+}
+
+export async function resetConfig(env: Env = process.env): Promise<string> {
+  const filePath = configPath(env);
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, `${JSON.stringify(defaultConfig, null, 2)}\n`, "utf8");
+  return filePath;
 }
 
 export function parseConfig(value: unknown): GitpulseConfig {

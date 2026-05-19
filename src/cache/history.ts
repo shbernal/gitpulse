@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import type { SnapshotSource, SnapshotWithSource } from "../types";
 import { historyPath } from "./paths";
@@ -44,6 +44,12 @@ export async function readHistoryEvents(env: Env = process.env): Promise<History
 
     throw error;
   }
+}
+
+export async function clearHistory(env: Env = process.env): Promise<string> {
+  const filePath = historyPath(env);
+  await rm(filePath, { force: true });
+  return filePath;
 }
 
 export function buildHistoryEvent(

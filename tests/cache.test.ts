@@ -1,11 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { clearHistory } from "../src/cache/history";
+import { clearCache } from "../src/cache/maintenance";
+import { gitpulseCacheDir, historyPath } from "../src/cache/paths";
 import { cacheSource, isFreshCache } from "../src/cache/policy";
 import { resolveSnapshot } from "../src/cache/resolve";
 import { writeCachedSnapshot } from "../src/cache/store";
-import { parseConfig } from "../src/config";
+import { configPath, defaultConfig, parseConfig, resetConfig } from "../src/config";
 import type { GitHubClient } from "../src/github/client";
 import type { RepoSnapshot } from "../src/types";
 
@@ -42,6 +45,70 @@ describe("config parsing", () => {
   test("parses contributor fetch limits", () => {
     expect(parseConfig({ contributors: { fetchLimit: 250 } }).contributors.fetchLimit).toBe(250);
     expect(() => parseConfig({ contributors: { fetchLimit: 0 } })).toThrow("contributors.fetchLimit");
+  });
+});
+
+describe("local file maintenance", () => {
+  test("resolves XDG paths for config, cache, and history", async () => {
+    await withTempEnv(async (env) => {
+      expect(configPath(env)).toBe(path.join(env.XDG_CONFIG_HOME ?? "", "gitpulse", "config.json"));
+      expect(gitpulseCacheDir(env)).toBe(path.join(env.XDG_CACHE_HOME ?? "", "gitpulse"));
+      expect(historyPath(env)).toBe(path.join(env.XDG_STATE_HOME ?? "", "gitpulse", "history.jsonl"));
+    });
+  });
+
+  test("resets config to default values", async () => {
+    await withTempEnv(async (env) => {
+      const filePath = await resetConfig(env);
+
+      expect(filePath).toBe(configPath(env));
+      expect(JSON.parse(await readFile(filePath, "utf8"))).toEqual(defaultConfig);
+    });
+  });
+
+  test("clears cache without touching config or history", async () => {
+    await withTempEnv(async (env) => {
+      const cacheDir = gitpulseCacheDir(env);
+      const configFile = configPath(env);
+      const historyFile = historyPath(env);
+
+      await mkdir(cacheDir, { recursive: true });
+      await mkdir(path.dirname(configFile), { recursive: true });
+      await mkdir(path.dirname(historyFile), { recursive: true });
+      await writeFile(path.join(cacheDir, "entry.json"), "{}\n", "utf8");
+      await writeFile(configFile, "{}\n", "utf8");
+      await writeFile(historyFile, "{}\n", "utf8");
+
+      expect(await exists(cacheDir)).toBe(true);
+      expect(await clearCache(env)).toBe(cacheDir);
+      expect(await exists(cacheDir)).toBe(false);
+      expect(await exists(configFile)).toBe(true);
+      expect(await exists(historyFile)).toBe(true);
+    });
+  });
+
+  test("clears history without touching sibling state files", async () => {
+    await withTempEnv(async (env) => {
+      const historyFile = historyPath(env);
+      const siblingFile = path.join(path.dirname(historyFile), "other.jsonl");
+
+      await mkdir(path.dirname(historyFile), { recursive: true });
+      await writeFile(historyFile, "{}\n", "utf8");
+      await writeFile(siblingFile, "{}\n", "utf8");
+
+      expect(await clearHistory(env)).toBe(historyFile);
+      expect(await exists(historyFile)).toBe(false);
+      expect(await exists(siblingFile)).toBe(true);
+    });
+  });
+
+  test("cache and history clears are idempotent", async () => {
+    await withTempEnv(async (env) => {
+      await clearCache(env);
+      await clearCache(env);
+      await clearHistory(env);
+      await clearHistory(env);
+    });
   });
 });
 
@@ -135,6 +202,15 @@ async function withTempEnv<T>(fn: (env: Env) => Promise<T>): Promise<T> {
     });
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+}
+
+async function exists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
   }
 }
 

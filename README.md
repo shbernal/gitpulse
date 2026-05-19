@@ -72,7 +72,16 @@ Refresh and cache controls:
 gitpulse repo cli/cli --refresh
 gitpulse repo cli/cli --offline
 gitpulse compare cli/cli charmbracelet/gum --max-cache-hours 24
+```
+
+Manage local files:
+
+```bash
 gitpulse history
+gitpulse cache clear
+gitpulse history clear
+gitpulse config path
+gitpulse config reset
 ```
 
 Control terminal color:
@@ -153,6 +162,13 @@ Useful overrides:
 - `--contributor-fetch-limit <count>`: override `contributors.fetchLimit` for one invocation.
 
 A cached snapshot is reused only when it was collected with the same contributor fetch limit, unless `--offline` is used.
+
+Local file commands:
+
+- `gitpulse cache clear`: remove local cached snapshots.
+- `gitpulse history clear`: remove the consultation history file.
+- `gitpulse config path`: print the config file path.
+- `gitpulse config reset`: create or overwrite the config file with default values.
 
 ## Authentication
 

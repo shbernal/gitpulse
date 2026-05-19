@@ -1,8 +1,9 @@
 import { Command, InvalidArgumentError, Option } from "commander";
-import { appendHistoryEvent, buildHistoryEvent, readHistoryEvents } from "./cache/history";
+import { appendHistoryEvent, buildHistoryEvent, clearHistory, readHistoryEvents } from "./cache/history";
+import { clearCache } from "./cache/maintenance";
 import { type CacheMode } from "./cache/policy";
 import { resolveSnapshot } from "./cache/resolve";
-import { ConfigError, loadConfig } from "./config";
+import { ConfigError, configPath, loadConfig, resetConfig } from "./config";
 import { GitHubClient } from "./github/client";
 import { renderHistory } from "./render/history";
 import { renderComparisonJson, renderRepoJson } from "./render/json";
@@ -60,7 +61,7 @@ export async function main(argv = process.argv): Promise<void> {
       await runCompare(repos, options);
     });
 
-  program
+  const historyCommand = program
     .command("history")
     .description("Show recently consulted repositories")
     .option("--json", "emit JSON output")
@@ -68,6 +69,38 @@ export async function main(argv = process.argv): Promise<void> {
     .action(async (_options: CommandOptions, command: Command) => {
       const options = command.optsWithGlobals<CommandOptions>();
       await runHistory(Boolean(options.json), options.color ?? "auto");
+    });
+
+  historyCommand
+    .command("clear")
+    .description("Clear local consultation history")
+    .action(async () => {
+      await runHistoryClear();
+    });
+
+  const cacheCommand = program.command("cache").description("Manage local cache files");
+
+  cacheCommand
+    .command("clear")
+    .description("Clear cached repository snapshots")
+    .action(async () => {
+      await runCacheClear();
+    });
+
+  const configCommand = program.command("config").description("Manage local configuration");
+
+  configCommand
+    .command("path")
+    .description("Print the local config file path")
+    .action(() => {
+      runConfigPath();
+    });
+
+  configCommand
+    .command("reset")
+    .description("Reset the local config file to defaults")
+    .action(async () => {
+      await runConfigReset();
     });
 
   await program.parseAsync(argv);
@@ -201,6 +234,40 @@ async function runHistory(json: boolean, colorMode: ColorMode): Promise<void> {
     } else {
       console.log(renderHistory(events, { color: shouldUseColor(colorMode) }));
     }
+  } catch (error) {
+    console.error(`gitpulse: ${errorMessage(error)}`);
+    process.exitCode = 1;
+  }
+}
+
+async function runCacheClear(): Promise<void> {
+  try {
+    const directory = await clearCache();
+    console.log(`Cleared cache: ${directory}`);
+  } catch (error) {
+    console.error(`gitpulse: ${errorMessage(error)}`);
+    process.exitCode = 1;
+  }
+}
+
+async function runHistoryClear(): Promise<void> {
+  try {
+    const filePath = await clearHistory();
+    console.log(`Cleared history: ${filePath}`);
+  } catch (error) {
+    console.error(`gitpulse: ${errorMessage(error)}`);
+    process.exitCode = 1;
+  }
+}
+
+function runConfigPath(): void {
+  console.log(configPath());
+}
+
+async function runConfigReset(): Promise<void> {
+  try {
+    const filePath = await resetConfig();
+    console.log(`Reset config: ${filePath}`);
   } catch (error) {
     console.error(`gitpulse: ${errorMessage(error)}`);
     process.exitCode = 1;

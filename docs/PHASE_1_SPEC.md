@@ -140,6 +140,16 @@ gitpulse repo owner/repo --contributor-fetch-limit 250
 gitpulse compare owner/a owner/b --max-cache-hours 24
 ```
 
+Local file commands:
+
+```bash
+gitpulse history
+gitpulse cache clear
+gitpulse history clear
+gitpulse config path
+gitpulse config reset
+```
+
 Expected behavior:
 
 - `--refresh` bypasses cache reads, fetches from GitHub, and updates the cache.
@@ -151,6 +161,10 @@ Expected behavior:
 - If stale cache exists and refresh fails while `cache.staleIfError` is true, render the stale cache with a visible refresh warning.
 - If no cache exists and refresh fails, keep the normal non-zero failure behavior.
 - `gitpulse history` shows recently consulted repositories.
+- `gitpulse cache clear` removes only the Gitpulse cache directory.
+- `gitpulse history clear` removes only the consultation history file.
+- `gitpulse config path` prints the resolved config file path.
+- `gitpulse config reset` creates or overwrites the config file with the default config.
 
 ## GitHub Data Sources
 
