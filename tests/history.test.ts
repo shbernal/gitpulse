@@ -21,4 +21,22 @@ describe("history rendering", () => {
     expect(output).toContain("docs");
     expect(output).toContain("cache");
   });
+
+  test("renders recently consulted user profiles", () => {
+    const output = renderHistory(
+      [
+        {
+          timestamp: "2026-05-16T12:00:00.000Z",
+          command: "user",
+          entries: [{ input: "octocat", repository: null, source: "api", ok: true }],
+          ok: true,
+        },
+      ],
+      { color: false },
+    );
+
+    expect(output).toContain("octocat");
+    expect(output).toContain("user");
+    expect(output).toContain("api");
+  });
 });

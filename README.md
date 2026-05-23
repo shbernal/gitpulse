@@ -57,8 +57,9 @@ gitpulse cli gum
 
 Bare shorthand is local-only and exact. Gitpulse does not search GitHub for
 unknown shorthand, and prefix matching is reserved for shell completion.
-Reserved command words such as `docs`, `history`, `cache`, `config`, and
-`completions` are always treated as commands, not repository shorthand.
+Reserved command words such as `docs`, `history`, `cache`, `config`,
+`completions`, and `user` are always treated as commands, not repository
+shorthand.
 
 Compare repositories side by side:
 
@@ -73,12 +74,19 @@ Show documentation signals:
 gitpulse docs cli/cli
 ```
 
+Show GitHub user profile signals:
+
+```bash
+gitpulse user octocat
+```
+
 Emit JSON:
 
 ```bash
 gitpulse cli/cli --json
 gitpulse cli/cli charmbracelet/gum --json
 gitpulse docs cli/cli --json
+gitpulse user octocat --json
 ```
 
 Refresh and cache controls:
@@ -87,6 +95,8 @@ Refresh and cache controls:
 gitpulse cli/cli --refresh
 gitpulse cli/cli --offline
 gitpulse docs cli/cli --refresh
+gitpulse user octocat --refresh
+gitpulse user octocat --offline
 gitpulse cli/cli charmbracelet/gum --max-cache-hours 24
 ```
 
@@ -116,11 +126,11 @@ gitpulse cli/cli --color never
 
 ## Output
 
-Human-readable output is the default. Repository reports use a compact status strip, score bars for explainable composite signals, and grouped metric sections. Documentation presence is shown through `gitpulse docs`, not the default repository report. Comparison reports start with a scoreboard, then show side-by-side grouped details. Comparison labels use repository names unless owner prefixes are needed to disambiguate matching names.
+Human-readable output is the default. Repository reports use a compact status strip, score bars for explainable composite signals, and grouped metric sections. Documentation presence is shown through `gitpulse docs`, not the default repository report. User profile reports show public profile facts and a repository-footprint summary. Comparison reports start with a scoreboard, then show side-by-side grouped details. Comparison labels use repository names unless owner prefixes are needed to disambiguate matching names.
 
 Gitpulse uses semantic terminal color for repository state, score bands, activity freshness, documentation presence in docs reports, warnings, fetch errors, and common programming languages. Color defaults to `--color auto`, which enables color for TTY output, disables it for non-TTY output, honors `NO_COLOR`, and honors `FORCE_COLOR`. Use `--color always` to force color or `--color never` to disable it.
 
-Repository, docs, and comparison reports disclose whether each snapshot came from the GitHub API, a fresh cache entry, or stale cache after a failed refresh.
+Repository, docs, user, and comparison reports disclose whether each snapshot came from the GitHub API, a fresh cache entry, or stale cache after a failed refresh.
 
 Use `--json` for scripts and integrations. JSON output is not colorized and includes a stable envelope:
 
@@ -147,6 +157,8 @@ Gitpulse is cache-first by default. It uses a cached snapshot when one exists an
 `gitpulse docs <repo> --refresh` refreshes the full repository snapshot, then
 renders only documentation signals.
 
+`gitpulse user` uses a separate GitHub user profile snapshot cache.
+
 Default config:
 
 ```json
@@ -172,6 +184,7 @@ Snapshots are stored under:
 
 ```text
 ${XDG_CACHE_HOME:-~/.cache}/gitpulse/snapshots/github/
+${XDG_CACHE_HOME:-~/.cache}/gitpulse/snapshots/github-users/
 ```
 
 Consultation history is appended to:
@@ -189,7 +202,7 @@ Useful overrides:
 - `--refresh`: bypass cache reads, fetch from GitHub, and update the cache.
 - `--offline`: use local cache only, even if stale; fail when no cache entry exists.
 - `--max-cache-hours <hours>`: override `cache.maxCacheHours` for one invocation.
-- `--contributor-fetch-limit <count>`: override `contributors.fetchLimit` for one invocation.
+- `--contributor-fetch-limit <count>`: override `contributors.fetchLimit` for one repository/report invocation.
 
 A cached snapshot is reused only when it was collected with the same contributor fetch limit, unless `--offline` is used.
 
@@ -216,7 +229,8 @@ eval "$(gitpulse completions bash)"
 
 The Bash completion completes top-level and nested Gitpulse commands, shared
 flags, `--color` values, and repository candidates from local cache/history. It
-does not call GitHub while completing.
+does not call GitHub while completing. User profile logins are not completed in
+the first pass.
 
 ## Authentication
 
@@ -244,6 +258,7 @@ Phase 1 collects deterministic GitHub API data:
 - Activity signals: latest push, latest default-branch commit, total default-branch commits, latest release, release count.
 - Documentation signals for `gitpulse docs`: README, changelog, contributing guide, code of conduct, security policy.
 - Contributor signals: total contributor count, fetched contributor rows for concentration metrics, top contributor, top contributor share.
+- User profile signals for `gitpulse user`: public profile facts, account age, follower/following counts, public repo and gist counts, public repository footprint, top repositories, recently pushed repositories, primary languages across fetched public repositories.
 - Explainable composite signals: activity freshness, community footprint.
 
 Watcher counts are sourced from GitHub REST `subscribers_count`, because GitHub's legacy `watchers_count` mirrors `stargazers_count`.

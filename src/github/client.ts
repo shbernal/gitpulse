@@ -9,11 +9,15 @@ import type {
   GitHubContributor,
   GitHubRelease,
   GitHubRepository,
+  GitHubUser,
+  GitHubUserRepository,
   ReleaseOverview,
+  UserRepositoryOverview,
 } from "./types";
 
 export const githubApiVersion = "2026-03-10";
 const defaultContributorFetchLimit = 100;
+const defaultUserRepositoryFetchLimit = 100;
 const githubPageSizeLimit = 100;
 
 export class GitHubApiError extends Error {
@@ -62,6 +66,71 @@ export class GitHubClient {
       return response.data as GitHubRepository;
     } catch (error) {
       throw normalizeGitHubError(error, `Could not fetch ${formatRepoRef(ref)}.`);
+    }
+  }
+
+  async getUser(login: string): Promise<GitHubUser> {
+    try {
+      const response = await this.octokit.rest.users.getByUsername({
+        username: login,
+      });
+
+      return response.data as GitHubUser;
+    } catch (error) {
+      throw normalizeGitHubError(error, `Could not fetch GitHub user ${login}.`);
+    }
+  }
+
+  async getUserRepositories(
+    login: string,
+    accountType: string,
+    fetchLimit = defaultUserRepositoryFetchLimit,
+  ): Promise<UserRepositoryOverview> {
+    try {
+      const limit = normalizeFetchLimit(fetchLimit, defaultUserRepositoryFetchLimit);
+      const perPage = Math.min(limit, githubPageSizeLimit);
+      const repositories: GitHubUserRepository[] = [];
+      let page = 1;
+      let hasMorePages = false;
+
+      while (repositories.length < limit) {
+        const response =
+          accountType.toLowerCase() === "organization"
+            ? await this.octokit.rest.repos.listForOrg({
+                org: login,
+                type: "public",
+                sort: "updated",
+                direction: "desc",
+                per_page: perPage,
+                page,
+              })
+            : await this.octokit.rest.repos.listForUser({
+                username: login,
+                type: "owner",
+                sort: "updated",
+                direction: "desc",
+                per_page: perPage,
+                page,
+              });
+        const pageRepositories = response.data as GitHubUserRepository[];
+
+        repositories.push(...pageRepositories);
+        hasMorePages = hasNextPage(response.headers.link);
+
+        if (!hasMorePages || pageRepositories.length === 0) {
+          break;
+        }
+
+        page += 1;
+      }
+
+      return {
+        repositories: repositories.slice(0, limit),
+        fetchLimit: limit,
+        truncated: hasMorePages,
+      };
+    } catch (error) {
+      throw normalizeGitHubError(error, `Could not fetch public repositories for ${login}.`);
     }
   }
 
@@ -119,7 +188,7 @@ export class GitHubClient {
 
   async getContributors(ref: RepoRef, fetchLimit = defaultContributorFetchLimit): Promise<ContributorOverview> {
     try {
-      const limit = normalizeContributorFetchLimit(fetchLimit);
+      const limit = normalizeFetchLimit(fetchLimit, defaultContributorFetchLimit);
       const perPage = Math.min(limit, githubPageSizeLimit);
       const contributors: GitHubContributor[] = [];
       let page = 1;
@@ -293,8 +362,8 @@ function hasNextPage(linkHeader: string | undefined): boolean {
   return Boolean(linkHeader?.includes('rel="next"'));
 }
 
-function normalizeContributorFetchLimit(value: number): number {
-  return Number.isInteger(value) && value > 0 ? value : defaultContributorFetchLimit;
+function normalizeFetchLimit(value: number, fallback: number): number {
+  return Number.isInteger(value) && value > 0 ? value : fallback;
 }
 
 function countFromLinkHeader(linkHeader: string | undefined, fallback: number): number {

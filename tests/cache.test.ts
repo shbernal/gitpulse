@@ -7,10 +7,12 @@ import { clearCache } from "../src/cache/maintenance";
 import { gitpulseCacheDir, historyPath } from "../src/cache/paths";
 import { cacheSource, isFreshCache } from "../src/cache/policy";
 import { resolveSnapshot } from "../src/cache/resolve";
+import { resolveUserProfileSnapshot } from "../src/cache/resolve-user";
 import { writeCachedSnapshot } from "../src/cache/store";
+import { writeCachedUserProfileSnapshot } from "../src/cache/user-store";
 import { configPath, defaultConfig, parseConfig, resetConfig } from "../src/config";
 import type { GitHubClient } from "../src/github/client";
-import type { RepoSnapshot } from "../src/types";
+import type { RepoSnapshot, UserProfileSnapshot } from "../src/types";
 
 type Env = Record<string, string | undefined>;
 
@@ -190,6 +192,42 @@ describe("snapshot cache resolution", () => {
   });
 });
 
+describe("user profile cache resolution", () => {
+  test("uses a fresh cached user profile without calling the API", async () => {
+    await withTempEnv(async (env) => {
+      await writeCachedUserProfileSnapshot("octocat", userSnapshot("octocat"), new Date("2026-05-16T00:00:00.000Z"), env);
+
+      const resolved = await resolveUserProfileSnapshot(failingClient(), "octocat", {
+        cacheEnabled: true,
+        maxCacheHours: 168,
+        staleIfError: true,
+        mode: "default",
+        now: new Date("2026-05-16T12:00:00.000Z"),
+        env,
+      });
+
+      expect(resolved.result.ok).toBe(true);
+      expect(resolved.source.kind).toBe("cache");
+    });
+  });
+
+  test("offline user profile mode fails when no cache entry exists", async () => {
+    await withTempEnv(async (env) => {
+      const resolved = await resolveUserProfileSnapshot(failingClient(), "missing", {
+        cacheEnabled: true,
+        maxCacheHours: 168,
+        staleIfError: true,
+        mode: "offline",
+        now: new Date("2026-05-16T00:00:00.000Z"),
+        env,
+      });
+
+      expect(resolved.result.ok).toBe(false);
+      expect(resolved.source.kind).toBe("none");
+    });
+  });
+});
+
 async function withTempEnv<T>(fn: (env: Env) => Promise<T>): Promise<T> {
   const root = await mkdtemp(path.join(tmpdir(), "gitpulse-cache-test-"));
 
@@ -282,6 +320,83 @@ function snapshot(fullName: string): RepoSnapshot {
     metrics: {
       activityFreshness: { score: 0, label: "weak", inputs: {} },
       communityFootprint: { score: 0, label: "weak", inputs: {} },
+    },
+    warnings: [],
+  };
+}
+
+function userSnapshot(login: string): UserProfileSnapshot {
+  return {
+    login,
+    fetchedAt: "2026-05-16T00:00:00.000Z",
+    profile: {
+      login,
+      name: "The Octocat",
+      type: "User",
+      bio: null,
+      url: `https://github.com/${login}`,
+      company: null,
+      location: null,
+      blog: null,
+      twitterUsername: null,
+      email: null,
+      hireable: null,
+      createdAt: "2011-01-25T18:44:36Z",
+      updatedAt: "2026-05-01T00:00:00Z",
+      ageDays: 5589,
+      daysSinceUpdated: 15,
+      publicRepos: 1,
+      publicGists: 0,
+      followers: 10,
+      following: 1,
+      siteAdmin: false,
+    },
+    repositories: {
+      publicRepoCount: 1,
+      fetchedCount: 1,
+      fetchLimit: 100,
+      truncated: false,
+      recentPushWindowDays: 90,
+      recentlyPushedCount: 1,
+      totalStars: 10,
+      totalForks: 2,
+      archivedCount: 0,
+      forkCount: 0,
+      primaryLanguages: [{ name: "TypeScript", repositoryCount: 1, percent: 100 }],
+      topRepositories: [
+        {
+          fullName: `${login}/hello`,
+          name: "hello",
+          description: null,
+          url: `https://github.com/${login}/hello`,
+          primaryLanguage: "TypeScript",
+          stars: 10,
+          forks: 2,
+          archived: false,
+          fork: false,
+          createdAt: "2020-01-01T00:00:00Z",
+          pushedAt: "2026-05-15T00:00:00Z",
+          updatedAt: "2026-05-15T00:00:00Z",
+          daysSinceLastPush: 1,
+        },
+      ],
+      recentlyPushedRepositories: [
+        {
+          fullName: `${login}/hello`,
+          name: "hello",
+          description: null,
+          url: `https://github.com/${login}/hello`,
+          primaryLanguage: "TypeScript",
+          stars: 10,
+          forks: 2,
+          archived: false,
+          fork: false,
+          createdAt: "2020-01-01T00:00:00Z",
+          pushedAt: "2026-05-15T00:00:00Z",
+          updatedAt: "2026-05-15T00:00:00Z",
+          daysSinceLastPush: 1,
+        },
+      ],
     },
     warnings: [],
   };

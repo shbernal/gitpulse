@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { stripVTControlCharacters } from "node:util";
-import { renderComparisonJson, renderDocsJson, renderRepoJson } from "../src/render/json";
-import { renderComparison, renderDocs, renderRepo } from "../src/render/table";
+import { renderComparisonJson, renderDocsJson, renderRepoJson, renderUserProfileJson } from "../src/render/json";
+import { renderComparison, renderDocs, renderRepo, renderUserProfile } from "../src/render/table";
 import { shouldUseColor } from "../src/render/terminal";
-import type { RepoSnapshot, SnapshotResult } from "../src/types";
+import type { RepoSnapshot, SnapshotResult, UserProfileResult, UserProfileSnapshot } from "../src/types";
 
 describe("terminal rendering", () => {
   test("renders a compact repository report", () => {
@@ -48,6 +48,21 @@ describe("terminal rendering", () => {
     expect(output).toContain("Size");
     expect(output).toContain("1.2 GB");
     expect(output).not.toContain("1,221,981 KB");
+  });
+
+  test("renders a GitHub user profile report", () => {
+    const output = renderUserProfile(userSnapshot("octocat"), { color: false }, { kind: "api" });
+
+    expect(output).toContain("gitpulse user octocat");
+    expect(output).toContain("data source: api");
+    expect(output).toContain("Profile");
+    expect(output).toContain("Followers");
+    expect(output).toContain("Repository footprint");
+    expect(output).toContain("Public repos fetched");
+    expect(output).toContain("1 of 2");
+    expect(output).toContain("Top repositories");
+    expect(output).toContain("octocat/hello");
+    expect(output).toContain("Recently pushed repositories");
   });
 
   test("renders cache source metadata when provided", () => {
@@ -215,12 +230,26 @@ describe("JSON rendering", () => {
     expect(parsed.result.snapshot).toBeUndefined();
   });
 
+  test("wraps user profile output in a stable envelope", () => {
+    const result: UserProfileResult = { ok: true, snapshot: userSnapshot("octocat") };
+    const parsed = JSON.parse(renderUserProfileJson(result, { kind: "api" }));
+
+    expect(parsed.schemaVersion).toBe(3);
+    expect(parsed.command).toBe("user");
+    expect(parsed.source.kind).toBe("api");
+    expect(parsed.result.ok).toBe(true);
+    expect(parsed.result.snapshot.profile.login).toBe("octocat");
+    expect(parsed.result.snapshot.repositories.totalStars).toBe(10);
+  });
+
   test("does not emit ANSI escapes in JSON output", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
+    const userResult: UserProfileResult = { ok: true, snapshot: userSnapshot("octocat") };
 
     expect(renderRepoJson(result)).not.toContain("\u001b[");
     expect(renderComparisonJson([result])).not.toContain("\u001b[");
     expect(renderDocsJson(result)).not.toContain("\u001b[");
+    expect(renderUserProfileJson(userResult)).not.toContain("\u001b[");
   });
 });
 
@@ -298,5 +327,66 @@ function snapshot(
       communityFootprint: { score: 48, label: "limited", inputs: {} },
     },
     warnings: [],
+  };
+}
+
+function userSnapshot(login: string): UserProfileSnapshot {
+  const repository = {
+    fullName: `${login}/hello`,
+    name: "hello",
+    description: null,
+    url: `https://github.com/${login}/hello`,
+    primaryLanguage: "TypeScript",
+    stars: 10,
+    forks: 2,
+    archived: false,
+    fork: false,
+    createdAt: "2020-01-01T00:00:00Z",
+    pushedAt: "2026-05-15T00:00:00Z",
+    updatedAt: "2026-05-15T00:00:00Z",
+    daysSinceLastPush: 1,
+  };
+
+  return {
+    login,
+    fetchedAt: "2026-05-16T00:00:00.000Z",
+    profile: {
+      login,
+      name: "The Octocat",
+      type: "User",
+      bio: "GitHub mascot.",
+      url: `https://github.com/${login}`,
+      company: "GitHub",
+      location: "San Francisco",
+      blog: "https://github.blog",
+      twitterUsername: "github",
+      email: null,
+      hireable: null,
+      createdAt: "2011-01-25T18:44:36Z",
+      updatedAt: "2026-05-01T00:00:00Z",
+      ageDays: 5589,
+      daysSinceUpdated: 15,
+      publicRepos: 2,
+      publicGists: 1,
+      followers: 1200,
+      following: 9,
+      siteAdmin: false,
+    },
+    repositories: {
+      publicRepoCount: 2,
+      fetchedCount: 1,
+      fetchLimit: 100,
+      truncated: true,
+      recentPushWindowDays: 90,
+      recentlyPushedCount: 1,
+      totalStars: 10,
+      totalForks: 2,
+      archivedCount: 0,
+      forkCount: 0,
+      primaryLanguages: [{ name: "TypeScript", repositoryCount: 1, percent: 100 }],
+      topRepositories: [repository],
+      recentlyPushedRepositories: [repository],
+    },
+    warnings: ["Repository footprint is based on the first 1 repositories sorted by recent updates."],
   };
 }

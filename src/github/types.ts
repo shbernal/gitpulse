@@ -24,6 +24,48 @@ export type GitHubRepository = {
   size: number;
 };
 
+export type GitHubUser = {
+  login: string;
+  name: string | null;
+  type: string;
+  bio: string | null;
+  html_url: string;
+  company: string | null;
+  location: string | null;
+  blog: string | null;
+  twitter_username: string | null;
+  email: string | null;
+  hireable: boolean | null;
+  created_at: string;
+  updated_at: string;
+  public_repos: number;
+  public_gists: number;
+  followers: number;
+  following: number;
+  site_admin: boolean;
+};
+
+export type GitHubUserRepository = {
+  full_name: string;
+  name: string;
+  description: string | null;
+  html_url: string;
+  created_at: string;
+  pushed_at: string | null;
+  updated_at: string;
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  archived: boolean;
+  fork: boolean;
+};
+
+export type UserRepositoryOverview = {
+  repositories: GitHubUserRepository[];
+  fetchLimit: number;
+  truncated: boolean;
+};
+
 export type GitHubRelease = {
   name: string | null;
   tag_name: string;

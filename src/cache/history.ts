@@ -1,11 +1,11 @@
 import { appendFile, mkdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
-import type { SnapshotSource, SnapshotWithSource } from "../types";
+import type { SnapshotSource, SnapshotWithSource, UserProfileWithSource } from "../types";
 import { historyPath } from "./paths";
 
 type Env = Record<string, string | undefined>;
 
-export type HistoryCommand = "repo" | "compare" | "docs";
+export type HistoryCommand = "repo" | "compare" | "docs" | "user";
 
 export type HistoryEntry = {
   input: string;
@@ -55,12 +55,12 @@ export async function clearHistory(env: Env = process.env): Promise<string> {
 export function buildHistoryEvent(
   command: HistoryCommand,
   inputs: string[],
-  snapshots: SnapshotWithSource[],
+  snapshots: Array<SnapshotWithSource | UserProfileWithSource>,
   now = new Date(),
 ): HistoryEvent {
   const entries = snapshots.map((snapshot, index) => ({
     input: inputs[index] ?? "",
-    repository: snapshot.result.ok ? snapshot.result.snapshot.repository.fullName : null,
+    repository: snapshot.result.ok && "repository" in snapshot.result.snapshot ? snapshot.result.snapshot.repository.fullName : null,
     source: snapshot.source.kind,
     ok: snapshot.result.ok,
   }));
@@ -87,7 +87,7 @@ function isHistoryEvent(value: unknown): value is HistoryEvent {
     return false;
   }
 
-  if (value.command !== "repo" && value.command !== "compare" && value.command !== "docs") {
+  if (value.command !== "repo" && value.command !== "compare" && value.command !== "docs" && value.command !== "user") {
     return false;
   }
 

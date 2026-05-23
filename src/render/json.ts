@@ -1,5 +1,5 @@
 import { buildComparisonSummary } from "../metrics/compare";
-import type { SnapshotResult, SnapshotSource } from "../types";
+import type { SnapshotResult, SnapshotSource, UserProfileResult } from "../types";
 
 const schemaVersion = 3;
 
@@ -36,6 +36,19 @@ export function renderDocsJson(result: SnapshotResult, source?: SnapshotSource):
       command: "docs",
       ...(source ? { source } : {}),
       result: docsResult(result),
+    },
+    null,
+    2,
+  );
+}
+
+export function renderUserProfileJson(result: UserProfileResult, source?: SnapshotSource): string {
+  return JSON.stringify(
+    {
+      schemaVersion,
+      command: "user",
+      ...(source ? { source } : {}),
+      result,
     },
     null,
     2,

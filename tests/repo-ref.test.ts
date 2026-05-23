@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { parseGitHubLogin } from "../src/util/github-login";
 import { formatComparisonRepoLabels, parseRepoRef } from "../src/util/repo-ref";
 
 describe("parseRepoRef", () => {
@@ -14,6 +15,19 @@ describe("parseRepoRef", () => {
     expect(() => parseRepoRef("/repo")).toThrow();
     expect(() => parseRepoRef("owner/")).toThrow();
     expect(() => parseRepoRef("owner/repo/extra")).toThrow();
+  });
+});
+
+describe("parseGitHubLogin", () => {
+  test("parses GitHub user and organization logins", () => {
+    expect(parseGitHubLogin("octocat")).toBe("octocat");
+    expect(parseGitHubLogin("github-actions")).toBe("github-actions");
+  });
+
+  test("rejects invalid GitHub logins", () => {
+    expect(() => parseGitHubLogin("owner/repo")).toThrow();
+    expect(() => parseGitHubLogin("-octocat")).toThrow();
+    expect(() => parseGitHubLogin("octocat-")).toThrow();
   });
 });
 

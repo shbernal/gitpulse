@@ -16,6 +16,10 @@ export function snapshotCachePath(ref: RepoRef, env: Env = process.env): string 
   return path.join(gitpulseCacheDir(env), "snapshots", "github", safeSegment(ref.owner), `${safeSegment(ref.name)}.json`);
 }
 
+export function userProfileCachePath(login: string, env: Env = process.env): string {
+  return path.join(gitpulseCacheDir(env), "snapshots", "github-users", `${safeSegment(login)}.json`);
+}
+
 export function historyPath(env: Env = process.env): string {
   return path.join(gitpulseStateDir(env), "history.jsonl");
 }

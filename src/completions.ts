@@ -3,8 +3,9 @@ export function renderBashCompletionScript(commandName = "gitpulse"): string {
 _gitpulse()
 {
   local cur prev cmd
-  local top_commands="docs history cache config completions"
+  local top_commands="docs user history cache config completions"
   local shared_flags="--json --color --refresh --offline --max-cache-hours --contributor-fetch-limit"
+  local user_flags="--json --color --refresh --offline --max-cache-hours"
 
   COMPREPLY=()
   cur="\${COMP_WORDS[COMP_CWORD]}"
@@ -21,7 +22,12 @@ _gitpulse()
   esac
 
   if [[ "$cur" == -* ]]; then
-    COMPREPLY=( $(compgen -W "$shared_flags" -- "$cur") )
+    cmd="\${COMP_WORDS[1]}"
+    if [[ "$cmd" == "user" ]]; then
+      COMPREPLY=( $(compgen -W "$user_flags" -- "$cur") )
+    else
+      COMPREPLY=( $(compgen -W "$shared_flags" -- "$cur") )
+    fi
     return 0
   fi
 
@@ -36,6 +42,8 @@ _gitpulse()
   case "$cmd" in
     docs)
       _gitpulse_complete_repos "$cur"
+      ;;
+    user)
       ;;
     history)
       COMPREPLY=( $(compgen -W "clear" -- "$cur") )

@@ -14,7 +14,8 @@ import {
 } from "../src/cache/known-repos";
 import { clearCache } from "../src/cache/maintenance";
 import { writeCachedSnapshot } from "../src/cache/store";
-import type { RepoSnapshot } from "../src/types";
+import { writeCachedUserProfileSnapshot } from "../src/cache/user-store";
+import type { RepoSnapshot, UserProfileSnapshot } from "../src/types";
 
 type Env = Record<string, string | undefined>;
 
@@ -191,7 +192,7 @@ describe("completion commands", () => {
   test("generates the expected Bash hooks", () => {
     const script = renderBashCompletionScript();
 
-    expect(script).toContain("docs history cache config completions");
+    expect(script).toContain("docs user history cache config completions");
     expect(script).not.toContain("repo compare");
     expect(script).toContain("__complete repos --current");
     expect(script).toContain("auto always never");
@@ -241,6 +242,19 @@ describe("CLI shorthand wiring", () => {
       expect(compareOutput).toContain("gitpulse comparison");
       expect(compareOutput).toContain("tool");
       expect(compareOutput).toContain("gum");
+    });
+  });
+
+  test("renders cached GitHub user profiles through the user command", async () => {
+    await withTempEnv(async (env) => {
+      await writeCachedUserProfileSnapshot("octocat", userSnapshot("octocat"), new Date(), env);
+
+      const output = await withProcessEnv(env, () =>
+        captureStdout(() => main(["node", "gitpulse", "user", "octocat", "--offline", "--color", "never"])),
+      );
+
+      expect(output).toContain("gitpulse user octocat");
+      expect(output).toContain("Repository footprint");
     });
   });
 });
@@ -378,6 +392,67 @@ function snapshot(fullName: string): RepoSnapshot {
     metrics: {
       activityFreshness: { score: 0, label: "weak", inputs: {} },
       communityFootprint: { score: 0, label: "weak", inputs: {} },
+    },
+    warnings: [],
+  };
+}
+
+function userSnapshot(login: string): UserProfileSnapshot {
+  const repository = {
+    fullName: `${login}/hello`,
+    name: "hello",
+    description: null,
+    url: `https://github.com/${login}/hello`,
+    primaryLanguage: "TypeScript",
+    stars: 10,
+    forks: 2,
+    archived: false,
+    fork: false,
+    createdAt: "2020-01-01T00:00:00Z",
+    pushedAt: "2026-05-15T00:00:00Z",
+    updatedAt: "2026-05-15T00:00:00Z",
+    daysSinceLastPush: 1,
+  };
+
+  return {
+    login,
+    fetchedAt: "2026-05-16T00:00:00.000Z",
+    profile: {
+      login,
+      name: "The Octocat",
+      type: "User",
+      bio: null,
+      url: `https://github.com/${login}`,
+      company: null,
+      location: null,
+      blog: null,
+      twitterUsername: null,
+      email: null,
+      hireable: null,
+      createdAt: "2011-01-25T18:44:36Z",
+      updatedAt: "2026-05-01T00:00:00Z",
+      ageDays: 5589,
+      daysSinceUpdated: 15,
+      publicRepos: 1,
+      publicGists: 0,
+      followers: 10,
+      following: 1,
+      siteAdmin: false,
+    },
+    repositories: {
+      publicRepoCount: 1,
+      fetchedCount: 1,
+      fetchLimit: 100,
+      truncated: false,
+      recentPushWindowDays: 90,
+      recentlyPushedCount: 1,
+      totalStars: 10,
+      totalForks: 2,
+      archivedCount: 0,
+      forkCount: 0,
+      primaryLanguages: [{ name: "TypeScript", repositoryCount: 1, percent: 100 }],
+      topRepositories: [repository],
+      recentlyPushedRepositories: [repository],
     },
     warnings: [],
   };

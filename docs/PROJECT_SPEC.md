@@ -67,6 +67,28 @@ Given `owner/repo`, Gitpulse should provide a focused documentation view:
 Documentation signals should be available through `gitpulse docs <repo>` rather
 than shown in the default human-readable repository report.
 
+### User Profile Snapshot
+
+Given a GitHub login, Gitpulse should provide a factual public profile view:
+
+- Login, display name, bio, URL, and account type.
+- Creation and update dates.
+- Followers, following, public repository count, and public gist count.
+- Optional public details such as company, location, blog, email, hireable, and
+  Twitter/X username.
+- Public repository footprint from fetched owned repositories: total stars and
+  forks, top repositories, recently pushed repositories, primary languages,
+  archived repositories, and fork repositories.
+
+User profile lookup should use an explicit command:
+
+```bash
+gitpulse user octocat
+```
+
+It should not be inferred from bare root arguments, because root arguments are
+repository references or deterministic local repository shorthand.
+
 ### Evaluation Lenses
 
 Gitpulse should organize raw datapoints into a few practical lenses. These lenses should guide output structure and future metric design:
@@ -175,6 +197,20 @@ These describe how easy the project is to evaluate:
 
 Phase 1 detects presence and basic metadata only. Deeper content analysis belongs to a later phase.
 
+### User Profile Signals
+
+These describe the public GitHub account behind a login:
+
+- Login, display name, account type, profile URL, and public profile text fields.
+- Account creation and update dates.
+- Follower, following, public repository, and public gist counts.
+- Fetched public repository footprint, including total stars, total forks,
+  recently pushed repositories, top repositories by stars, primary languages,
+  archived repository count, and fork repository count.
+
+Phase 1 should treat this as factual profile context, not an identity score or
+trust verdict.
+
 ## Metric Philosophy
 
 Metrics should be useful but humble. A high star count can indicate adoption or hype. A low issue count can mean quality, inactivity, or disabled issue tracking. Recent commits can mean active maintenance or churn.
@@ -198,6 +234,9 @@ Default output should be optimized for humans in a terminal:
 Documentation output should stay focused in `gitpulse docs <repo>` so default
 repository and comparison reports remain compact.
 
+User profile output should stay focused in `gitpulse user <login>` so root
+repository lookup and repository shorthand remain deterministic.
+
 Repository arguments may use exact bare local shorthand after a repository has
 appeared in Gitpulse's cache or consultation history. This shorthand is
 deterministic and local-only: command execution does not use prefix matching or
@@ -207,8 +246,8 @@ once so Gitpulse can fetch and record it.
 The root command infers the report mode from positional repository arguments:
 one repository renders a single repository report, while two or more
 repositories render a comparison. Reserved command words such as `docs`,
-`history`, `cache`, `config`, and `completions` remain command names rather than
-repository shorthand.
+`user`, `history`, `cache`, `config`, and `completions` remain command names
+rather than repository shorthand.
 
 Comparison output should emphasize the scoreboard and grouped side-by-side metrics, without prescribing a choice.
 
@@ -217,6 +256,7 @@ Machine-readable output should be available:
 ```bash
 gitpulse owner/name --json
 gitpulse docs owner/name --json
+gitpulse user octocat --json
 gitpulse owner/a owner/b --json
 ```
 

@@ -18,6 +18,8 @@ faster while preserving Gitpulse's deterministic command behavior.
   search.
 - Keep completion behavior compatible with the existing cache and history
   commands.
+- Keep user profile lookup explicit. `gitpulse user <login>` should not make
+  user logins part of repository shorthand.
 
 ## Local State Sources
 
@@ -38,6 +40,10 @@ than maintain a separate persistent index. This keeps behavior simple:
 
 A separate compact index can be added later if completion becomes slow with
 large local state.
+
+The separate user profile cache at
+`${XDG_CACHE_HOME:-~/.cache}/gitpulse/snapshots/github-users/` is not a source
+for repository shorthand or repository completion.
 
 ## Known Repository Model
 
@@ -96,8 +102,9 @@ gitpulse deno
 should not resolve to `denoland/cli` unless there is an exact known owner or
 repository named `deno`. Prefixes belong to shell completion only.
 
-Reserved command words such as `docs`, `history`, `cache`, `config`, and
-`completions` remain command names rather than repository shorthand.
+Reserved command words such as `docs`, `history`, `cache`, `config`,
+`completions`, and `user` remain command names rather than repository
+shorthand.
 
 ## Completion Matching
 
@@ -178,6 +185,7 @@ The generated Bash completion completes:
 
 - Top-level commands:
   - `docs`
+  - `user`
   - `history`
   - `cache`
   - `config`
@@ -192,13 +200,21 @@ The generated Bash completion completes:
   - `gitpulse <repo>` for a single repository report
   - `gitpulse docs <repo>`
   - `gitpulse <repo> <repo> [repo...]` for a comparison report
-- Shared flags:
+- `gitpulse user <login>` is recognized as a top-level command, but user login
+  arguments are not completed in the first pass.
+- Shared repository flags:
   - `--json`
   - `--color`
   - `--refresh`
   - `--offline`
   - `--max-cache-hours`
   - `--contributor-fetch-limit`
+- User profile flags:
+  - `--json`
+  - `--color`
+  - `--refresh`
+  - `--offline`
+  - `--max-cache-hours`
 
 Flag value completion can stay minimal at first:
 
@@ -233,6 +249,8 @@ Use owner/name once to fetch and record it.
 - Pure helpers cover exact shorthand resolution and prefix completion.
 - The root command, `docs`, and each inferred comparison argument resolve exact
   local shorthand before snapshot resolution.
+- The `user` command does not resolve repository shorthand for its login
+  argument.
 - `gitpulse __complete repos --current <token>` prints newline-delimited local
   repository candidates for completion scripts.
 - `gitpulse completions bash` prints the Bash completion script.

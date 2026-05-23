@@ -9,7 +9,7 @@ export function renderHistory(events: HistoryEvent[], options: RenderOptions = {
     return "No history yet.";
   }
 
-  const headers = ["Repository", "Last consulted", "Command", "Source", "Status"];
+  const headers = ["Target", "Last consulted", "Command", "Source", "Status"];
   const tableRows = rows.slice(0, 25).map((row) => [
     theme.repo(row.repository),
     theme.value(formatHistoryTimestamp(row.timestamp)),

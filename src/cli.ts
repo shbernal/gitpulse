@@ -5,13 +5,14 @@ import { completeKnownRepos, readKnownRepos, resolveKnownRepoShorthand } from ".
 import { clearCache } from "./cache/maintenance";
 import { type CacheMode } from "./cache/policy";
 import { resolveSnapshot } from "./cache/resolve";
+import { resolveUserProfileSnapshot } from "./cache/resolve-user";
 import { ConfigError, configPath, loadConfig, resetConfig } from "./config";
 import { GitHubClient } from "./github/client";
 import { renderHistory } from "./render/history";
-import { renderComparisonJson, renderDocsJson, renderRepoJson } from "./render/json";
-import { renderComparison, renderDocs, renderRepo } from "./render/table";
+import { renderComparisonJson, renderDocsJson, renderRepoJson, renderUserProfileJson } from "./render/json";
+import { renderComparison, renderDocs, renderRepo, renderUserProfile } from "./render/table";
 import { shouldUseColor, type ColorMode, type RenderOptions } from "./render/terminal";
-import type { SnapshotWithSource } from "./types";
+import type { SnapshotWithSource, UserProfileWithSource } from "./types";
 
 type CommandOptions = {
   color?: ColorMode;
@@ -57,9 +58,19 @@ export async function main(argv = process.argv): Promise<void> {
     await runDocs(repo, options);
   });
 
+  addCacheOptions(
+    program
+      .command("user")
+      .description("Show GitHub user profile signals")
+      .argument("<login>", "GitHub user or organization login"),
+  ).action(async (login: string, _options: CommandOptions, command: Command) => {
+    const options = command.optsWithGlobals<CommandOptions>();
+    await runUser(login, options);
+  });
+
   const historyCommand = program
     .command("history")
-    .description("Show recently consulted repositories")
+    .description("Show recently consulted targets")
     .option("--json", "emit JSON output")
     .addOption(colorOption())
     .action(async (_options: CommandOptions, command: Command) => {
@@ -121,12 +132,16 @@ export async function main(argv = process.argv): Promise<void> {
 }
 
 function addSharedOptions(command: Command): Command {
+  return addCacheOptions(command)
+    .addOption(contributorFetchLimitOption());
+}
+
+function addCacheOptions(command: Command): Command {
   return command
     .option("--json", "emit JSON output")
     .addOption(colorOption())
     .option("--refresh", "bypass the cache and refresh from the GitHub API")
     .option("--offline", "use the local cache only, even when cached data is stale")
-    .addOption(contributorFetchLimitOption())
     .addOption(maxCacheHoursOption());
 }
 
@@ -296,6 +311,38 @@ async function runDocs(repo: string, options: CommandOptions): Promise<void> {
   }
 }
 
+async function runUser(login: string, options: CommandOptions): Promise<void> {
+  const runtime = await loadRuntimeOptions(options);
+
+  if (!runtime.ok) {
+    console.error(`gitpulse: ${runtime.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const client = new GitHubClient();
+  const now = new Date();
+  const snapshot = await resolveUserProfileSnapshot(client, login, {
+    ...runtime.value.cache,
+    now,
+  });
+  const result = snapshot.result;
+
+  await recordHistory("user", [login], [snapshot], now);
+
+  if (runtime.value.json) {
+    console.log(renderUserProfileJson(result, snapshot.source));
+  } else if (result.ok) {
+    console.log(renderUserProfile(result.snapshot, runtime.value.renderOptions, snapshot.source));
+  } else {
+    console.error(`gitpulse: ${result.error.message}`);
+  }
+
+  if (!result.ok) {
+    process.exitCode = 1;
+  }
+}
+
 async function runHistory(json: boolean, colorMode: ColorMode): Promise<void> {
   try {
     const events = await readHistoryEvents();
@@ -436,9 +483,9 @@ async function resolveRepositoryInputs(inputs: string[]): Promise<{ ok: true; va
 }
 
 async function recordHistory(
-  command: "repo" | "compare" | "docs",
+  command: "repo" | "compare" | "docs" | "user",
   inputs: string[],
-  snapshots: SnapshotWithSource[],
+  snapshots: Array<SnapshotWithSource | UserProfileWithSource>,
   now: Date,
 ): Promise<void> {
   try {

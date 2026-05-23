@@ -83,6 +83,67 @@ export type CompositeMetrics = {
   communityFootprint: CompositeMetric;
 };
 
+export type UserProfileFacts = {
+  login: string;
+  name: string | null;
+  type: string;
+  bio: string | null;
+  url: string;
+  company: string | null;
+  location: string | null;
+  blog: string | null;
+  twitterUsername: string | null;
+  email: string | null;
+  hireable: boolean | null;
+  createdAt: string;
+  updatedAt: string;
+  ageDays: number;
+  daysSinceUpdated: number | null;
+  publicRepos: number;
+  publicGists: number;
+  followers: number;
+  following: number;
+  siteAdmin: boolean;
+};
+
+export type UserRepositorySummary = {
+  fullName: string;
+  name: string;
+  description: string | null;
+  url: string;
+  primaryLanguage: string | null;
+  stars: number;
+  forks: number;
+  archived: boolean;
+  fork: boolean;
+  createdAt: string;
+  pushedAt: string | null;
+  updatedAt: string;
+  daysSinceLastPush: number | null;
+};
+
+export type UserLanguageFootprint = {
+  name: string;
+  repositoryCount: number;
+  percent: number;
+};
+
+export type UserRepositoryFootprint = {
+  publicRepoCount: number;
+  fetchedCount: number;
+  fetchLimit: number;
+  truncated: boolean;
+  recentPushWindowDays: number;
+  recentlyPushedCount: number;
+  totalStars: number;
+  totalForks: number;
+  archivedCount: number;
+  forkCount: number;
+  primaryLanguages: UserLanguageFootprint[];
+  topRepositories: UserRepositorySummary[];
+  recentlyPushedRepositories: UserRepositorySummary[];
+};
+
 export type RepoSnapshot = {
   ref: RepoRef;
   fetchedAt: string;
@@ -91,6 +152,14 @@ export type RepoSnapshot = {
   documentation: DocumentationSignals;
   contributors: ContributorSignals;
   metrics: CompositeMetrics;
+  warnings: string[];
+};
+
+export type UserProfileSnapshot = {
+  login: string;
+  fetchedAt: string;
+  profile: UserProfileFacts;
+  repositories: UserRepositoryFootprint;
   warnings: string[];
 };
 
@@ -108,6 +177,18 @@ export type SnapshotResult =
   | {
       ok: false;
       ref: RepoRef | null;
+      input: string;
+      error: SnapshotError;
+    };
+
+export type UserProfileResult =
+  | {
+      ok: true;
+      snapshot: UserProfileSnapshot;
+    }
+  | {
+      ok: false;
+      login: string | null;
       input: string;
       error: SnapshotError;
     };
@@ -133,5 +214,10 @@ export type SnapshotSource =
 
 export type SnapshotWithSource = {
   result: SnapshotResult;
+  source: SnapshotSource;
+};
+
+export type UserProfileWithSource = {
+  result: UserProfileResult;
   source: SnapshotSource;
 };

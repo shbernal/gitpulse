@@ -1,4 +1,12 @@
-import type { CompositeMetric, DocumentationSignal, RepoSnapshot, SnapshotResult, SnapshotSource } from "../types";
+import type {
+  CompositeMetric,
+  DocumentationSignal,
+  RepoSnapshot,
+  SnapshotResult,
+  SnapshotSource,
+  UserProfileSnapshot,
+  UserRepositorySummary,
+} from "../types";
 import { formatDate, formatDateWithAge, formatMonthYear, formatRelativeDays } from "../util/dates";
 import { formatBool, formatCompactNumber, formatInteger, formatPercent, formatSizeKb, truncate } from "../util/format";
 import { formatComparisonRepoLabels, formatRepoRef } from "../util/repo-ref";
@@ -115,6 +123,76 @@ export function renderDocs(snapshot: RepoSnapshot, options: RenderOptions = {}, 
       ],
       theme,
     ),
+    "",
+  ];
+
+  if (snapshot.warnings.length > 0) {
+    output.push(theme.section("Warnings"), ...snapshot.warnings.map((warning) => `  - ${theme.warning(warning)}`), "");
+  }
+
+  return output.join("\n").trimEnd();
+}
+
+export function renderUserProfile(snapshot: UserProfileSnapshot, options: RenderOptions = {}, source?: SnapshotSource): string {
+  const theme = createTheme(options);
+  const output = [
+    theme.repo(`gitpulse user ${snapshot.profile.login}`),
+    ...(snapshot.profile.name ? [`  ${truncate(snapshot.profile.name, 120)}`] : []),
+    ...(snapshot.profile.bio ? [`  ${truncate(snapshot.profile.bio, 120)}`] : []),
+    `  ${snapshot.profile.url}`,
+    theme.muted(`  fetched ${snapshot.fetchedAt}`),
+    ...(source ? [`  ${theme.muted("data source:")} ${formatSnapshotSource(source)}`] : []),
+    "",
+    theme.section("Profile"),
+    renderFieldGrid(
+      [
+        { label: "Type", value: theme.value(snapshot.profile.type) },
+        { label: "Created", value: theme.value(formatDateWithAge(snapshot.profile.createdAt, snapshot.profile.ageDays)) },
+        { label: "Updated", value: formatDateWithAgeTone(snapshot.profile.updatedAt, snapshot.profile.daysSinceUpdated, theme) },
+        { label: "Followers", value: theme.value(formatCompactNumber(snapshot.profile.followers)) },
+        { label: "Following", value: theme.value(formatCompactNumber(snapshot.profile.following)) },
+        { label: "Public repos", value: theme.value(formatInteger(snapshot.profile.publicRepos)) },
+        { label: "Public gists", value: theme.value(formatInteger(snapshot.profile.publicGists)) },
+        { label: "Hireable", value: formatNullableBool(snapshot.profile.hireable, theme) },
+      ],
+      theme,
+    ),
+    "",
+    theme.section("Details"),
+    renderKeyValueList(
+      [
+        ["Company", profileValue(snapshot.profile.company, theme)],
+        ["Location", profileValue(snapshot.profile.location, theme)],
+        ["Blog", profileValue(snapshot.profile.blog, theme)],
+        ["Twitter/X", profileValue(snapshot.profile.twitterUsername, theme)],
+        ["Email", profileValue(snapshot.profile.email, theme)],
+        ["Site admin", formatBoolTone(snapshot.profile.siteAdmin, theme, "warn", "muted")],
+      ],
+      theme,
+    ),
+    "",
+    theme.section("Repository footprint"),
+    renderKeyValueList(
+      [
+        ["Public repos fetched", theme.value(formatFetchedCount(snapshot))],
+        ["Total stars", theme.value(formatCompactNumber(snapshot.repositories.totalStars))],
+        ["Total forks", theme.value(formatCompactNumber(snapshot.repositories.totalForks))],
+        [
+          "Recently pushed",
+          theme.value(`${formatInteger(snapshot.repositories.recentlyPushedCount)} in last ${snapshot.repositories.recentPushWindowDays}d`),
+        ],
+        ["Archived repos", theme.value(formatInteger(snapshot.repositories.archivedCount))],
+        ["Fork repos", theme.value(formatInteger(snapshot.repositories.forkCount))],
+        ["Primary languages", formatUserLanguages(snapshot, theme)],
+      ],
+      theme,
+    ),
+    "",
+    theme.section("Top repositories"),
+    renderUserRepositoryTable(snapshot.repositories.topRepositories, theme),
+    "",
+    theme.section("Recently pushed repositories"),
+    renderUserRepositoryTable(snapshot.repositories.recentlyPushedRepositories, theme),
     "",
   ];
 
@@ -248,6 +326,62 @@ function renderTable(headers: string[], rows: string[][], theme: Theme): string 
   const separator = widths.map((width) => "-".repeat(width)).join("  ");
 
   return [theme.bold(renderRow(headers)), theme.muted(separator), ...rows.map(renderRow)].join("\n");
+}
+
+function renderUserRepositoryTable(repositories: UserRepositorySummary[], theme: Theme): string {
+  if (repositories.length === 0) {
+    return `  ${theme.missing()}`;
+  }
+
+  return renderTable(
+    ["Repository", "Stars", "Forks", "Language", "Last push", "State"],
+    repositories.map((repository) => [
+      theme.repo(repository.fullName),
+      theme.value(formatCompactNumber(repository.stars)),
+      theme.value(formatCompactNumber(repository.forks)),
+      formatPrimaryLanguage(repository.primaryLanguage, theme),
+      formatDateWithAgeTone(repository.pushedAt, repository.daysSinceLastPush, theme),
+      formatUserRepositoryState(repository, theme),
+    ]),
+    theme,
+  );
+}
+
+function formatFetchedCount(snapshot: UserProfileSnapshot): string {
+  const fetched = formatInteger(snapshot.repositories.fetchedCount);
+  const total = formatInteger(snapshot.repositories.publicRepoCount);
+
+  return snapshot.repositories.truncated ? `${fetched} of ${total}` : fetched;
+}
+
+function formatUserLanguages(snapshot: UserProfileSnapshot, theme: Theme): string {
+  if (snapshot.repositories.primaryLanguages.length === 0) {
+    return theme.missing();
+  }
+
+  return snapshot.repositories.primaryLanguages
+    .map((language) => `${theme.language(language.name)} ${theme.value(`${formatInteger(language.repositoryCount)} repos, ${formatPercent(language.percent)}`)}`)
+    .join(", ");
+}
+
+function formatUserRepositoryState(repository: UserRepositorySummary, theme: Theme): string {
+  if (repository.archived) {
+    return theme.tone("archived", "bad");
+  }
+
+  if (repository.fork) {
+    return theme.tone("fork", "warn");
+  }
+
+  return theme.tone("source", "good");
+}
+
+function formatNullableBool(value: boolean | null, theme: Theme): string {
+  return value === null ? theme.missing() : formatBoolTone(value, theme, "good", "muted");
+}
+
+function profileValue(value: string | null, theme: Theme): string {
+  return value ? theme.value(value) : theme.missing();
 }
 
 function formatSnapshotSource(source: SnapshotSource): string {
