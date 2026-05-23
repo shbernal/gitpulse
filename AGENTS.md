@@ -76,3 +76,5 @@ shorthand. Keep any future shorthand predictable and deterministic.
 - Do not introduce AI dependencies into the deterministic Phase 1 baseline.
 - Prefer small, testable modules over a single large CLI file.
 - When adding metrics, document what the metric means and what it does not prove.
+- Keep commits lean and focused: one independent change per commit when practical,
+  even when the user only says "commit."
