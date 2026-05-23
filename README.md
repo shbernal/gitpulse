@@ -46,7 +46,7 @@ Single repository report:
 gitpulse repo cli/cli
 ```
 
-The prototype shorthand is still supported:
+The shorthand form is also supported:
 
 ```bash
 gitpulse cli/cli
@@ -202,7 +202,8 @@ Watcher counts are sourced from GitHub REST `subscribers_count`, because GitHub'
 
 Total contributor and total commit counts are inferred from GitHub REST pagination. Contributor collection uses GitHub's `anon=true` contributor mode so anonymous author identities are included. Contributor concentration metrics use the first `contributors.fetchLimit` rows returned by GitHub's contributor endpoint, sorted by contribution count.
 
-Composite signals are evidence grouping helpers, not verdicts.
+Composite signals are evidence grouping helpers, not verdicts. The current
+formula details are documented in `docs/COMPOSITE_METRICS.md`.
 
 ## Development
 
@@ -225,4 +226,5 @@ install -Dm755 ./dist/gitpulse "$HOME/.local/bin/gitpulse"
 
 - `AGENTS.md`: contributor and agent operating guidance.
 - `docs/PROJECT_SPEC.md`: broader project direction.
-- `docs/PHASE_1_SPEC.md`: first-phase implementation scope.
+- `docs/COMPOSITE_METRICS.md`: current composite metric formulas and caveats.
+- `docs/FUTURE_LOC_ANALYSIS.md`: deferred source-inspection plan for line counts.

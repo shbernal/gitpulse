@@ -161,7 +161,7 @@ These describe how easy the project is to evaluate:
 - Security policy presence.
 - Release notes presence.
 
-Phase 1 should only detect presence and basic metadata. Deeper content analysis belongs to a later phase.
+Phase 1 detects presence and basic metadata only. Deeper content analysis belongs to a later phase.
 
 ## Metric Philosophy
 
@@ -169,7 +169,7 @@ Metrics should be useful but humble. A high star count can indicate adoption or 
 
 Gitpulse should make metrics easier to inspect, not overclaim what they prove.
 
-Composite metrics may be added, but they must be explainable. If Gitpulse computes an "activity score" or "maintenance score," the output and docs should describe the inputs and weighting.
+Composite metrics are allowed as evidence grouping helpers, but they must remain explainable. If Gitpulse computes an "activity score" or "maintenance score," the output and docs should describe the inputs and weighting. Current formulas live in [Composite Metrics](COMPOSITE_METRICS.md).
 
 ## Output Philosophy
 
@@ -221,7 +221,7 @@ Possible later phases:
 
 ## Open Product Questions
 
-- Should Gitpulse eventually include a normalized score, or only grouped metrics?
+- Should Gitpulse keep grouped composite metrics only, or introduce scenario-specific scoring profiles?
 - How should metrics differ for libraries, CLIs, frameworks, and applications?
 - Should Gitpulse eventually include deterministic comparison summary language, and how can it avoid becoming prescriptive?
 - Should Gitpulse support a config file for custom metric weighting?

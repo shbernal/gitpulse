@@ -20,13 +20,13 @@ Instead, it should gather project-health datapoints, organize them clearly, and 
 
 ## Current Baseline
 
-The repository currently contains a Bash script named `gitpulse` that fetches minimal repository information from the GitHub REST API and renders a terminal table.
+The repository contains a TypeScript CLI under `src/`. The root `gitpulse` file is a Bun wrapper for local development, and the npm package builds `src/bin.ts` to `dist/cli.js`.
 
-Treat that script as the prototype, not as the long-term architecture. The first major implementation direction is to migrate the CLI to TypeScript while preserving the simple terminal-first usage.
+Treat Phase 1 as the implemented deterministic baseline. Future work should preserve the terminal-first command shape while extending data sources or metrics deliberately.
 
 ## Phase Strategy
 
-Phase 1 is deterministic and API-driven. It should focus on structured metrics from GitHub and clear terminal output. Avoid AI or subjective NLP features in this phase.
+Phase 1 is deterministic and API-driven. It focuses on structured metrics from GitHub, local cache/config/history, JSON output, and clear terminal rendering. Avoid AI or subjective NLP features in this phase.
 
 Phase 2 may add deeper textual analysis over READMEs, changelogs, release notes, issue templates, and other informational files. AI-assisted summaries can be explored then, but they should remain explainable and source-backed.
 
@@ -49,17 +49,18 @@ gitpulse repo owner/name
 gitpulse compare owner/a owner/b [owner/c...]
 ```
 
-Aliases or shorthand input may be added later, but the first implementation should keep parsing predictable.
+The local shorthand `gitpulse owner/name` is supported, but `repo` and `compare` remain the canonical command forms. Keep any future shorthand predictable and deterministic.
 
 ## Documentation Map
 
 - `docs/PROJECT_SPEC.md`: broader product vision, users, signals, and non-goals.
-- `docs/PHASE_1_SPEC.md`: first implementation phase, TypeScript migration, command scope, data model, and acceptance criteria.
+- `docs/COMPOSITE_METRICS.md`: current composite metric formulas, caveats, and interpretation rules.
+- `docs/FUTURE_LOC_ANALYSIS.md`: deferred source-inspection plan for line counts.
 
 ## Contributor Notes
 
-- Keep changes scoped to the current phase unless the user explicitly asks for broader implementation.
+- Keep changes scoped to the Phase 1 baseline unless the user explicitly asks for broader implementation.
 - Update specs when behavior or command scope changes.
-- Do not introduce AI dependencies into phase-1 work.
+- Do not introduce AI dependencies into the deterministic Phase 1 baseline.
 - Prefer small, testable modules over a single large CLI file.
 - When adding metrics, document what the metric means and what it does not prove.
