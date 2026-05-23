@@ -74,13 +74,13 @@ signals.
 
 Human output shows:
 
-- Repository identity and data source.
+- Repository identity.
 - README presence and path.
 - Changelog presence and path.
 - Contributing guide presence and path.
 - Code of conduct presence and path.
 - Security policy presence and path.
-- Warnings or partial fetch failures.
+- A `Data Provenance` section with fetched/source details and any warnings or partial fetch failures.
 
 Later iterations may add release notes, issue templates, pull request templates,
 funding files, governance docs, or docs directories. Those should be added as

@@ -133,7 +133,7 @@ export function createTheme(options: RenderOptions = {}) {
       return colors.bold(colors.white(value));
     },
     warning(value: string): string {
-      return applyTone(value, "warn");
+      return colors.bold(paintForeground(value, { red: 245, green: 158, blue: 11 }));
     },
   };
 }

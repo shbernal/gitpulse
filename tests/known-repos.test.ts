@@ -320,7 +320,7 @@ describe("CLI shorthand wiring", () => {
       const rootOutput = await withProcessEnv(env, () =>
         captureStdout(() => main(["node", "gitpulse", "tool", "--offline", "--color", "never"])),
       );
-      expect(rootOutput).toContain("gitpulse acme/tool");
+      expect(rootOutput).toContain("acme/tool (https://github.com/acme/tool)");
 
       const docsOutput = await withProcessEnv(env, () =>
         captureStdout(() => main(["node", "gitpulse", "docs", "tool", "--offline", "--color", "never"])),
@@ -330,7 +330,7 @@ describe("CLI shorthand wiring", () => {
       const compareOutput = await withProcessEnv(env, () =>
         captureStdout(() => main(["node", "gitpulse", "tool", "gum", "--offline", "--color", "never"])),
       );
-      expect(compareOutput).toContain("gitpulse comparison");
+      expect(compareOutput).toContain("Compared Repos");
       expect(compareOutput).toContain("tool");
       expect(compareOutput).toContain("gum");
     });

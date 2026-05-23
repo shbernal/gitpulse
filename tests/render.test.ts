@@ -9,7 +9,10 @@ describe("terminal rendering", () => {
   test("renders a compact repository report", () => {
     const output = renderRepo(snapshot("acme/tool"), { color: false });
 
-    expect(output).toContain("gitpulse acme/tool");
+    expect(output).toStartWith("Repo\nacme/tool (https://github.com/acme/tool)");
+    expect(output).toContain("acme/tool (https://github.com/acme/tool)");
+    expect(output).not.toContain("gitpulse acme/tool");
+    expect(output.split("\n").every((line) => !line.startsWith("  "))).toBe(true);
     expect(output).toContain("[active] [source] [branch main] [TypeScript] [MIT]");
     expect(output).toContain("Pulse");
     expect(output).toContain("[########--]");
@@ -18,6 +21,8 @@ describe("terminal rendering", () => {
     expect(output).not.toContain("Maintenance visibility");
     expect(output).not.toContain("Documentation");
     expect(output).toContain("At a glance");
+    expect(output).toContain("Data Provenance");
+    expect(output).toContain("\nData Provenance\nfetched 2026-05-16T00:00:00.000Z");
     expect(output).toContain("Watchers");
     expect(output).toContain("Contributors");
     expect(output).toContain("Total contributors");
@@ -26,6 +31,13 @@ describe("terminal rendering", () => {
     expect(output).toContain("Total number of commits");
     expect(output).not.toContain("Subscribers");
     expect(output).not.toContain("+-");
+  });
+
+  test("allows longer repository descriptions before truncating", () => {
+    const output = renderRepo(snapshot("acme/tool", { description: `${"x".repeat(250)} end` }), { color: false });
+
+    expect(output).toContain(`${"x".repeat(237)}...`);
+    expect(output).not.toContain(`${"x".repeat(238)}...`);
   });
 
   test("renders documentation signals in the dedicated docs report", () => {
@@ -81,6 +93,9 @@ describe("terminal rendering", () => {
     );
 
     expect(output).toContain("Scoreboard");
+    expect(output).toContain("Compared Repos");
+    expect(output).not.toContain("gitpulse comparison");
+    expect(output.indexOf("A useful developer tool.")).toBeLessThan(output.indexOf("Scoreboard"));
     expect(output).not.toContain("Data sources");
     expect(output).toContain("Repository");
     expect(output).toContain("one");
@@ -88,8 +103,8 @@ describe("terminal rendering", () => {
     expect(output).toContain("82/100");
     expect(output).toContain("48/100");
     expect(output).not.toContain("67/100");
-    expect(output).not.toContain("acme/one");
-    expect(output).not.toContain("acme/two");
+    expect(output).toContain("acme/one (https://github.com/acme/one)");
+    expect(output).toContain("acme/two (https://github.com/acme/two)");
     expect(output).not.toContain("Signals");
     expect(output).not.toContain("Activity freshness");
     expect(output).not.toContain("Community footprint");
@@ -98,13 +113,16 @@ describe("terminal rendering", () => {
     expect(output).not.toContain("Docs");
     expect(output).not.toContain("82 strong");
     expect(output).toContain("Activity");
-    expect(output).toContain("Repository Facts");
+    expect(output).toContain("Repo Facts");
+    expect(output).not.toContain("Repository Facts");
     expect(output).toContain("jan 2020");
     expect(output).toContain("Watchers");
     expect(output).not.toContain("Subscribers");
     expect(output).not.toContain("Summary");
     expect(output).not.toContain("Age");
     expect(output).not.toContain("+-");
+    expect(output).toContain("Data Provenance");
+    expect(output).toContain("\nData Provenance\nCompared 2 repositories");
   });
 
   test("keeps owner prefixes in comparison output when repo names match", () => {
@@ -135,6 +153,7 @@ describe("terminal rendering", () => {
 
     expect(output).toContain("data sources: api; stale cache, fetched 15d ago");
     expect(output).not.toContain("Data sources");
+    expect(output).toContain("Data Provenance");
     expect(output).not.toContain("Repository  Source");
     expect(output).toContain("stale cache, fetched 15d ago");
   });
@@ -161,7 +180,15 @@ describe("terminal rendering", () => {
 
     expect(output).toContain("\u001b[");
     expect(output).toContain("\u001b[4m");
+    expect(output).toContain("\u001b[2m(https://github.com/acme/tool)");
     expect(stripVTControlCharacters(output)).toContain("[active] [source] [branch main] [TypeScript] [MIT]");
+  });
+
+  test("renders provenance warnings with an orange warning prefix", () => {
+    const output = renderRepo(snapshot("acme/tool", { warnings: ["Repository is archived."] }), { color: true });
+
+    expect(stripVTControlCharacters(output)).toContain("\n[warning] Repository is archived.");
+    expect(output).toContain("\u001b[38;2;245;158;11m");
   });
 
   test("colors known programming languages in human-readable output", () => {
@@ -260,6 +287,8 @@ function snapshot(
     commitDays?: number;
     sizeKb?: number;
     stars?: number;
+    description?: string | null;
+    warnings?: string[];
   } = {},
 ): RepoSnapshot {
   const [owner, name] = fullName.split("/");
@@ -270,7 +299,7 @@ function snapshot(
     fetchedAt: "2026-05-16T00:00:00.000Z",
     repository: {
       fullName,
-      description: "A useful developer tool.",
+      description: options.description ?? "A useful developer tool.",
       url: `https://github.com/${fullName}`,
       createdAt: "2020-01-01T00:00:00Z",
       pushedAt: "2026-05-14T00:00:00Z",
@@ -326,7 +355,7 @@ function snapshot(
       activityFreshness: { score: 82, label: "strong", inputs: {} },
       communityFootprint: { score: 48, label: "limited", inputs: {} },
     },
-    warnings: [],
+    warnings: options.warnings ?? [],
   };
 }
 

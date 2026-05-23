@@ -26,17 +26,17 @@ type Theme = ReturnType<typeof createTheme>;
 type ThemeTone = Parameters<Theme["tone"]>[1];
 type SnapshotSuccess = Extract<SnapshotResult, { ok: true }>;
 
+const DESCRIPTION_MAX_LENGTH = 240;
+
 export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, source?: SnapshotSource): string {
   const theme = createTheme(options);
   const output = [
-    theme.repo(`gitpulse ${formatRepoRef(snapshot.ref)}`),
-    ...(snapshot.repository.description ? [`  ${truncate(snapshot.repository.description, 120)}`] : []),
-    `  ${snapshot.repository.url}`,
-    theme.muted(`  fetched ${snapshot.fetchedAt}`),
-    ...(source ? [`  ${theme.muted("data source:")} ${formatSnapshotSource(source)}`] : []),
+    theme.section("Repo"),
+    formatRepositoryTitle(snapshot, theme),
+    ...renderRepositoryDescription(snapshot),
     "",
     theme.section("Status"),
-    `  ${repoBadges(snapshot, theme).join(" ")}`,
+    repoBadges(snapshot, theme).join(" "),
     "",
     theme.section("Pulse"),
     ...renderMetricRows(
@@ -45,6 +45,7 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
         ["Community footprint", snapshot.metrics.communityFootprint],
       ],
       theme,
+      "",
     ),
     "",
     theme.section("At a glance"),
@@ -57,6 +58,8 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
         { label: "Open PRs", value: theme.value(formatInteger(snapshot.repository.openPullRequests)) },
       ],
       theme,
+      2,
+      "",
     ),
     "",
     theme.section("Activity"),
@@ -70,6 +73,8 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
         { label: "Releases", value: theme.value(formatInteger(snapshot.activity.releaseCount)) },
       ],
       theme,
+      2,
+      "",
     ),
     "",
     theme.section("Contributors"),
@@ -80,6 +85,7 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
         ["Total number of commits", valueOrMissing(formatInteger(snapshot.activity.totalCommitCount), theme)],
       ],
       theme,
+      "",
     ),
     "",
     theme.section("Project shape"),
@@ -93,13 +99,12 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
         ["Size", theme.value(formatSizeKb(snapshot.repository.sizeKb))],
       ],
       theme,
+      "",
     ),
     "",
   ];
 
-  if (snapshot.warnings.length > 0) {
-    output.push(theme.section("Warnings"), ...snapshot.warnings.map((warning) => `  - ${theme.warning(warning)}`), "");
-  }
+  output.push(...renderDataProvenance(theme, { fetchedAt: snapshot.fetchedAt, source, warnings: snapshot.warnings }));
 
   return output.join("\n").trimEnd();
 }
@@ -109,8 +114,6 @@ export function renderDocs(snapshot: RepoSnapshot, options: RenderOptions = {}, 
   const output = [
     theme.repo(`gitpulse docs ${formatRepoRef(snapshot.ref)}`),
     `  ${snapshot.repository.url}`,
-    theme.muted(`  fetched ${snapshot.fetchedAt}`),
-    ...(source ? [`  ${theme.muted("data source:")} ${formatSnapshotSource(source)}`] : []),
     "",
     theme.section("Documentation"),
     renderKeyValueList(
@@ -126,9 +129,7 @@ export function renderDocs(snapshot: RepoSnapshot, options: RenderOptions = {}, 
     "",
   ];
 
-  if (snapshot.warnings.length > 0) {
-    output.push(theme.section("Warnings"), ...snapshot.warnings.map((warning) => `  - ${theme.warning(warning)}`), "");
-  }
+  output.push(...renderDataProvenance(theme, { fetchedAt: snapshot.fetchedAt, source, warnings: snapshot.warnings }));
 
   return output.join("\n").trimEnd();
 }
@@ -140,8 +141,6 @@ export function renderUserProfile(snapshot: UserProfileSnapshot, options: Render
     ...(snapshot.profile.name ? [`  ${truncate(snapshot.profile.name, 120)}`] : []),
     ...(snapshot.profile.bio ? [`  ${truncate(snapshot.profile.bio, 120)}`] : []),
     `  ${snapshot.profile.url}`,
-    theme.muted(`  fetched ${snapshot.fetchedAt}`),
-    ...(source ? [`  ${theme.muted("data source:")} ${formatSnapshotSource(source)}`] : []),
     "",
     theme.section("Profile"),
     renderFieldGrid(
@@ -196,9 +195,7 @@ export function renderUserProfile(snapshot: UserProfileSnapshot, options: Render
     "",
   ];
 
-  if (snapshot.warnings.length > 0) {
-    output.push(theme.section("Warnings"), ...snapshot.warnings.map((warning) => `  - ${theme.warning(warning)}`), "");
-  }
+  output.push(...renderDataProvenance(theme, { fetchedAt: snapshot.fetchedAt, source, warnings: snapshot.warnings }));
 
   return output.join("\n").trimEnd();
 }
@@ -213,7 +210,7 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
 
   if (snapshots.length === 0) {
     return [
-      theme.bold("gitpulse comparison"),
+      theme.section("Compared Repos"),
       "",
       "No repository data could be fetched.",
       "",
@@ -225,7 +222,7 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
   const headers = ["Metric", ...repoLabels];
   const sections = [
     {
-      title: "Repository Facts",
+      title: "Repo Facts",
       rows: [
         row("Created", snapshots, ({ snapshot }) => theme.value(formatMonthYear(snapshot.repository.createdAt))),
         row("Primary language", snapshots, ({ snapshot }) => formatPrimaryLanguage(snapshot.repository.primaryLanguage, theme)),
@@ -259,9 +256,8 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
   ];
 
   const output = [
-    theme.bold("gitpulse comparison"),
-    `Compared ${theme.value(String(snapshots.length))} repositories`,
-    ...(sourceSummary ? [`${theme.muted("data sources:")} ${sourceSummary}`] : []),
+    theme.section("Compared Repos"),
+    ...renderComparisonRepositoryDescriptions(snapshots, theme),
     "",
     theme.section("Scoreboard"),
     renderTable(
@@ -286,18 +282,17 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
   const warnings = snapshots.flatMap(({ snapshot }, index) =>
     snapshot.warnings.map((warning) => `${repoLabels[index]}: ${warning}`),
   );
-  if (warnings.length > 0) {
-    output.push(theme.section("Warnings"), ...warnings.map((warning) => `  - ${theme.warning(warning)}`), "");
-  }
 
   if (failures.length > 0) {
     output.push(theme.section("Fetch errors"), ...failures.map((failure) => `  - ${failure.input}: ${theme.error(failure.error.message)}`), "");
   }
 
+  output.push(...renderDataProvenance(theme, { comparedCount: snapshots.length, sourceSummary, warnings }));
+
   return output.join("\n").trimEnd();
 }
 
-function renderFieldGrid(fields: Field[], theme: Theme, columns = 2): string {
+function renderFieldGrid(fields: Field[], theme: Theme, columns = 2, prefix = "  "): string {
   const labelWidth = Math.max(...fields.map((field) => visibleLength(field.label)));
   const cells = fields.map((field) => `${padVisibleEnd(theme.label(field.label), labelWidth)}  ${field.value}`);
   const cellWidth = Math.max(...cells.map((cell) => visibleLength(cell)));
@@ -307,15 +302,15 @@ function renderFieldGrid(fields: Field[], theme: Theme, columns = 2): string {
     const rowCells = cells
       .slice(index, index + columns)
       .map((cell, cellIndex, row) => (cellIndex === row.length - 1 ? cell : padVisibleEnd(cell, cellWidth)));
-    lines.push(`  ${rowCells.join("    ").trimEnd()}`);
+    lines.push(`${prefix}${rowCells.join("    ").trimEnd()}`);
   }
 
   return lines.join("\n");
 }
 
-function renderKeyValueList(rows: Array<[string, string]>, theme: Theme): string {
+function renderKeyValueList(rows: Array<[string, string]>, theme: Theme, prefix = "  "): string {
   const labelWidth = Math.max(...rows.map(([label]) => visibleLength(label)));
-  return rows.map(([label, value]) => `  ${padVisibleEnd(theme.label(label), labelWidth)}  ${value}`).join("\n");
+  return rows.map(([label, value]) => `${prefix}${padVisibleEnd(theme.label(label), labelWidth)}  ${value}`).join("\n");
 }
 
 function renderTable(headers: string[], rows: string[][], theme: Theme): string {
@@ -345,6 +340,42 @@ function renderUserRepositoryTable(repositories: UserRepositorySummary[], theme:
     ]),
     theme,
   );
+}
+
+function formatRepositoryTitle(snapshot: RepoSnapshot, theme: Theme): string {
+  return `${theme.repo(snapshot.repository.fullName)} ${theme.muted(`(${snapshot.repository.url})`)}`;
+}
+
+function renderRepositoryDescription(snapshot: RepoSnapshot): string[] {
+  return snapshot.repository.description ? [truncate(snapshot.repository.description, DESCRIPTION_MAX_LENGTH)] : [];
+}
+
+function renderComparisonRepositoryDescriptions(snapshots: SnapshotSuccess[], theme: Theme): string[] {
+  return snapshots.flatMap(({ snapshot }) => [
+    formatRepositoryTitle(snapshot, theme),
+    ...renderRepositoryDescription(snapshot),
+  ]);
+}
+
+function renderDataProvenance(
+  theme: Theme,
+  input: {
+    fetchedAt?: string;
+    source?: SnapshotSource;
+    comparedCount?: number;
+    sourceSummary?: string | null;
+    warnings: string[];
+  },
+): string[] {
+  const lines = [
+    input.fetchedAt ? theme.muted(`fetched ${input.fetchedAt}`) : null,
+    input.source ? `${theme.muted("data source:")} ${formatSnapshotSource(input.source)}` : null,
+    input.comparedCount !== undefined ? `Compared ${theme.value(String(input.comparedCount))} repositories` : null,
+    input.sourceSummary ? `${theme.muted("data sources:")} ${input.sourceSummary}` : null,
+    ...input.warnings.map((warning) => theme.warning(`[warning] ${warning}`)),
+  ].filter((line): line is string => Boolean(line));
+
+  return lines.length > 0 ? [theme.section("Data Provenance"), ...lines, ""] : [];
 }
 
 function formatFetchedCount(snapshot: UserProfileSnapshot): string {
@@ -489,12 +520,12 @@ function repoBadges(snapshot: RepoSnapshot, theme: Theme): string[] {
   ].filter((badge): badge is string => Boolean(badge));
 }
 
-function renderMetricRows(metrics: Array<[string, CompositeMetric]>, theme: Theme): string[] {
+function renderMetricRows(metrics: Array<[string, CompositeMetric]>, theme: Theme, prefix = "  "): string[] {
   const labelWidth = Math.max(...metrics.map(([label]) => label.length));
   return metrics.map(([label, metric]) => {
     const tone = scoreTone(metric.score);
     const score = `${String(metric.score).padStart(3)}/100`;
-    return `  ${padVisibleEnd(theme.label(label), labelWidth)}  ${theme.bar(metric.score)}  ${theme.tone(score, tone)}  ${theme.tone(metric.label, tone)}`;
+    return `${prefix}${padVisibleEnd(theme.label(label), labelWidth)}  ${theme.bar(metric.score)}  ${theme.tone(score, tone)}  ${theme.tone(metric.label, tone)}`;
   });
 }
 
