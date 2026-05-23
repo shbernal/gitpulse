@@ -86,7 +86,6 @@ function snapshot(fullName: string, stars: number, commitDays: number, contribut
     metrics: {
       activityFreshness: { score: 0, label: "weak", inputs: {} },
       communityFootprint: { score: 0, label: "weak", inputs: {} },
-      maintenanceVisibility: { score: 0, label: "weak", inputs: {} },
     },
     warnings: [],
   };

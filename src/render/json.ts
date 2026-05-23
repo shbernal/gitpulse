@@ -1,7 +1,7 @@
 import { buildComparisonSummary } from "../metrics/compare";
 import type { SnapshotResult, SnapshotSource } from "../types";
 
-const schemaVersion = 2;
+const schemaVersion = 3;
 
 export function renderRepoJson(result: SnapshotResult, source?: SnapshotSource): string {
   return JSON.stringify(
@@ -29,9 +29,42 @@ export function renderComparisonJson(results: SnapshotResult[], sources: Snapsho
   );
 }
 
+export function renderDocsJson(result: SnapshotResult, source?: SnapshotSource): string {
+  return JSON.stringify(
+    {
+      schemaVersion,
+      command: "docs",
+      ...(source ? { source } : {}),
+      result: docsResult(result),
+    },
+    null,
+    2,
+  );
+}
+
 function withSource(
   result: SnapshotResult,
   source: SnapshotSource | undefined,
 ): SnapshotResult | (SnapshotResult & { source: SnapshotSource }) {
   return source ? { ...result, source } : result;
+}
+
+function docsResult(result: SnapshotResult): unknown {
+  if (!result.ok) {
+    return result;
+  }
+
+  const { snapshot } = result;
+
+  return {
+    ok: true,
+    ref: snapshot.ref,
+    repository: {
+      fullName: snapshot.repository.fullName,
+      url: snapshot.repository.url,
+    },
+    fetchedAt: snapshot.fetchedAt,
+    documentation: snapshot.documentation,
+    warnings: snapshot.warnings,
+  };
 }

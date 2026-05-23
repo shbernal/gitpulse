@@ -59,11 +59,18 @@ gitpulse compare Jguer/yay Morganamilo/paru
 gitpulse compare OJ/gobuster ffuf/ffuf
 ```
 
+Show documentation signals:
+
+```bash
+gitpulse docs cli/cli
+```
+
 Emit JSON:
 
 ```bash
 gitpulse repo cli/cli --json
 gitpulse compare cli/cli charmbracelet/gum --json
+gitpulse docs cli/cli --json
 ```
 
 Refresh and cache controls:
@@ -71,6 +78,7 @@ Refresh and cache controls:
 ```bash
 gitpulse repo cli/cli --refresh
 gitpulse repo cli/cli --offline
+gitpulse docs cli/cli --refresh
 gitpulse compare cli/cli charmbracelet/gum --max-cache-hours 24
 ```
 
@@ -94,17 +102,17 @@ gitpulse repo cli/cli --color never
 
 ## Output
 
-Human-readable output is the default. Repository reports use a compact status strip, score bars for explainable composite signals, and grouped metric sections. Comparison reports start with a scoreboard, then show side-by-side grouped details. Comparison labels use repository names unless owner prefixes are needed to disambiguate matching names.
+Human-readable output is the default. Repository reports use a compact status strip, score bars for explainable composite signals, and grouped metric sections. Documentation presence is shown through `gitpulse docs`, not the default repository report. Comparison reports start with a scoreboard, then show side-by-side grouped details. Comparison labels use repository names unless owner prefixes are needed to disambiguate matching names.
 
-Gitpulse uses semantic terminal color for repository state, score bands, activity freshness, documentation presence, warnings, fetch errors, and common programming languages. Color defaults to `--color auto`, which enables color for TTY output, disables it for non-TTY output, honors `NO_COLOR`, and honors `FORCE_COLOR`. Use `--color always` to force color or `--color never` to disable it.
+Gitpulse uses semantic terminal color for repository state, score bands, activity freshness, documentation presence in docs reports, warnings, fetch errors, and common programming languages. Color defaults to `--color auto`, which enables color for TTY output, disables it for non-TTY output, honors `NO_COLOR`, and honors `FORCE_COLOR`. Use `--color always` to force color or `--color never` to disable it.
 
-Repository and comparison reports disclose whether each snapshot came from the GitHub API, a fresh cache entry, or stale cache after a failed refresh.
+Repository, docs, and comparison reports disclose whether each snapshot came from the GitHub API, a fresh cache entry, or stale cache after a failed refresh.
 
 Use `--json` for scripts and integrations. JSON output is not colorized and includes a stable envelope:
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "command": "repo",
   "source": {
     "kind": "cache",
@@ -120,6 +128,10 @@ Use `--json` for scripts and integrations. JSON output is not colorized and incl
 ## Cache and Config
 
 Gitpulse is cache-first by default. It uses a cached snapshot when one exists and is newer than the configured freshness window. If the cache is missing or stale, Gitpulse refreshes from the GitHub API and stores the new snapshot.
+
+`gitpulse docs` reads from the same repository snapshot cache as `gitpulse repo`.
+`gitpulse docs <repo> --refresh` refreshes the full repository snapshot, then
+renders only documentation signals.
 
 Default config:
 
@@ -194,9 +206,9 @@ Phase 1 collects deterministic GitHub API data:
 - Repository facts: description, URL, created date, updated date, default branch, primary language, language mix, license, topics, archive/fork/template state, size.
 - Adoption signals: stars, forks, watchers, open issues, open pull requests.
 - Activity signals: latest push, latest default-branch commit, total default-branch commits, latest release, release count.
-- Documentation presence: README, changelog, contributing guide, code of conduct, security policy.
+- Documentation signals for `gitpulse docs`: README, changelog, contributing guide, code of conduct, security policy.
 - Contributor signals: total contributor count, fetched contributor rows for concentration metrics, top contributor, top contributor share.
-- Explainable composite signals: activity freshness, community footprint, maintenance visibility.
+- Explainable composite signals: activity freshness, community footprint.
 
 Watcher counts are sourced from GitHub REST `subscribers_count`, because GitHub's legacy `watchers_count` mirrors `stargazers_count`.
 
@@ -228,3 +240,5 @@ install -Dm755 ./dist/gitpulse "$HOME/.local/bin/gitpulse"
 - `docs/PROJECT_SPEC.md`: broader project direction.
 - `docs/COMPOSITE_METRICS.md`: current composite metric formulas and caveats.
 - `docs/FUTURE_LOC_ANALYSIS.md`: deferred source-inspection plan for line counts.
+- `docs/FUTURE_MAINTENANCE_AND_DOCS.md`: documentation command context and a
+  future tooling-based maintenance metric plan.

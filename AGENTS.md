@@ -46,16 +46,21 @@ The long-term command shape should stay compact:
 
 ```bash
 gitpulse repo owner/name
+gitpulse docs owner/name
 gitpulse compare owner/a owner/b [owner/c...]
 ```
 
-The local shorthand `gitpulse owner/name` is supported, but `repo` and `compare` remain the canonical command forms. Keep any future shorthand predictable and deterministic.
+The local shorthand `gitpulse owner/name` is supported, but `repo`, `docs`, and
+`compare` remain the canonical command forms. Keep any future shorthand
+predictable and deterministic.
 
 ## Documentation Map
 
 - `docs/PROJECT_SPEC.md`: broader product vision, users, signals, and non-goals.
 - `docs/COMPOSITE_METRICS.md`: current composite metric formulas, caveats, and interpretation rules.
 - `docs/FUTURE_LOC_ANALYSIS.md`: deferred source-inspection plan for line counts.
+- `docs/FUTURE_MAINTENANCE_AND_DOCS.md`: documentation command context and
+  later maintenance-tooling analysis plan.
 
 ## Contributor Notes
 

@@ -204,7 +204,6 @@ function buildSnapshot(input: {
     contributors,
     metrics: buildCompositeMetrics({
       repository: input.repository,
-      documentation: input.documentation,
       contributors,
       daysSinceLatestCommit,
       daysSinceLastPush,
@@ -313,7 +312,6 @@ function normalizeLicense(repository: GitHubRepository): string | null {
 
 function buildCompositeMetrics(input: {
   repository: GitHubRepository;
-  documentation: DocumentationSignals;
   contributors: ContributorSignals;
   daysSinceLatestCommit: number | null;
   daysSinceLastPush: number | null;
@@ -344,13 +342,6 @@ function buildCompositeMetrics(input: {
     logScore(input.repository.subscribers_count, 10_000, 15) +
     logScore(contributorCount, 100, 25);
 
-  const documentationCount = Object.values(input.documentation).filter((signal) => signal.present).length;
-  const maintenanceScore =
-    documentationCount * 12 +
-    (input.repository.license ? 15 : 0) +
-    (input.releaseCount > 0 ? 15 : 0) +
-    (input.repository.archived ? 0 : 10);
-
   return {
     activityFreshness: metric(clampScore(activityScore), {
       daysSinceLatestCommit: input.daysSinceLatestCommit,
@@ -364,12 +355,6 @@ function buildCompositeMetrics(input: {
       forks: input.repository.forks_count,
       watchers: input.repository.subscribers_count,
       contributors: contributorCount,
-    }),
-    maintenanceVisibility: metric(clampScore(maintenanceScore), {
-      documentationFiles: documentationCount,
-      hasLicense: Boolean(input.repository.license),
-      releaseCount: input.releaseCount,
-      archived: input.repository.archived,
     }),
   };
 }

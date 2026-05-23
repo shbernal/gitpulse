@@ -6,8 +6,8 @@ import { resolveSnapshot } from "./cache/resolve";
 import { ConfigError, configPath, loadConfig, resetConfig } from "./config";
 import { GitHubClient } from "./github/client";
 import { renderHistory } from "./render/history";
-import { renderComparisonJson, renderRepoJson } from "./render/json";
-import { renderComparison, renderRepo } from "./render/table";
+import { renderComparisonJson, renderDocsJson, renderRepoJson } from "./render/json";
+import { renderComparison, renderDocs, renderRepo } from "./render/table";
 import { shouldUseColor, type ColorMode, type RenderOptions } from "./render/terminal";
 import type { SnapshotWithSource } from "./types";
 
@@ -60,6 +60,16 @@ export async function main(argv = process.argv): Promise<void> {
       const options = command.optsWithGlobals<CommandOptions>();
       await runCompare(repos, options);
     });
+
+  addSharedOptions(
+    program
+      .command("docs")
+      .description("Show repository documentation signals")
+      .argument("<repo>", "repository reference in owner/repo form"),
+  ).action(async (repo: string, _options: CommandOptions, command: Command) => {
+    const options = command.optsWithGlobals<CommandOptions>();
+    await runDocs(repo, options);
+  });
 
   const historyCommand = program
     .command("history")
@@ -225,12 +235,45 @@ async function runCompare(repos: string[], options: CommandOptions): Promise<voi
   }
 }
 
+async function runDocs(repo: string, options: CommandOptions): Promise<void> {
+  const runtime = await loadRuntimeOptions(options);
+
+  if (!runtime.ok) {
+    console.error(`gitpulse: ${runtime.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const client = new GitHubClient();
+  const now = new Date();
+  const snapshot = await resolveSnapshot(client, repo, {
+    ...runtime.value.cache,
+    contributorFetchLimit: runtime.value.contributorFetchLimit,
+    now,
+  });
+  const result = snapshot.result;
+
+  await recordHistory("docs", [repo], [snapshot], now);
+
+  if (runtime.value.json) {
+    console.log(renderDocsJson(result, snapshot.source));
+  } else if (result.ok) {
+    console.log(renderDocs(result.snapshot, runtime.value.renderOptions, snapshot.source));
+  } else {
+    console.error(`gitpulse: ${result.error.message}`);
+  }
+
+  if (!result.ok) {
+    process.exitCode = 1;
+  }
+}
+
 async function runHistory(json: boolean, colorMode: ColorMode): Promise<void> {
   try {
     const events = await readHistoryEvents();
 
     if (json) {
-      console.log(JSON.stringify({ schemaVersion: 2, command: "history", events }, null, 2));
+      console.log(JSON.stringify({ schemaVersion: 3, command: "history", events }, null, 2));
     } else {
       console.log(renderHistory(events, { color: shouldUseColor(colorMode) }));
     }
@@ -333,7 +376,7 @@ async function loadRuntimeOptions(options: CommandOptions): Promise<RuntimeOptio
 }
 
 async function recordHistory(
-  command: "repo" | "compare",
+  command: "repo" | "compare" | "docs",
   inputs: string[],
   snapshots: SnapshotWithSource[],
   now: Date,

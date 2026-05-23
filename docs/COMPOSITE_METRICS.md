@@ -4,11 +4,10 @@ Gitpulse composite metrics are small, deterministic grouping helpers. They are
 intended to make related signals easier to scan, not to produce a final verdict
 about whether a repository is good, safe, or worth adopting.
 
-The current implementation computes three composite metrics:
+The current implementation computes two composite metrics:
 
 - Activity freshness.
 - Community footprint.
-- Maintenance visibility.
 
 Each metric is rounded, clamped to `0-100`, and labeled with the same score
 bands:
@@ -25,6 +24,10 @@ inspect how the score was produced.
 
 When a composite metric formula changes, update this document in the same
 change.
+
+A later plan may add a tooling-based maintenance analysis that does not use
+documentation presence as an input. See
+[Future Maintenance Analysis and Docs Command](FUTURE_MAINTENANCE_AND_DOCS.md).
 
 ## Activity Freshness
 
@@ -103,34 +106,6 @@ count.
 This score does not measure project quality, governance, issue health, or how
 recently the community has been active.
 
-## Maintenance Visibility
-
-Maintenance visibility answers: "Are common maintenance signals visible in the
-repository metadata?"
-
-It uses documentation presence, license presence, release presence, and archive
-state.
-
-| Signal | Points |
-| --- | ---: |
-| Each detected documentation file | `+12` |
-| Has a license | `+15` |
-| Has at least one fetched release | `+15` |
-| Repository is not archived | `+10` |
-| Repository is archived | `+0` |
-
-The documentation files are:
-
-- README.
-- Changelog.
-- Contributing guide.
-- Code of conduct.
-- Security policy.
-
-This score only measures visible metadata and file presence. It does not judge
-documentation quality, release-note quality, maintainer responsiveness, security
-process maturity, or whether the project is actually well maintained.
-
 ## Interpretation Rules
 
 - Treat composite metrics as grouped evidence, not verdicts.
@@ -138,5 +113,4 @@ process maturity, or whether the project is actually well maintained.
 - Compare scores alongside their inputs; two repositories can share a score for
   different reasons.
 - Missing data is scored conservatively for that component.
-- Archived repositories are penalized in activity and cannot receive the active
-  repository bonus in maintenance visibility.
+- Archived repositories are penalized in activity.

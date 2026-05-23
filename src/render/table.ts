@@ -35,7 +35,6 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
       [
         ["Activity freshness", snapshot.metrics.activityFreshness],
         ["Community footprint", snapshot.metrics.communityFootprint],
-        ["Maintenance visibility", snapshot.metrics.maintenanceVisibility],
       ],
       theme,
     ),
@@ -87,6 +86,23 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
       ],
       theme,
     ),
+    "",
+  ];
+
+  if (snapshot.warnings.length > 0) {
+    output.push(theme.section("Warnings"), ...snapshot.warnings.map((warning) => `  - ${theme.warning(warning)}`), "");
+  }
+
+  return output.join("\n").trimEnd();
+}
+
+export function renderDocs(snapshot: RepoSnapshot, options: RenderOptions = {}, source?: SnapshotSource): string {
+  const theme = createTheme(options);
+  const output = [
+    theme.repo(`gitpulse docs ${formatRepoRef(snapshot.ref)}`),
+    `  ${snapshot.repository.url}`,
+    theme.muted(`  fetched ${snapshot.fetchedAt}`),
+    ...(source ? [`  ${theme.muted("data source:")} ${formatSnapshotSource(source)}`] : []),
     "",
     theme.section("Documentation"),
     renderKeyValueList(
@@ -162,16 +178,6 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
         row("Open PRs", snapshots, ({ snapshot }) => theme.value(formatInteger(snapshot.repository.openPullRequests))),
       ],
     },
-    {
-      title: "Documentation",
-      rows: [
-        row("README", snapshots, ({ snapshot }) => formatPresence(snapshot.documentation.readme.present, theme)),
-        row("Changelog", snapshots, ({ snapshot }) => formatPresence(snapshot.documentation.changelog.present, theme)),
-        row("Contributing", snapshots, ({ snapshot }) => formatPresence(snapshot.documentation.contributing.present, theme)),
-        row("Code of conduct", snapshots, ({ snapshot }) => formatPresence(snapshot.documentation.codeOfConduct.present, theme)),
-        row("Security policy", snapshots, ({ snapshot }) => formatPresence(snapshot.documentation.security.present, theme)),
-      ],
-    },
   ];
 
   const output = [
@@ -181,17 +187,15 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
     "",
     theme.section("Scoreboard"),
     renderTable(
-      ["Repository", "Activity", "Community", "Maintenance", "Stars", "Forks", "Last commit", "Release", "Docs", "State"],
+      ["Repository", "Activity", "Community", "Stars", "Forks", "Last commit", "Release", "State"],
       snapshots.map(({ snapshot }, index) => [
         theme.repo(repoLabels[index]),
         formatMetricCompact(snapshot.metrics.activityFreshness, theme),
         formatMetricCompact(snapshot.metrics.communityFootprint, theme),
-        formatMetricCompact(snapshot.metrics.maintenanceVisibility, theme),
         theme.value(formatCompactNumber(snapshot.repository.stars)),
         theme.value(formatCompactNumber(snapshot.repository.forks)),
         formatRelativeDaysTone(snapshot.activity.daysSinceLatestCommit, theme),
         formatRelativeDaysTone(snapshot.activity.daysSinceLatestRelease, theme),
-        formatDocumentationCount(snapshot, theme),
         formatState(snapshot, theme),
       ]),
       theme,
@@ -422,10 +426,6 @@ function formatMetricCompact(metric: CompositeMetric, theme: Theme): string {
   return theme.tone(`${metric.score}/100`, tone);
 }
 
-function documentationCount(snapshot: RepoSnapshot): number {
-  return Object.values(snapshot.documentation).filter((signal) => signal.present).length;
-}
-
 function formatState(snapshot: RepoSnapshot, theme: Theme): string {
   const states = [
     snapshot.repository.archived ? theme.tone("archived", "bad") : null,
@@ -469,16 +469,6 @@ function activityTone(days: number | null): ThemeTone {
 
 function formatBoolTone(value: boolean, theme: Theme, trueTone: ThemeTone, falseTone: ThemeTone = "good"): string {
   return theme.tone(formatBool(value), value ? trueTone : falseTone);
-}
-
-function formatPresence(present: boolean, theme: Theme): string {
-  return theme.tone(formatBool(present), present ? "good" : "warn");
-}
-
-function formatDocumentationCount(snapshot: RepoSnapshot, theme: Theme): string {
-  const count = documentationCount(snapshot);
-  const tone: ThemeTone = count >= 4 ? "good" : count >= 2 ? "info" : count === 1 ? "warn" : "bad";
-  return theme.tone(`${count}/5`, tone);
 }
 
 function formatLicense(license: string | null, theme: Theme): string {

@@ -5,7 +5,7 @@ import { historyPath } from "./paths";
 
 type Env = Record<string, string | undefined>;
 
-export type HistoryCommand = "repo" | "compare";
+export type HistoryCommand = "repo" | "compare" | "docs";
 
 export type HistoryEntry = {
   input: string;
@@ -87,7 +87,7 @@ function isHistoryEvent(value: unknown): value is HistoryEvent {
     return false;
   }
 
-  if (value.command !== "repo" && value.command !== "compare") {
+  if (value.command !== "repo" && value.command !== "compare" && value.command !== "docs") {
     return false;
   }
 

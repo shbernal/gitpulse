@@ -53,7 +53,19 @@ Given `owner/repo`, Gitpulse should display the main repository facts and health
 - Recent commit activity.
 - Contributor count and concentration.
 - Archived, disabled, fork, template, or mirror status.
-- README and documentation file presence.
+
+### Documentation Inspection
+
+Given `owner/repo`, Gitpulse should provide a focused documentation view:
+
+- README presence.
+- Changelog presence.
+- Contributing guide presence.
+- Code of conduct presence.
+- Security policy presence.
+
+Documentation signals should be available through `gitpulse docs <repo>` rather
+than shown in the default human-readable repository report.
 
 ### Evaluation Lenses
 
@@ -183,12 +195,16 @@ Default output should be optimized for humans in a terminal:
 - Relative recency where helpful, such as "18 days ago."
 - Light color usage when supported.
 
+Documentation output should stay focused in `gitpulse docs <repo>` so default
+repository and comparison reports remain compact.
+
 Comparison output should emphasize the scoreboard and grouped side-by-side metrics, without prescribing a choice.
 
 Machine-readable output should be available:
 
 ```bash
 gitpulse repo owner/name --json
+gitpulse docs owner/name --json
 gitpulse compare owner/a owner/b --json
 ```
 
@@ -215,6 +231,7 @@ Possible later phases:
 - Security and supply-chain signals.
 - Local repository analysis.
 - Source size and line-of-code analysis as a later source-inspection feature, not a near-term API-only metric. See [Future LOC Analysis](FUTURE_LOC_ANALYSIS.md).
+- A future maintenance metric based on dependency and tooling upkeep rather than documentation presence. See [Future Maintenance Analysis and Docs Command](FUTURE_MAINTENANCE_AND_DOCS.md).
 - Organization-level project comparison.
 - Historical trend charts.
 - Configurable scoring profiles for different decision contexts, such as "dependency," "CLI install," or "contribution target."

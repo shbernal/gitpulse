@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { stripVTControlCharacters } from "node:util";
-import { renderComparisonJson, renderRepoJson } from "../src/render/json";
-import { renderComparison, renderRepo } from "../src/render/table";
+import { renderComparisonJson, renderDocsJson, renderRepoJson } from "../src/render/json";
+import { renderComparison, renderDocs, renderRepo } from "../src/render/table";
 import { shouldUseColor } from "../src/render/terminal";
 import type { RepoSnapshot, SnapshotResult } from "../src/types";
 
@@ -13,6 +13,10 @@ describe("terminal rendering", () => {
     expect(output).toContain("[active] [source] [branch main] [TypeScript] [MIT]");
     expect(output).toContain("Pulse");
     expect(output).toContain("[########--]");
+    expect(output).toContain("Activity freshness");
+    expect(output).toContain("Community footprint");
+    expect(output).not.toContain("Maintenance visibility");
+    expect(output).not.toContain("Documentation");
     expect(output).toContain("At a glance");
     expect(output).toContain("Watchers");
     expect(output).toContain("Contributors");
@@ -22,6 +26,20 @@ describe("terminal rendering", () => {
     expect(output).toContain("Total number of commits");
     expect(output).not.toContain("Subscribers");
     expect(output).not.toContain("+-");
+  });
+
+  test("renders documentation signals in the dedicated docs report", () => {
+    const output = renderDocs(snapshot("acme/tool"), { color: false }, { kind: "api" });
+
+    expect(output).toContain("gitpulse docs acme/tool");
+    expect(output).toContain("data source: api");
+    expect(output).toContain("Documentation");
+    expect(output).toContain("README");
+    expect(output).toContain("present (README.md)");
+    expect(output).toContain("Contributing");
+    expect(output).toContain("missing");
+    expect(output).not.toContain("Pulse");
+    expect(output).not.toContain("Activity freshness");
   });
 
   test("renders repository size in human units", () => {
@@ -54,13 +72,15 @@ describe("terminal rendering", () => {
     expect(output).toContain("two");
     expect(output).toContain("82/100");
     expect(output).toContain("48/100");
-    expect(output).toContain("67/100");
+    expect(output).not.toContain("67/100");
     expect(output).not.toContain("acme/one");
     expect(output).not.toContain("acme/two");
     expect(output).not.toContain("Signals");
     expect(output).not.toContain("Activity freshness");
     expect(output).not.toContain("Community footprint");
     expect(output).not.toContain("Maintenance visibility");
+    expect(output).not.toContain("Documentation");
+    expect(output).not.toContain("Docs");
     expect(output).not.toContain("82 strong");
     expect(output).toContain("Activity");
     expect(output).toContain("Repository Facts");
@@ -160,11 +180,12 @@ describe("JSON rendering", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
     const parsed = JSON.parse(renderRepoJson(result, { kind: "api" }));
 
-    expect(parsed.schemaVersion).toBe(2);
+    expect(parsed.schemaVersion).toBe(3);
     expect(parsed.command).toBe("repo");
     expect(parsed.source.kind).toBe("api");
     expect(parsed.result.ok).toBe(true);
     expect(parsed.result.snapshot.repository.fullName).toBe("acme/tool");
+    expect(parsed.result.snapshot.metrics.maintenanceVisibility).toBeUndefined();
   });
 
   test("wraps comparison output in a stable envelope", () => {
@@ -174,11 +195,24 @@ describe("JSON rendering", () => {
     ];
     const parsed = JSON.parse(renderComparisonJson(results, [{ kind: "cache", cachedAt: "2026-05-16T00:00:00.000Z", ageHours: 1 }]));
 
-    expect(parsed.schemaVersion).toBe(2);
+    expect(parsed.schemaVersion).toBe(3);
     expect(parsed.command).toBe("compare");
     expect(parsed.results).toHaveLength(2);
     expect(parsed.results[0].source.kind).toBe("cache");
     expect(Array.isArray(parsed.summary)).toBe(true);
+  });
+
+  test("wraps docs output in a focused JSON envelope", () => {
+    const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
+    const parsed = JSON.parse(renderDocsJson(result, { kind: "api" }));
+
+    expect(parsed.schemaVersion).toBe(3);
+    expect(parsed.command).toBe("docs");
+    expect(parsed.source.kind).toBe("api");
+    expect(parsed.result.ok).toBe(true);
+    expect(parsed.result.repository.fullName).toBe("acme/tool");
+    expect(parsed.result.documentation.readme.path).toBe("README.md");
+    expect(parsed.result.snapshot).toBeUndefined();
   });
 
   test("does not emit ANSI escapes in JSON output", () => {
@@ -186,6 +220,7 @@ describe("JSON rendering", () => {
 
     expect(renderRepoJson(result)).not.toContain("\u001b[");
     expect(renderComparisonJson([result])).not.toContain("\u001b[");
+    expect(renderDocsJson(result)).not.toContain("\u001b[");
   });
 });
 
@@ -261,7 +296,6 @@ function snapshot(
     metrics: {
       activityFreshness: { score: 82, label: "strong", inputs: {} },
       communityFootprint: { score: 48, label: "limited", inputs: {} },
-      maintenanceVisibility: { score: 67, label: "moderate", inputs: {} },
     },
     warnings: [],
   };
