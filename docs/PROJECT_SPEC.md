@@ -95,8 +95,8 @@ The comparison should help answer questions such as:
 Example comparisons:
 
 ```bash
-gitpulse compare Jguer/yay Morganamilo/paru
-gitpulse compare OJ/gobuster ffuf/ffuf
+gitpulse Jguer/yay Morganamilo/paru
+gitpulse OJ/gobuster ffuf/ffuf
 ```
 
 ### Decision Support, Not Decision Replacement
@@ -204,14 +204,20 @@ deterministic and local-only: command execution does not use prefix matching or
 remote GitHub search. Unknown shorthand should ask the user to run `owner/name`
 once so Gitpulse can fetch and record it.
 
+The root command infers the report mode from positional repository arguments:
+one repository renders a single repository report, while two or more
+repositories render a comparison. Reserved command words such as `docs`,
+`history`, `cache`, `config`, and `completions` remain command names rather than
+repository shorthand.
+
 Comparison output should emphasize the scoreboard and grouped side-by-side metrics, without prescribing a choice.
 
 Machine-readable output should be available:
 
 ```bash
-gitpulse repo owner/name --json
+gitpulse owner/name --json
 gitpulse docs owner/name --json
-gitpulse compare owner/a owner/b --json
+gitpulse owner/a owner/b --json
 ```
 
 JSON output should remain stable enough to support scripts.

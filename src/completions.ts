@@ -3,7 +3,7 @@ export function renderBashCompletionScript(commandName = "gitpulse"): string {
 _gitpulse()
 {
   local cur prev cmd
-  local top_commands="repo compare docs history cache config completions"
+  local top_commands="docs history cache config completions"
   local shared_flags="--json --color --refresh --offline --max-cache-hours --contributor-fetch-limit"
 
   COMPREPLY=()
@@ -34,7 +34,7 @@ _gitpulse()
   cmd="\${COMP_WORDS[1]}"
 
   case "$cmd" in
-    repo|docs|compare)
+    docs)
       _gitpulse_complete_repos "$cur"
       ;;
     history)
@@ -48,6 +48,9 @@ _gitpulse()
       ;;
     completions)
       COMPREPLY=( $(compgen -W "bash" -- "$cur") )
+      ;;
+    *)
+      _gitpulse_complete_repos "$cur"
       ;;
   esac
 }

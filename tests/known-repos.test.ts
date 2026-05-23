@@ -191,7 +191,8 @@ describe("completion commands", () => {
   test("generates the expected Bash hooks", () => {
     const script = renderBashCompletionScript();
 
-    expect(script).toContain("repo compare docs history cache config completions");
+    expect(script).toContain("docs history cache config completions");
+    expect(script).not.toContain("repo compare");
     expect(script).toContain("__complete repos --current");
     expect(script).toContain("auto always never");
     expect(script).toContain("complete -F _gitpulse gitpulse");
@@ -219,7 +220,7 @@ describe("completion commands", () => {
 });
 
 describe("CLI shorthand wiring", () => {
-  test("resolves exact local shorthand for root, docs, and compare commands", async () => {
+  test("resolves exact local shorthand for root, docs, and inferred comparison output", async () => {
     await withTempEnv(async (env) => {
       await writeCachedSnapshot({ owner: "acme", name: "tool" }, snapshot("acme/tool"), new Date(), env);
       await writeCachedSnapshot({ owner: "charmbracelet", name: "gum" }, snapshot("charmbracelet/gum"), new Date(), env);
@@ -235,9 +236,9 @@ describe("CLI shorthand wiring", () => {
       expect(docsOutput).toContain("gitpulse docs acme/tool");
 
       const compareOutput = await withProcessEnv(env, () =>
-        captureStdout(() => main(["node", "gitpulse", "compare", "tool", "gum", "--offline", "--color", "never"])),
+        captureStdout(() => main(["node", "gitpulse", "tool", "gum", "--offline", "--color", "never"])),
       );
-      expect(compareOutput).toContain("gitpulse compare");
+      expect(compareOutput).toContain("gitpulse comparison");
       expect(compareOutput).toContain("tool");
       expect(compareOutput).toContain("gum");
     });

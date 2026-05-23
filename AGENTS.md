@@ -24,6 +24,9 @@ The repository contains a TypeScript CLI under `src/`. The root `gitpulse` file 
 
 Treat Phase 1 as the implemented deterministic baseline. Future work should preserve the terminal-first command shape while extending data sources or metrics deliberately.
 
+Until Gitpulse has a public release, do not preserve backward compatibility for
+its own sake. Prefer the cleaner command contract when the product shape changes.
+
 ## Phase Strategy
 
 Phase 1 is deterministic and API-driven. It focuses on structured metrics from GitHub, local cache/config/history, JSON output, and clear terminal rendering. Avoid AI or subjective NLP features in this phase.
@@ -45,19 +48,22 @@ Phase 2 may add deeper textual analysis over READMEs, changelogs, release notes,
 The long-term command shape should stay compact:
 
 ```bash
-gitpulse repo owner/name
+gitpulse owner/name
+gitpulse owner/a owner/b [owner/c...]
 gitpulse docs owner/name
-gitpulse compare owner/a owner/b [owner/c...]
 ```
 
-The local shorthand `gitpulse owner/name` is supported, but `repo`, `docs`, and
-`compare` remain the canonical command forms. Keep any future shorthand
-predictable and deterministic.
+The root command infers the mode from positional repository arguments: one
+repository renders a single repository report, while two or more repositories
+render a comparison. Reserved command words such as `docs`, `history`, `cache`,
+`config`, and `completions` remain command names rather than repository
+shorthand. Keep any future shorthand predictable and deterministic.
 
 ## Documentation Map
 
 - `docs/PROJECT_SPEC.md`: broader product vision, users, signals, and non-goals.
 - `docs/COMPOSITE_METRICS.md`: current composite metric formulas, caveats, and interpretation rules.
+- `docs/COMPLETIONS.md`: shell completion and local shorthand behavior.
 - `docs/FUTURE_LOC_ANALYSIS.md`: deferred source-inspection plan for line counts.
 - `docs/FUTURE_MAINTENANCE_AND_DOCS.md`: documentation command context and
   later maintenance-tooling analysis plan.

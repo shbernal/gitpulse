@@ -63,13 +63,13 @@ gitpulse docs owner/name --offline
 ```
 
 The command supports the same cache, color, and JSON conventions as
-`repo`.
+the root repository report.
 
 `gitpulse docs` does not have a separate documentation-only cache or
 documentation-only refresh path. It renders the documentation slice from
-the shared repository snapshot used by `gitpulse repo` and `gitpulse compare`.
+the shared repository snapshot used by root repository and comparison reports.
 When users pass `--refresh`, Gitpulse performs the same unified repository
-snapshot refresh as `gitpulse repo --refresh`, then displays only documentation
+snapshot refresh as `gitpulse owner/name --refresh`, then displays only documentation
 signals.
 
 Human output shows:
@@ -158,9 +158,9 @@ same bands documented for the existing composites.
 
 ## Implemented Baseline
 
-- `gitpulse repo owner/name` no longer displays documentation presence or a
+- `gitpulse owner/name` no longer displays documentation presence or a
   documentation-based maintenance score.
-- `gitpulse compare owner/a owner/b` no longer displays docs or maintenance
+- `gitpulse owner/a owner/b` no longer displays docs or maintenance
   columns based on docs.
 - `gitpulse docs owner/name` displays documentation presence and paths.
 - `gitpulse docs owner/name --refresh` performs a unified repository snapshot

@@ -69,9 +69,8 @@ Repository shorthand applies to:
 
 ```bash
 gitpulse owner-or-repo
-gitpulse repo owner-or-repo
 gitpulse docs owner-or-repo
-gitpulse compare owner-or-repo other-owner-or-repo
+gitpulse owner-or-repo other-owner-or-repo
 ```
 
 Resolution rules:
@@ -91,11 +90,14 @@ Resolution rules:
 Prefix matching must not be used for command execution. For example:
 
 ```bash
-gitpulse repo deno
+gitpulse deno
 ```
 
 should not resolve to `denoland/cli` unless there is an exact known owner or
 repository named `deno`. Prefixes belong to shell completion only.
+
+Reserved command words such as `docs`, `history`, `cache`, `config`, and
+`completions` remain command names rather than repository shorthand.
 
 ## Completion Matching
 
@@ -104,15 +106,15 @@ Completion supports prefix matching over local state.
 Examples:
 
 ```bash
-gitpulse repo deno<Tab>
+gitpulse deno<Tab>
 # denoland/cli
 
-gitpulse repo cli<Tab>
+gitpulse cli<Tab>
 # cli/cli
 # denoland/cli
 # ...
 
-gitpulse repo denoland/<Tab>
+gitpulse denoland/<Tab>
 # denoland/cli
 # denoland/deno
 # ...
@@ -175,8 +177,6 @@ The hidden command:
 The generated Bash completion completes:
 
 - Top-level commands:
-  - `repo`
-  - `compare`
   - `docs`
   - `history`
   - `cache`
@@ -189,10 +189,9 @@ The generated Bash completion completes:
   - `config reset`
   - `completions bash`
 - Repository arguments for:
-  - `gitpulse <repo>`
-  - `gitpulse repo <repo>`
+  - `gitpulse <repo>` for a single repository report
   - `gitpulse docs <repo>`
-  - `gitpulse compare <repo...>`
+  - `gitpulse <repo> <repo> [repo...]` for a comparison report
 - Shared flags:
   - `--json`
   - `--color`
@@ -232,8 +231,8 @@ Use owner/name once to fetch and record it.
 - `src/cache/known-repos.ts` reads and normalizes known local repositories from
   cache and history.
 - Pure helpers cover exact shorthand resolution and prefix completion.
-- `repo`, `docs`, shorthand root command, and each `compare` argument resolve
-  exact local shorthand before snapshot resolution.
+- The root command, `docs`, and each inferred comparison argument resolve exact
+  local shorthand before snapshot resolution.
 - `gitpulse __complete repos --current <token>` prints newline-delimited local
   repository candidates for completion scripts.
 - `gitpulse completions bash` prints the Bash completion script.

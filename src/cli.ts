@@ -31,36 +31,20 @@ export async function main(argv = process.argv): Promise<void> {
       .description("Take the pulse of GitHub repositories from the terminal.")
       .version("0.1.0"),
   )
-    .argument("[repo]", "repository reference in owner/repo form or exact local shorthand")
-    .action(async (repo: string | undefined, options: CommandOptions) => {
-      if (!repo) {
+    .argument("[repos...]", "repository references in owner/repo form or exact local shorthand")
+    .action(async (repos: string[] | undefined, options: CommandOptions) => {
+      const values = repos ?? [];
+
+      if (values.length === 0) {
         program.help({ error: true });
         return;
       }
 
-      await runRepo(repo, options);
-    });
-
-  addSharedOptions(
-    program
-      .command("repo")
-      .description("Show a repository pulse report")
-      .argument("<repo>", "repository reference in owner/repo form or exact local shorthand"),
-  )
-    .action(async (repo: string, _options: CommandOptions, command: Command) => {
-      const options = command.optsWithGlobals<CommandOptions>();
-      await runRepo(repo, options);
-    });
-
-  addSharedOptions(
-    program
-      .command("compare")
-      .description("Compare two or more repositories side by side")
-      .argument("<repos...>", "repository references in owner/repo form or exact local shorthand"),
-  )
-    .action(async (repos: string[], _options: CommandOptions, command: Command) => {
-      const options = command.optsWithGlobals<CommandOptions>();
-      await runCompare(repos, options);
+      if (values.length === 1) {
+        await runRepo(values[0], options);
+      } else {
+        await runCompare(values, options);
+      }
     });
 
   addSharedOptions(

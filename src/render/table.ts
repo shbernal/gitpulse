@@ -135,7 +135,7 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
 
   if (snapshots.length === 0) {
     return [
-      theme.bold("gitpulse compare"),
+      theme.bold("gitpulse comparison"),
       "",
       "No repository data could be fetched.",
       "",
@@ -181,7 +181,7 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
   ];
 
   const output = [
-    theme.bold("gitpulse compare"),
+    theme.bold("gitpulse comparison"),
     `Compared ${theme.value(String(snapshots.length))} repositories`,
     ...(sourceSummary ? [`${theme.muted("data sources:")} ${sourceSummary}`] : []),
     "",

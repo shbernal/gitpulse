@@ -28,25 +28,19 @@ bun install
 Run from the working tree:
 
 ```bash
-./gitpulse repo owner/repo
-./gitpulse compare owner/a owner/b
+./gitpulse owner/repo
+./gitpulse owner/a owner/b
 ```
 
 Or through Bun:
 
 ```bash
-bun run dev -- repo owner/repo
+bun run dev -- owner/repo
 ```
 
 ## Commands
 
 Single repository report:
-
-```bash
-gitpulse repo cli/cli
-```
-
-The shorthand form is also supported:
 
 ```bash
 gitpulse cli/cli
@@ -56,19 +50,21 @@ After a repository has appeared in local cache or history, exact bare shorthand
 is available when it is unambiguous:
 
 ```bash
-gitpulse repo cli
+gitpulse cli
 gitpulse docs cli
-gitpulse compare cli gum
+gitpulse cli gum
 ```
 
 Bare shorthand is local-only and exact. Gitpulse does not search GitHub for
 unknown shorthand, and prefix matching is reserved for shell completion.
+Reserved command words such as `docs`, `history`, `cache`, `config`, and
+`completions` are always treated as commands, not repository shorthand.
 
 Compare repositories side by side:
 
 ```bash
-gitpulse compare Jguer/yay Morganamilo/paru
-gitpulse compare OJ/gobuster ffuf/ffuf
+gitpulse Jguer/yay Morganamilo/paru
+gitpulse OJ/gobuster ffuf/ffuf
 ```
 
 Show documentation signals:
@@ -80,18 +76,18 @@ gitpulse docs cli/cli
 Emit JSON:
 
 ```bash
-gitpulse repo cli/cli --json
-gitpulse compare cli/cli charmbracelet/gum --json
+gitpulse cli/cli --json
+gitpulse cli/cli charmbracelet/gum --json
 gitpulse docs cli/cli --json
 ```
 
 Refresh and cache controls:
 
 ```bash
-gitpulse repo cli/cli --refresh
-gitpulse repo cli/cli --offline
+gitpulse cli/cli --refresh
+gitpulse cli/cli --offline
 gitpulse docs cli/cli --refresh
-gitpulse compare cli/cli charmbracelet/gum --max-cache-hours 24
+gitpulse cli/cli charmbracelet/gum --max-cache-hours 24
 ```
 
 Manage local files:
@@ -113,9 +109,9 @@ gitpulse completions bash
 Control terminal color:
 
 ```bash
-gitpulse repo cli/cli --color auto
-gitpulse repo cli/cli --color always
-gitpulse repo cli/cli --color never
+gitpulse cli/cli --color auto
+gitpulse cli/cli --color always
+gitpulse cli/cli --color never
 ```
 
 ## Output
@@ -147,7 +143,7 @@ Use `--json` for scripts and integrations. JSON output is not colorized and incl
 
 Gitpulse is cache-first by default. It uses a cached snapshot when one exists and is newer than the configured freshness window. If the cache is missing or stale, Gitpulse refreshes from the GitHub API and stores the new snapshot.
 
-`gitpulse docs` reads from the same repository snapshot cache as `gitpulse repo`.
+`gitpulse docs` reads from the same repository snapshot cache as `gitpulse`.
 `gitpulse docs <repo> --refresh` refreshes the full repository snapshot, then
 renders only documentation signals.
 
@@ -227,8 +223,8 @@ does not call GitHub while completing.
 You do not need a GitHub token for occasional checks against public repositories:
 
 ```bash
-gitpulse repo cli/cli
-gitpulse compare Jguer/yay Morganamilo/paru
+gitpulse cli/cli
+gitpulse Jguer/yay Morganamilo/paru
 ```
 
 Gitpulse uses GitHub's unauthenticated public API for refreshes in that case. The tradeoff is that unauthenticated requests have much lower rate limits, and Gitpulse calls several endpoints per repository. For regular use, comparisons, or repeated refreshes, set `GITHUB_TOKEN`:
