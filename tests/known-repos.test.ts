@@ -1,0 +1,383 @@
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { main } from "../src/cli";
+import { renderBashCompletionScript } from "../src/completions";
+import { appendHistoryEvent, clearHistory } from "../src/cache/history";
+import {
+  completeKnownRepos,
+  readKnownRepos,
+  RepositoryShorthandError,
+  resolveKnownRepoShorthand,
+  type KnownRepo,
+} from "../src/cache/known-repos";
+import { clearCache } from "../src/cache/maintenance";
+import { writeCachedSnapshot } from "../src/cache/store";
+import type { RepoSnapshot } from "../src/types";
+
+type Env = Record<string, string | undefined>;
+
+afterEach(() => {
+  process.exitCode = undefined;
+});
+
+describe("known repositories", () => {
+  test("aggregates known repositories from cache", async () => {
+    await withTempEnv(async (env) => {
+      await writeCachedSnapshot(
+        { owner: "acme", name: "tool" },
+        snapshot("Acme/Tool"),
+        new Date("2026-05-16T12:00:00.000Z"),
+        env,
+      );
+
+      expect(await readKnownRepos(env)).toEqual([
+        {
+          fullName: "Acme/Tool",
+          owner: "Acme",
+          name: "Tool",
+          cachedAt: "2026-05-16T12:00:00.000Z",
+          sources: ["cache"],
+        },
+      ]);
+    });
+  });
+
+  test("aggregates known repositories from history", async () => {
+    await withTempEnv(async (env) => {
+      await appendHistoryEvent(
+        {
+          timestamp: "2026-05-16T13:00:00.000Z",
+          command: "docs",
+          entries: [{ input: "tool", repository: "acme/tool", source: "api", ok: true }],
+          ok: true,
+        },
+        env,
+      );
+
+      expect(await readKnownRepos(env)).toEqual([
+        {
+          fullName: "acme/tool",
+          owner: "acme",
+          name: "tool",
+          lastSeenAt: "2026-05-16T13:00:00.000Z",
+          sources: ["history"],
+        },
+      ]);
+    });
+  });
+
+  test("deduplicates repositories and prefers cached canonical casing", async () => {
+    await withTempEnv(async (env) => {
+      await appendHistoryEvent(
+        {
+          timestamp: "2026-05-16T13:00:00.000Z",
+          command: "repo",
+          entries: [{ input: "acme/tool", repository: "acme/tool", source: "api", ok: true }],
+          ok: true,
+        },
+        env,
+      );
+      await writeCachedSnapshot(
+        { owner: "acme", name: "tool" },
+        snapshot("Acme/Tool"),
+        new Date("2026-05-16T12:00:00.000Z"),
+        env,
+      );
+
+      expect(await readKnownRepos(env)).toEqual([
+        {
+          fullName: "Acme/Tool",
+          owner: "Acme",
+          name: "Tool",
+          lastSeenAt: "2026-05-16T13:00:00.000Z",
+          cachedAt: "2026-05-16T12:00:00.000Z",
+          sources: ["history", "cache"],
+        },
+      ]);
+    });
+  });
+
+  test("cache and history clears remove known repository candidates", async () => {
+    await withTempEnv(async (env) => {
+      await appendHistoryEvent(
+        {
+          timestamp: "2026-05-16T13:00:00.000Z",
+          command: "repo",
+          entries: [{ input: "acme/tool", repository: "acme/tool", source: "api", ok: true }],
+          ok: true,
+        },
+        env,
+      );
+      await writeCachedSnapshot({ owner: "acme", name: "tool" }, snapshot("acme/tool"), new Date(), env);
+
+      expect(await readKnownRepos(env)).toHaveLength(1);
+
+      await clearCache(env);
+      await clearHistory(env);
+
+      expect(await readKnownRepos(env)).toEqual([]);
+    });
+  });
+});
+
+describe("repository shorthand resolution", () => {
+  test("passes explicit owner/name references through", () => {
+    expect(resolveKnownRepoShorthand("owner/repo", [])).toBe("owner/repo");
+  });
+
+  test("resolves exact bare repository names", () => {
+    expect(resolveKnownRepoShorthand("tool", [knownRepo("acme/tool")])).toBe("acme/tool");
+  });
+
+  test("resolves exact bare owner names", () => {
+    expect(resolveKnownRepoShorthand("acme", [knownRepo("acme/tool")])).toBe("acme/tool");
+  });
+
+  test("resolves when exact owner and repository-name matches point to the same repository", () => {
+    expect(resolveKnownRepoShorthand("cli", [knownRepo("cli/cli")])).toBe("cli/cli");
+  });
+
+  test("rejects ambiguous shorthand with known matches", () => {
+    expect(() => resolveKnownRepoShorthand("cli", [knownRepo("cli/cli"), knownRepo("denoland/cli")])).toThrow(
+      RepositoryShorthandError,
+    );
+
+    try {
+      resolveKnownRepoShorthand("cli", [knownRepo("cli/cli"), knownRepo("denoland/cli")]);
+    } catch (error) {
+      expect(error).toBeInstanceOf(RepositoryShorthandError);
+      expect(error instanceof RepositoryShorthandError ? error.kind : null).toBe("ambiguous");
+      expect(error instanceof RepositoryShorthandError ? error.candidates : []).toEqual(["cli/cli", "denoland/cli"]);
+      expect(error instanceof Error ? error.message : "").toContain('Ambiguous repository shorthand "cli"');
+    }
+  });
+
+  test("rejects unknown shorthand without searching remotely", () => {
+    expect(() => resolveKnownRepoShorthand("missing", [knownRepo("acme/tool")])).toThrow(
+      'Unknown repository shorthand "missing"',
+    );
+  });
+});
+
+describe("known repository completion", () => {
+  test("completes by owner prefix", () => {
+    expect(completeKnownRepos("deno", [knownRepo("denoland/cli"), knownRepo("acme/tool")])).toEqual(["denoland/cli"]);
+  });
+
+  test("completes by repository-name prefix", () => {
+    expect(completeKnownRepos("too", [knownRepo("acme/tool"), knownRepo("acme/docs")])).toEqual(["acme/tool"]);
+  });
+
+  test("completes by full-name prefix", () => {
+    expect(completeKnownRepos("denoland/", [knownRepo("denoland/cli"), knownRepo("denoland/deno")])).toEqual([
+      "denoland/cli",
+      "denoland/deno",
+    ]);
+  });
+
+  test("prefers match quality before recency", () => {
+    expect(
+      completeKnownRepos("cli", [
+        knownRepo("denoland/cli", { lastSeenAt: "2026-05-16T13:00:00.000Z" }),
+        knownRepo("cli/cli", { lastSeenAt: "2026-05-15T13:00:00.000Z" }),
+      ]),
+    ).toEqual(["cli/cli", "denoland/cli"]);
+  });
+});
+
+describe("completion commands", () => {
+  test("generates the expected Bash hooks", () => {
+    const script = renderBashCompletionScript();
+
+    expect(script).toContain("repo compare docs history cache config completions");
+    expect(script).toContain("__complete repos --current");
+    expect(script).toContain("auto always never");
+    expect(script).toContain("complete -F _gitpulse gitpulse");
+  });
+
+  test("prints local repository candidates through the hidden completion command", async () => {
+    await withTempEnv(async (env) => {
+      await appendHistoryEvent(
+        {
+          timestamp: "2026-05-16T13:00:00.000Z",
+          command: "repo",
+          entries: [{ input: "acme/tool", repository: "acme/tool", source: "api", ok: true }],
+          ok: true,
+        },
+        env,
+      );
+
+      const output = await withProcessEnv(env, () =>
+        captureStdout(() => main(["node", "gitpulse", "__complete", "repos", "--current", "too"])),
+      );
+
+      expect(output).toBe("acme/tool");
+    });
+  });
+});
+
+describe("CLI shorthand wiring", () => {
+  test("resolves exact local shorthand for root, docs, and compare commands", async () => {
+    await withTempEnv(async (env) => {
+      await writeCachedSnapshot({ owner: "acme", name: "tool" }, snapshot("acme/tool"), new Date(), env);
+      await writeCachedSnapshot({ owner: "charmbracelet", name: "gum" }, snapshot("charmbracelet/gum"), new Date(), env);
+
+      const rootOutput = await withProcessEnv(env, () =>
+        captureStdout(() => main(["node", "gitpulse", "tool", "--offline", "--color", "never"])),
+      );
+      expect(rootOutput).toContain("gitpulse acme/tool");
+
+      const docsOutput = await withProcessEnv(env, () =>
+        captureStdout(() => main(["node", "gitpulse", "docs", "tool", "--offline", "--color", "never"])),
+      );
+      expect(docsOutput).toContain("gitpulse docs acme/tool");
+
+      const compareOutput = await withProcessEnv(env, () =>
+        captureStdout(() => main(["node", "gitpulse", "compare", "tool", "gum", "--offline", "--color", "never"])),
+      );
+      expect(compareOutput).toContain("gitpulse compare");
+      expect(compareOutput).toContain("tool");
+      expect(compareOutput).toContain("gum");
+    });
+  });
+});
+
+async function withTempEnv<T>(fn: (env: Env) => Promise<T>): Promise<T> {
+  const root = await mkdtemp(path.join(tmpdir(), "gitpulse-known-repos-test-"));
+
+  try {
+    return await fn({
+      HOME: root,
+      XDG_CACHE_HOME: path.join(root, "cache"),
+      XDG_CONFIG_HOME: path.join(root, "config"),
+      XDG_STATE_HOME: path.join(root, "state"),
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
+async function withProcessEnv<T>(env: Env, fn: () => Promise<T>): Promise<T> {
+  const keys = ["HOME", "XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_STATE_HOME"] as const;
+  const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+
+  for (const key of keys) {
+    const value = env[key];
+
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+
+  try {
+    return await fn();
+  } finally {
+    for (const key of keys) {
+      const value = previous[key];
+
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+}
+
+async function captureStdout(fn: () => Promise<void>): Promise<string> {
+  const output: string[] = [];
+  const original = console.log;
+
+  console.log = (...args: unknown[]) => {
+    output.push(args.join(" "));
+  };
+
+  try {
+    await fn();
+  } finally {
+    console.log = original;
+  }
+
+  return output.join("\n");
+}
+
+function knownRepo(fullName: string, options: Partial<KnownRepo> = {}): KnownRepo {
+  const [owner, name] = fullName.split("/");
+
+  return {
+    fullName,
+    owner,
+    name,
+    sources: [],
+    ...options,
+  };
+}
+
+function snapshot(fullName: string): RepoSnapshot {
+  const [owner, name] = fullName.split("/");
+
+  return {
+    ref: { owner, name },
+    fetchedAt: "2026-05-16T00:00:00.000Z",
+    repository: {
+      fullName,
+      description: null,
+      url: `https://github.com/${fullName}`,
+      createdAt: "2020-01-01T00:00:00Z",
+      pushedAt: "2026-05-15T00:00:00Z",
+      updatedAt: "2026-05-15T00:00:00Z",
+      defaultBranch: "main",
+      primaryLanguage: "TypeScript",
+      languages: [],
+      license: "MIT",
+      stars: 1,
+      forks: 1,
+      watchers: 1,
+      openIssues: 0,
+      openPullRequests: 0,
+      openIssuesAndPullRequests: 0,
+      topics: [],
+      archived: false,
+      fork: false,
+      disabled: false,
+      template: false,
+      sizeKb: 1,
+    },
+    activity: {
+      ageDays: 1,
+      daysSinceLastPush: 1,
+      latestCommitAt: "2026-05-15T00:00:00Z",
+      daysSinceLatestCommit: 1,
+      latestReleaseAt: null,
+      latestReleaseName: null,
+      latestReleaseTag: null,
+      daysSinceLatestRelease: null,
+      releaseCount: 0,
+      totalCommitCount: 10,
+    },
+    documentation: {
+      readme: { present: false, path: null },
+      changelog: { present: false, path: null },
+      contributing: { present: false, path: null },
+      codeOfConduct: { present: false, path: null },
+      security: { present: false, path: null },
+    },
+    contributors: {
+      fetchedCount: 0,
+      totalCount: 0,
+      fetchLimit: 100,
+      truncated: false,
+      topContributor: null,
+      topContributorShare: null,
+    },
+    metrics: {
+      activityFreshness: { score: 0, label: "weak", inputs: {} },
+      communityFootprint: { score: 0, label: "weak", inputs: {} },
+    },
+    warnings: [],
+  };
+}

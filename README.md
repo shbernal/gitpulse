@@ -52,6 +52,18 @@ The shorthand form is also supported:
 gitpulse cli/cli
 ```
 
+After a repository has appeared in local cache or history, exact bare shorthand
+is available when it is unambiguous:
+
+```bash
+gitpulse repo cli
+gitpulse docs cli
+gitpulse compare cli gum
+```
+
+Bare shorthand is local-only and exact. Gitpulse does not search GitHub for
+unknown shorthand, and prefix matching is reserved for shell completion.
+
 Compare repositories side by side:
 
 ```bash
@@ -90,6 +102,12 @@ gitpulse cache clear
 gitpulse history clear
 gitpulse config path
 gitpulse config reset
+```
+
+Generate Bash completions:
+
+```bash
+gitpulse completions bash
 ```
 
 Control terminal color:
@@ -166,6 +184,10 @@ Consultation history is appended to:
 ${XDG_STATE_HOME:-~/.local/state}/gitpulse/history.jsonl
 ```
 
+Local repository completion and exact shorthand are derived from the snapshot
+cache and consultation history. Clearing both local stores removes all shorthand
+and completion candidates.
+
 Useful overrides:
 
 - `--refresh`: bypass cache reads, fetch from GitHub, and update the cache.
@@ -181,6 +203,24 @@ Local file commands:
 - `gitpulse history clear`: remove the consultation history file.
 - `gitpulse config path`: print the config file path.
 - `gitpulse config reset`: create or overwrite the config file with default values.
+
+## Shell Completions
+
+Gitpulse can print a Bash completion script:
+
+```bash
+gitpulse completions bash
+```
+
+Load it for the current shell:
+
+```bash
+eval "$(gitpulse completions bash)"
+```
+
+The Bash completion completes top-level and nested Gitpulse commands, shared
+flags, `--color` values, and repository candidates from local cache/history. It
+does not call GitHub while completing.
 
 ## Authentication
 
@@ -239,6 +279,7 @@ install -Dm755 ./dist/gitpulse "$HOME/.local/bin/gitpulse"
 - `AGENTS.md`: contributor and agent operating guidance.
 - `docs/PROJECT_SPEC.md`: broader project direction.
 - `docs/COMPOSITE_METRICS.md`: current composite metric formulas and caveats.
+- `docs/COMPLETIONS.md`: shell completion and local shorthand behavior.
 - `docs/FUTURE_LOC_ANALYSIS.md`: deferred source-inspection plan for line counts.
 - `docs/FUTURE_MAINTENANCE_AND_DOCS.md`: documentation command context and a
   future tooling-based maintenance metric plan.

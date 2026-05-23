@@ -198,6 +198,12 @@ Default output should be optimized for humans in a terminal:
 Documentation output should stay focused in `gitpulse docs <repo>` so default
 repository and comparison reports remain compact.
 
+Repository arguments may use exact bare local shorthand after a repository has
+appeared in Gitpulse's cache or consultation history. This shorthand is
+deterministic and local-only: command execution does not use prefix matching or
+remote GitHub search. Unknown shorthand should ask the user to run `owner/name`
+once so Gitpulse can fetch and record it.
+
 Comparison output should emphasize the scoreboard and grouped side-by-side metrics, without prescribing a choice.
 
 Machine-readable output should be available:

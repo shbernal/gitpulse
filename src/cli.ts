@@ -1,5 +1,7 @@
 import { Command, InvalidArgumentError, Option } from "commander";
+import { renderBashCompletionScript } from "./completions";
 import { appendHistoryEvent, buildHistoryEvent, clearHistory, readHistoryEvents } from "./cache/history";
+import { completeKnownRepos, readKnownRepos, resolveKnownRepoShorthand } from "./cache/known-repos";
 import { clearCache } from "./cache/maintenance";
 import { type CacheMode } from "./cache/policy";
 import { resolveSnapshot } from "./cache/resolve";
@@ -29,7 +31,7 @@ export async function main(argv = process.argv): Promise<void> {
       .description("Take the pulse of GitHub repositories from the terminal.")
       .version("0.1.0"),
   )
-    .argument("[repo]", "repository reference in owner/repo form")
+    .argument("[repo]", "repository reference in owner/repo form or exact local shorthand")
     .action(async (repo: string | undefined, options: CommandOptions) => {
       if (!repo) {
         program.help({ error: true });
@@ -43,7 +45,7 @@ export async function main(argv = process.argv): Promise<void> {
     program
       .command("repo")
       .description("Show a repository pulse report")
-      .argument("<repo>", "repository reference in owner/repo form"),
+      .argument("<repo>", "repository reference in owner/repo form or exact local shorthand"),
   )
     .action(async (repo: string, _options: CommandOptions, command: Command) => {
       const options = command.optsWithGlobals<CommandOptions>();
@@ -54,7 +56,7 @@ export async function main(argv = process.argv): Promise<void> {
     program
       .command("compare")
       .description("Compare two or more repositories side by side")
-      .argument("<repos...>", "repository references in owner/repo form"),
+      .argument("<repos...>", "repository references in owner/repo form or exact local shorthand"),
   )
     .action(async (repos: string[], _options: CommandOptions, command: Command) => {
       const options = command.optsWithGlobals<CommandOptions>();
@@ -65,7 +67,7 @@ export async function main(argv = process.argv): Promise<void> {
     program
       .command("docs")
       .description("Show repository documentation signals")
-      .argument("<repo>", "repository reference in owner/repo form"),
+      .argument("<repo>", "repository reference in owner/repo form or exact local shorthand"),
   ).action(async (repo: string, _options: CommandOptions, command: Command) => {
     const options = command.optsWithGlobals<CommandOptions>();
     await runDocs(repo, options);
@@ -111,6 +113,24 @@ export async function main(argv = process.argv): Promise<void> {
     .description("Reset the local config file to defaults")
     .action(async () => {
       await runConfigReset();
+    });
+
+  const completionsCommand = program.command("completions").description("Generate shell completion scripts");
+
+  completionsCommand
+    .command("bash")
+    .description("Print a Bash completion script")
+    .action(() => {
+      runCompletionsBash();
+    });
+
+  const completeCommand = program.command("__complete", { hidden: true });
+
+  completeCommand
+    .command("repos", { hidden: true })
+    .requiredOption("--current <token>", "current completion token")
+    .action(async (options: { current: string }) => {
+      await runCompleteRepos(options.current);
     });
 
   await program.parseAsync(argv);
@@ -169,9 +189,17 @@ async function runRepo(repo: string, options: CommandOptions): Promise<void> {
     return;
   }
 
+  const resolved = await resolveRepositoryInputs([repo]);
+
+  if (!resolved.ok) {
+    console.error(`gitpulse: ${resolved.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
   const client = new GitHubClient();
   const now = new Date();
-  const snapshot = await resolveSnapshot(client, repo, {
+  const snapshot = await resolveSnapshot(client, resolved.values[0], {
     ...runtime.value.cache,
     contributorFetchLimit: runtime.value.contributorFetchLimit,
     now,
@@ -210,8 +238,16 @@ async function runCompare(repos: string[], options: CommandOptions): Promise<voi
 
   const client = new GitHubClient();
   const now = new Date();
+  const resolved = await resolveRepositoryInputs(repos);
+
+  if (!resolved.ok) {
+    console.error(`gitpulse: ${resolved.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
   const snapshots = await Promise.all(
-    repos.map((repo) =>
+    resolved.values.map((repo) =>
       resolveSnapshot(client, repo, {
         ...runtime.value.cache,
         contributorFetchLimit: runtime.value.contributorFetchLimit,
@@ -244,9 +280,17 @@ async function runDocs(repo: string, options: CommandOptions): Promise<void> {
     return;
   }
 
+  const resolved = await resolveRepositoryInputs([repo]);
+
+  if (!resolved.ok) {
+    console.error(`gitpulse: ${resolved.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
   const client = new GitHubClient();
   const now = new Date();
-  const snapshot = await resolveSnapshot(client, repo, {
+  const snapshot = await resolveSnapshot(client, resolved.values[0], {
     ...runtime.value.cache,
     contributorFetchLimit: runtime.value.contributorFetchLimit,
     now,
@@ -317,6 +361,18 @@ async function runConfigReset(): Promise<void> {
   }
 }
 
+function runCompletionsBash(): void {
+  console.log(renderBashCompletionScript().trimEnd());
+}
+
+async function runCompleteRepos(current: string): Promise<void> {
+  const candidates = completeKnownRepos(current, await readKnownRepos());
+
+  if (candidates.length > 0) {
+    console.log(candidates.join("\n"));
+  }
+}
+
 type RuntimeOptions = {
   cache: {
     cacheEnabled: boolean;
@@ -371,6 +427,26 @@ async function loadRuntimeOptions(options: CommandOptions): Promise<RuntimeOptio
     return {
       ok: false,
       message: error instanceof ConfigError ? error.message : errorMessage(error),
+    };
+  }
+}
+
+async function resolveRepositoryInputs(inputs: string[]): Promise<{ ok: true; values: string[] } | { ok: false; message: string }> {
+  if (inputs.every((input) => input.includes("/"))) {
+    return { ok: true, values: inputs };
+  }
+
+  const knownRepos = await readKnownRepos();
+
+  try {
+    return {
+      ok: true,
+      values: inputs.map((input) => resolveKnownRepoShorthand(input, knownRepos)),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: errorMessage(error),
     };
   }
 }
