@@ -34,6 +34,7 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
     theme.section("Repo"),
     formatRepositoryTitle(snapshot, theme),
     ...renderRepositoryDescription(snapshot),
+    renderKeyValueList([["Topics", formatTopics(snapshot, theme)]], theme, ""),
     "",
     theme.section("Status"),
     repoBadges(snapshot, theme).join(" "),
@@ -95,7 +96,6 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
         ["Primary language", formatPrimaryLanguage(snapshot.repository.primaryLanguage, theme)],
         ["Language mix", formatLanguageMix(snapshot, theme)],
         ["License", formatLicense(snapshot.repository.license, theme)],
-        ["Topics", valueOrMissing(snapshot.repository.topics.length > 0 ? snapshot.repository.topics.join(", ") : "n/a", theme)],
         ["Size", theme.value(formatSizeKb(snapshot.repository.sizeKb))],
       ],
       theme,
@@ -531,6 +531,10 @@ function renderMetricRows(metrics: Array<[string, CompositeMetric]>, theme: Them
 
 function formatPrimaryLanguage(language: string | null, theme: Theme): string {
   return language ? theme.language(language) : theme.missing();
+}
+
+function formatTopics(snapshot: RepoSnapshot, theme: Theme): string {
+  return valueOrMissing(snapshot.repository.topics.length > 0 ? snapshot.repository.topics.join(", ") : "n/a", theme);
 }
 
 function formatLanguageMix(snapshot: RepoSnapshot, theme: Theme): string {

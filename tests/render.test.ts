@@ -21,6 +21,8 @@ describe("terminal rendering", () => {
     expect(output).not.toContain("Maintenance visibility");
     expect(output).not.toContain("Documentation");
     expect(output).toContain("At a glance");
+    expect(section(output, "Repo", "Status")).toContain("Topics  cli, github");
+    expect(section(output, "Project shape", "Data Provenance")).not.toContain("Topics");
     expect(output).toContain("Data Provenance");
     expect(output).toContain("\nData Provenance\nfetched 2026-05-16T00:00:00.000Z");
     expect(output).toContain("Watchers");
@@ -357,6 +359,12 @@ function snapshot(
     },
     warnings: options.warnings ?? [],
   };
+}
+
+function section(output: string, title: string, nextTitle: string): string {
+  const start = output.indexOf(title);
+  const end = output.indexOf(`\n${nextTitle}`, start);
+  return output.slice(start, end);
 }
 
 function userSnapshot(login: string): UserProfileSnapshot {
