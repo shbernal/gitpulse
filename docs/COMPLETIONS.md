@@ -11,6 +11,8 @@ faster while preserving Gitpulse's deterministic command behavior.
 ## Product Goals
 
 - Complete repositories from local Gitpulse state without calling GitHub.
+- Complete user profile logins from local Gitpulse state without calling
+  GitHub.
 - Let users type prefixes such as `deno<Tab>` and complete to known repositories
   such as `denoland/cli`.
 - Let users run exact bare shorthand only when it is unambiguous.
@@ -30,20 +32,25 @@ Known repositories are derived from existing local state:
 - Consultation history:
   `${XDG_STATE_HOME:-~/.local/state}/gitpulse/history.jsonl`
 
+Known user profile logins are derived from:
+
+- User profile snapshot cache:
+  `${XDG_CACHE_HOME:-~/.cache}/gitpulse/snapshots/github-users/`
+- Successful `gitpulse user <login>` history events in the same history file.
+
 The implementation derives known repositories on demand from these files rather
 than maintain a separate persistent index. This keeps behavior simple:
 
 - `gitpulse cache clear` naturally removes cache-derived candidates.
 - `gitpulse history clear` naturally removes history-derived candidates.
-- If both cache and history are cleared, completion has no repository
+- If cache and history are cleared, completion has no repository or user
   candidates.
 
 A separate compact index can be added later if completion becomes slow with
 large local state.
 
-The separate user profile cache at
-`${XDG_CACHE_HOME:-~/.cache}/gitpulse/snapshots/github-users/` is not a source
-for repository shorthand or repository completion.
+The user profile cache is not a source for repository shorthand or repository
+completion. It is used only for `gitpulse user <login>` completion.
 
 ## Known Repository Model
 
@@ -68,6 +75,27 @@ Implementation notes:
 - Sort by recency first, then by `owner/name` for stable output.
 - Ignore malformed cache entries or history events where possible; completion
   should be best-effort local state, not a reason for normal commands to fail.
+
+## Known User Model
+
+Use a separate normalized model for profile login completion:
+
+```ts
+type KnownUser = {
+  login: string;
+  lastSeenAt?: string;
+  cachedAt?: string;
+  sources: Array<"history" | "cache">;
+};
+```
+
+Implementation notes:
+
+- Deduplicate case-insensitively by login.
+- Prefer canonical casing from cached profile snapshots when available.
+- Merge cache and history metadata into one entry when both exist.
+- Sort by recency first, then by login for stable output.
+- Ignore malformed cache entries or history events where possible.
 
 ## Runtime Shorthand Resolution
 
@@ -169,6 +197,7 @@ Hidden internal command:
 
 ```bash
 gitpulse __complete repos --current <token>
+gitpulse __complete users --current <token>
 ```
 
 The hidden command:
@@ -200,8 +229,8 @@ The generated Bash completion completes:
   - `gitpulse <repo>` for a single repository report
   - `gitpulse docs <repo>`
   - `gitpulse <repo> <repo> [repo...]` for a comparison report
-- `gitpulse user <login>` is recognized as a top-level command, but user login
-  arguments are not completed in the first pass.
+- User profile arguments for:
+  - `gitpulse user <login>`
 - Shared repository flags:
   - `--json`
   - `--color`
@@ -253,6 +282,8 @@ Use owner/name once to fetch and record it.
   argument.
 - `gitpulse __complete repos --current <token>` prints newline-delimited local
   repository candidates for completion scripts.
+- `gitpulse __complete users --current <token>` prints newline-delimited local
+  user login candidates for completion scripts.
 - `gitpulse completions bash` prints the Bash completion script.
 - `README.md` documents installation and use.
 - `docs/PROJECT_SPEC.md` states that local shorthand is deterministic and does
@@ -273,6 +304,8 @@ Add focused tests for:
 - Completion by repository-name prefix.
 - Completion by full-name prefix.
 - Completion after cache/history clear behavior.
+- User completion from user profile cache.
+- User completion from user history.
 - Generated Bash script includes the expected command hooks.
 
 The completion and resolution helpers should be tested as pure functions where

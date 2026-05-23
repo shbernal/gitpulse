@@ -10,6 +10,7 @@ export type HistoryCommand = "repo" | "compare" | "docs" | "user";
 export type HistoryEntry = {
   input: string;
   repository: string | null;
+  user?: string | null;
   source: SnapshotSource["kind"];
   ok: boolean;
 };
@@ -58,12 +59,20 @@ export function buildHistoryEvent(
   snapshots: Array<SnapshotWithSource | UserProfileWithSource>,
   now = new Date(),
 ): HistoryEvent {
-  const entries = snapshots.map((snapshot, index) => ({
-    input: inputs[index] ?? "",
-    repository: snapshot.result.ok && "repository" in snapshot.result.snapshot ? snapshot.result.snapshot.repository.fullName : null,
-    source: snapshot.source.kind,
-    ok: snapshot.result.ok,
-  }));
+  const entries = snapshots.map((snapshot, index) => {
+    const entry: HistoryEntry = {
+      input: inputs[index] ?? "",
+      repository: snapshot.result.ok && "repository" in snapshot.result.snapshot ? snapshot.result.snapshot.repository.fullName : null,
+      source: snapshot.source.kind,
+      ok: snapshot.result.ok,
+    };
+
+    if (snapshot.result.ok && "profile" in snapshot.result.snapshot) {
+      entry.user = snapshot.result.snapshot.profile.login;
+    }
+
+    return entry;
+  });
 
   return {
     timestamp: now.toISOString(),
@@ -100,6 +109,7 @@ function isHistoryEvent(value: unknown): value is HistoryEvent {
       isRecord(entry) &&
       typeof entry.input === "string" &&
       (typeof entry.repository === "string" || entry.repository === null) &&
+      (entry.user === undefined || typeof entry.user === "string" || entry.user === null) &&
       typeof entry.source === "string" &&
       typeof entry.ok === "boolean",
   );

@@ -2,6 +2,7 @@ import { Command, InvalidArgumentError, Option } from "commander";
 import { renderBashCompletionScript } from "./completions";
 import { appendHistoryEvent, buildHistoryEvent, clearHistory, readHistoryEvents } from "./cache/history";
 import { completeKnownRepos, readKnownRepos, resolveKnownRepoShorthand } from "./cache/known-repos";
+import { completeKnownUsers, readKnownUsers } from "./cache/known-users";
 import { clearCache } from "./cache/maintenance";
 import { type CacheMode } from "./cache/policy";
 import { resolveSnapshot } from "./cache/resolve";
@@ -126,6 +127,13 @@ export async function main(argv = process.argv): Promise<void> {
     .requiredOption("--current <token>", "current completion token")
     .action(async (options: { current: string }) => {
       await runCompleteRepos(options.current);
+    });
+
+  completeCommand
+    .command("users", { hidden: true })
+    .requiredOption("--current <token>", "current completion token")
+    .action(async (options: { current: string }) => {
+      await runCompleteUsers(options.current);
     });
 
   await program.parseAsync(argv);
@@ -398,6 +406,14 @@ function runCompletionsBash(): void {
 
 async function runCompleteRepos(current: string): Promise<void> {
   const candidates = completeKnownRepos(current, await readKnownRepos());
+
+  if (candidates.length > 0) {
+    console.log(candidates.join("\n"));
+  }
+}
+
+async function runCompleteUsers(current: string): Promise<void> {
+  const candidates = completeKnownUsers(current, await readKnownUsers());
 
   if (candidates.length > 0) {
     console.log(candidates.join("\n"));

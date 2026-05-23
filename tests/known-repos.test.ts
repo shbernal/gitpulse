@@ -12,6 +12,7 @@ import {
   resolveKnownRepoShorthand,
   type KnownRepo,
 } from "../src/cache/known-repos";
+import { completeKnownUsers, readKnownUsers, type KnownUser } from "../src/cache/known-users";
 import { clearCache } from "../src/cache/maintenance";
 import { writeCachedSnapshot } from "../src/cache/store";
 import { writeCachedUserProfileSnapshot } from "../src/cache/user-store";
@@ -123,6 +124,68 @@ describe("known repositories", () => {
   });
 });
 
+describe("known users", () => {
+  test("aggregates known users from cache", async () => {
+    await withTempEnv(async (env) => {
+      await writeCachedUserProfileSnapshot("octocat", userSnapshot("OctoCat"), new Date("2026-05-16T12:00:00.000Z"), env);
+
+      expect(await readKnownUsers(env)).toEqual([
+        {
+          login: "OctoCat",
+          cachedAt: "2026-05-16T12:00:00.000Z",
+          sources: ["cache"],
+        },
+      ]);
+    });
+  });
+
+  test("aggregates known users from history", async () => {
+    await withTempEnv(async (env) => {
+      await appendHistoryEvent(
+        {
+          timestamp: "2026-05-16T13:00:00.000Z",
+          command: "user",
+          entries: [{ input: "octocat", repository: null, user: "OctoCat", source: "api", ok: true }],
+          ok: true,
+        },
+        env,
+      );
+
+      expect(await readKnownUsers(env)).toEqual([
+        {
+          login: "OctoCat",
+          lastSeenAt: "2026-05-16T13:00:00.000Z",
+          sources: ["history"],
+        },
+      ]);
+    });
+  });
+
+  test("deduplicates users and prefers cached canonical casing", async () => {
+    await withTempEnv(async (env) => {
+      await appendHistoryEvent(
+        {
+          timestamp: "2026-05-16T13:00:00.000Z",
+          command: "user",
+          entries: [{ input: "octocat", repository: null, user: "octocat", source: "api", ok: true }],
+          ok: true,
+        },
+        env,
+      );
+      await writeCachedUserProfileSnapshot("octocat", userSnapshot("OctoCat"), new Date("2026-05-16T12:00:00.000Z"), env);
+
+      expect(await readKnownUsers(env)).toEqual([
+        {
+          login: "OctoCat",
+          lastSeenAt: "2026-05-16T13:00:00.000Z",
+          cachedAt: "2026-05-16T12:00:00.000Z",
+          sources: ["history", "cache"],
+        },
+      ]);
+    });
+  });
+});
+
 describe("repository shorthand resolution", () => {
   test("passes explicit owner/name references through", () => {
     expect(resolveKnownRepoShorthand("owner/repo", [])).toBe("owner/repo");
@@ -188,6 +251,21 @@ describe("known repository completion", () => {
   });
 });
 
+describe("known user completion", () => {
+  test("completes by login prefix", () => {
+    expect(completeKnownUsers("oct", [knownUser("octocat"), knownUser("github")])).toEqual(["octocat"]);
+  });
+
+  test("prefers recent users before alphabetical order", () => {
+    expect(
+      completeKnownUsers("", [
+        knownUser("github", { lastSeenAt: "2026-05-15T13:00:00.000Z" }),
+        knownUser("octocat", { lastSeenAt: "2026-05-16T13:00:00.000Z" }),
+      ]),
+    ).toEqual(["octocat", "github"]);
+  });
+});
+
 describe("completion commands", () => {
   test("generates the expected Bash hooks", () => {
     const script = renderBashCompletionScript();
@@ -195,6 +273,7 @@ describe("completion commands", () => {
     expect(script).toContain("docs user history cache config completions");
     expect(script).not.toContain("repo compare");
     expect(script).toContain("__complete repos --current");
+    expect(script).toContain("__complete users --current");
     expect(script).toContain("auto always never");
     expect(script).toContain("complete -F _gitpulse gitpulse");
   });
@@ -216,6 +295,18 @@ describe("completion commands", () => {
       );
 
       expect(output).toBe("acme/tool");
+    });
+  });
+
+  test("prints local user candidates through the hidden completion command", async () => {
+    await withTempEnv(async (env) => {
+      await writeCachedUserProfileSnapshot("octocat", userSnapshot("octocat"), new Date(), env);
+
+      const output = await withProcessEnv(env, () =>
+        captureStdout(() => main(["node", "gitpulse", "__complete", "users", "--current", "oct"])),
+      );
+
+      expect(output).toBe("octocat");
     });
   });
 });
@@ -327,6 +418,14 @@ function knownRepo(fullName: string, options: Partial<KnownRepo> = {}): KnownRep
     fullName,
     owner,
     name,
+    sources: [],
+    ...options,
+  };
+}
+
+function knownUser(login: string, options: Partial<KnownUser> = {}): KnownUser {
+  return {
+    login,
     sources: [],
     ...options,
   };

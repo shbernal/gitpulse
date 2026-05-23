@@ -44,6 +44,7 @@ _gitpulse()
       _gitpulse_complete_repos "$cur"
       ;;
     user)
+      _gitpulse_complete_users "$cur"
       ;;
     history)
       COMPREPLY=( $(compgen -W "clear" -- "$cur") )
@@ -72,6 +73,17 @@ _gitpulse_complete_repos()
   while IFS= read -r candidate; do
     [[ -n "$candidate" ]] && COMPREPLY+=( "$candidate" )
   done < <("$gitpulse_cmd" __complete repos --current "$current" 2>/dev/null)
+}
+
+_gitpulse_complete_users()
+{
+  local current="$1"
+  local gitpulse_cmd="\${COMP_WORDS[0]:-${commandName}}"
+  local candidate
+
+  while IFS= read -r candidate; do
+    [[ -n "$candidate" ]] && COMPREPLY+=( "$candidate" )
+  done < <("$gitpulse_cmd" __complete users --current "$current" 2>/dev/null)
 }
 
 complete -F _gitpulse ${commandName}

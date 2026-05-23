@@ -32,7 +32,7 @@ function latestHistoryRows(events: HistoryEvent[]): Array<{
 
   for (const event of [...events].reverse()) {
     for (const entry of event.entries) {
-      const repository = entry.repository ?? entry.input;
+      const repository = entry.repository ?? entry.user ?? entry.input;
 
       if (!rows.has(repository)) {
         rows.set(repository, {

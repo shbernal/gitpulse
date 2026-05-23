@@ -228,9 +228,9 @@ eval "$(gitpulse completions bash)"
 ```
 
 The Bash completion completes top-level and nested Gitpulse commands, shared
-flags, `--color` values, and repository candidates from local cache/history. It
-does not call GitHub while completing. User profile logins are not completed in
-the first pass.
+flags, `--color` values, repository candidates from local cache/history, and
+user profile logins from local user profile cache/history. It does not call
+GitHub while completing.
 
 ## Authentication
 
