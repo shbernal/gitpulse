@@ -52,12 +52,13 @@ is available when it is unambiguous:
 ```bash
 gitpulse cli
 gitpulse docs cli
+gitpulse web cli
 gitpulse cli gum
 ```
 
 Bare shorthand is local-only and exact. Gitpulse does not search GitHub for
 unknown shorthand, and prefix matching is reserved for shell completion.
-Reserved command words such as `docs`, `history`, `cache`, `config`,
+Reserved command words such as `docs`, `web`, `history`, `cache`, `config`,
 `completions`, and `user` are always treated as commands, not repository
 shorthand.
 
@@ -78,6 +79,13 @@ Show GitHub user profile signals:
 
 ```bash
 gitpulse user octocat
+```
+
+Open GitHub pages in the browser:
+
+```bash
+gitpulse web cli/cli
+gitpulse user web octocat
 ```
 
 Emit JSON:
@@ -229,8 +237,8 @@ eval "$(gitpulse completions bash)"
 
 The Bash completion completes top-level and nested Gitpulse commands, shared
 flags, `--color` values, repository candidates from local cache/history, and
-user profile logins from local user profile cache/history. It does not call
-GitHub while completing.
+user profile logins from local user profile cache/history. It includes browser
+open commands and does not call GitHub while completing.
 
 ## Authentication
 

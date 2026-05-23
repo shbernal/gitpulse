@@ -237,6 +237,14 @@ repository and comparison reports remain compact.
 User profile output should stay focused in `gitpulse user <login>` so root
 repository lookup and repository shorthand remain deterministic.
 
+Browser-opening convenience commands may construct GitHub URLs and launch the
+user's browser without collecting project-health data:
+
+```bash
+gitpulse web owner/name
+gitpulse user web octocat
+```
+
 Repository arguments may use exact bare local shorthand after a repository has
 appeared in Gitpulse's cache or consultation history. This shorthand is
 deterministic and local-only: command execution does not use prefix matching or
@@ -246,8 +254,8 @@ once so Gitpulse can fetch and record it.
 The root command infers the report mode from positional repository arguments:
 one repository renders a single repository report, while two or more
 repositories render a comparison. Reserved command words such as `docs`,
-`user`, `history`, `cache`, `config`, and `completions` remain command names
-rather than repository shorthand.
+`web`, `user`, `history`, `cache`, `config`, and `completions` remain command
+names rather than repository shorthand.
 
 Comparison output should emphasize the scoreboard and grouped side-by-side metrics, without prescribing a choice.
 

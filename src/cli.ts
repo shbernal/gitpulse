@@ -1,4 +1,5 @@
 import { Command, InvalidArgumentError, Option } from "commander";
+import { githubRepoUrl, githubUserUrl, openUrlInBrowser, type UrlOpener } from "./browser";
 import { renderBashCompletionScript } from "./completions";
 import { appendHistoryEvent, buildHistoryEvent, clearHistory, readHistoryEvents } from "./cache/history";
 import { completeKnownRepos, readKnownRepos, resolveKnownRepoShorthand } from "./cache/known-repos";
@@ -24,8 +25,13 @@ type CommandOptions = {
   refresh?: boolean;
 };
 
-export async function main(argv = process.argv): Promise<void> {
+type CliDependencies = {
+  openUrl?: UrlOpener;
+};
+
+export async function main(argv = process.argv, dependencies: CliDependencies = {}): Promise<void> {
   const program = new Command();
+  const openUrl = dependencies.openUrl ?? openUrlInBrowser;
 
   addSharedOptions(
     program
@@ -59,7 +65,15 @@ export async function main(argv = process.argv): Promise<void> {
     await runDocs(repo, options);
   });
 
-  addCacheOptions(
+  program
+    .command("web")
+    .description("Open a GitHub repository in the browser")
+    .argument("<repo>", "repository reference in owner/repo form or exact local shorthand")
+    .action(async (repo: string) => {
+      await runRepoWeb(repo, openUrl);
+    });
+
+  const userCommand = addCacheOptions(
     program
       .command("user")
       .description("Show GitHub user profile signals")
@@ -68,6 +82,14 @@ export async function main(argv = process.argv): Promise<void> {
     const options = command.optsWithGlobals<CommandOptions>();
     await runUser(login, options);
   });
+
+  userCommand
+    .command("web")
+    .description("Open a GitHub user or organization profile in the browser")
+    .argument("<login>", "GitHub user or organization login")
+    .action(async (login: string) => {
+      await runUserWeb(login, openUrl);
+    });
 
   const historyCommand = program
     .command("history")
@@ -319,6 +341,34 @@ async function runDocs(repo: string, options: CommandOptions): Promise<void> {
   }
 }
 
+async function runRepoWeb(repo: string, openUrl: UrlOpener): Promise<void> {
+  const resolved = await resolveRepositoryInputs([repo]);
+
+  if (!resolved.ok) {
+    console.error(`gitpulse: ${resolved.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  let url;
+
+  try {
+    url = githubRepoUrl(resolved.values[0]);
+  } catch (error) {
+    console.error(`gitpulse: ${errorMessage(error)}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  try {
+    await openUrl(url);
+    console.log(`Opened ${url}`);
+  } catch (error) {
+    console.error(`gitpulse: ${errorMessage(error)}`);
+    process.exitCode = 1;
+  }
+}
+
 async function runUser(login: string, options: CommandOptions): Promise<void> {
   const runtime = await loadRuntimeOptions(options);
 
@@ -347,6 +397,26 @@ async function runUser(login: string, options: CommandOptions): Promise<void> {
   }
 
   if (!result.ok) {
+    process.exitCode = 1;
+  }
+}
+
+async function runUserWeb(login: string, openUrl: UrlOpener): Promise<void> {
+  let url;
+
+  try {
+    url = githubUserUrl(login);
+  } catch (error) {
+    console.error(`gitpulse: ${errorMessage(error)}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  try {
+    await openUrl(url);
+    console.log(`Opened ${url}`);
+  } catch (error) {
+    console.error(`gitpulse: ${errorMessage(error)}`);
     process.exitCode = 1;
   }
 }

@@ -51,14 +51,16 @@ The long-term command shape should stay compact:
 gitpulse owner/name
 gitpulse owner/a owner/b [owner/c...]
 gitpulse docs owner/name
+gitpulse web owner/name
 gitpulse user login
+gitpulse user web login
 ```
 
 The root command infers the mode from positional repository arguments: one
 repository renders a single repository report, while two or more repositories
-render a comparison. Reserved command words such as `docs`, `history`, `cache`,
-`config`, `completions`, and `user` remain command names rather than repository
-shorthand. Keep any future shorthand predictable and deterministic.
+render a comparison. Reserved command words such as `docs`, `web`, `history`,
+`cache`, `config`, `completions`, and `user` remain command names rather than
+repository shorthand. Keep any future shorthand predictable and deterministic.
 
 ## Documentation Map
 

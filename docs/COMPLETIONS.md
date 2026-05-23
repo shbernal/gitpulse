@@ -104,6 +104,7 @@ Repository shorthand applies to:
 ```bash
 gitpulse owner-or-repo
 gitpulse docs owner-or-repo
+gitpulse web owner-or-repo
 gitpulse owner-or-repo other-owner-or-repo
 ```
 
@@ -130,7 +131,7 @@ gitpulse deno
 should not resolve to `denoland/cli` unless there is an exact known owner or
 repository named `deno`. Prefixes belong to shell completion only.
 
-Reserved command words such as `docs`, `history`, `cache`, `config`,
+Reserved command words such as `docs`, `web`, `history`, `cache`, `config`,
 `completions`, and `user` remain command names rather than repository
 shorthand.
 
@@ -214,6 +215,7 @@ The generated Bash completion completes:
 
 - Top-level commands:
   - `docs`
+  - `web`
   - `user`
   - `history`
   - `cache`
@@ -225,12 +227,15 @@ The generated Bash completion completes:
   - `config path`
   - `config reset`
   - `completions bash`
+  - `user web`
 - Repository arguments for:
   - `gitpulse <repo>` for a single repository report
   - `gitpulse docs <repo>`
+  - `gitpulse web <repo>`
   - `gitpulse <repo> <repo> [repo...]` for a comparison report
 - User profile arguments for:
   - `gitpulse user <login>`
+  - `gitpulse user web <login>`
 - Shared repository flags:
   - `--json`
   - `--color`
@@ -278,6 +283,8 @@ Use owner/name once to fetch and record it.
 - Pure helpers cover exact shorthand resolution and prefix completion.
 - The root command, `docs`, and each inferred comparison argument resolve exact
   local shorthand before snapshot resolution.
+- The `web` command resolves exact local repository shorthand before opening the
+  repository page.
 - The `user` command does not resolve repository shorthand for its login
   argument.
 - `gitpulse __complete repos --current <token>` prints newline-delimited local

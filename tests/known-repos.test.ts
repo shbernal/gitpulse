@@ -270,8 +270,10 @@ describe("completion commands", () => {
   test("generates the expected Bash hooks", () => {
     const script = renderBashCompletionScript();
 
-    expect(script).toContain("docs user history cache config completions");
+    expect(script).toContain("docs web user history cache config completions");
     expect(script).not.toContain("repo compare");
+    expect(script).toContain('compgen -W "web"');
+    expect(script).toContain("docs|web");
     expect(script).toContain("__complete repos --current");
     expect(script).toContain("__complete users --current");
     expect(script).toContain("auto always never");
@@ -347,6 +349,41 @@ describe("CLI shorthand wiring", () => {
       expect(output).toContain("gitpulse user octocat");
       expect(output).toContain("Repository footprint");
     });
+  });
+
+  test("opens repository pages through the web command with exact local shorthand", async () => {
+    await withTempEnv(async (env) => {
+      await writeCachedSnapshot({ owner: "acme", name: "tool" }, snapshot("acme/tool"), new Date(), env);
+      const openedUrls: string[] = [];
+
+      const output = await withProcessEnv(env, () =>
+        captureStdout(() =>
+          main(["node", "gitpulse", "web", "tool"], {
+            openUrl: async (url) => {
+              openedUrls.push(url);
+            },
+          }),
+        ),
+      );
+
+      expect(openedUrls).toEqual(["https://github.com/acme/tool"]);
+      expect(output).toBe("Opened https://github.com/acme/tool");
+    });
+  });
+
+  test("opens GitHub user profiles through the user web command", async () => {
+    const openedUrls: string[] = [];
+
+    const output = await captureStdout(() =>
+      main(["node", "gitpulse", "user", "web", "octocat"], {
+        openUrl: async (url) => {
+          openedUrls.push(url);
+        },
+      }),
+    );
+
+    expect(openedUrls).toEqual(["https://github.com/octocat"]);
+    expect(output).toBe("Opened https://github.com/octocat");
   });
 });
 
