@@ -70,6 +70,8 @@ repository shorthand. Keep any future shorthand predictable and deterministic.
 - `docs/FUTURE_LOC_ANALYSIS.md`: deferred source-inspection plan for line counts.
 - `docs/FUTURE_MAINTENANCE_AND_DOCS.md`: documentation command context and
   later maintenance-tooling analysis plan.
+- `docs/VISUAL_OUTPUT.md`: deterministic visual review workflow for
+  human-readable terminal output.
 
 ## Contributor Notes
 
@@ -78,5 +80,8 @@ repository shorthand. Keep any future shorthand predictable and deterministic.
 - Do not introduce AI dependencies into the deterministic Phase 1 baseline.
 - Prefer small, testable modules over a single large CLI file.
 - When adding metrics, document what the metric means and what it does not prove.
+- When changing human-readable terminal output, run `bun run visuals` and inspect
+  the generated artifacts so color, spacing, emphasis, and readability remain
+  intentional.
 - Keep commits lean and focused: one independent change per commit when practical,
   even when the user only says "commit."

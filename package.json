@@ -19,6 +19,7 @@
     "dev": "bun run src/bin.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
+    "visuals": "bun run scripts/render-visuals.ts",
     "build": "bun build src/bin.ts --target node --outfile dist/cli.js && chmod +x dist/cli.js",
     "build:bin": "bun build src/bin.ts --compile --outfile dist/gitpulse",
     "prepack": "bun run build"
