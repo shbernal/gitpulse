@@ -13,7 +13,8 @@ describe("terminal rendering", () => {
     expect(output).toContain("acme/tool (https://github.com/acme/tool)");
     expect(output).not.toContain("gitpulse acme/tool");
     expect(output.split("\n").every((line) => !line.startsWith("  "))).toBe(true);
-    expect(output).toContain("[active] [source] [branch main] [TypeScript] [MIT]");
+    expect(output).not.toContain("Status");
+    expect(output).not.toContain("[active] [source] [branch main] [TypeScript] [MIT]");
     expect(output).toContain("Pulse");
     expect(output).toContain("[########--]");
     expect(output).toContain("Activity freshness");
@@ -21,7 +22,7 @@ describe("terminal rendering", () => {
     expect(output).not.toContain("Maintenance visibility");
     expect(output).not.toContain("Documentation");
     expect(output).toContain("At a glance");
-    expect(section(output, "Repo", "Status")).toContain("Topics  cli, github");
+    expect(section(output, "Repo", "Pulse")).toContain("Topics  cli, github");
     expect(section(output, "Project shape", "Data Provenance")).not.toContain("Topics");
     expect(output).toContain("Data Provenance");
     expect(output).toContain("\nData Provenance\nfetched 2026-05-16T00:00:00.000Z");
@@ -183,7 +184,8 @@ describe("terminal rendering", () => {
     expect(output).toContain("\u001b[");
     expect(output).toContain("\u001b[4m");
     expect(output).toContain("\u001b[2m(https://github.com/acme/tool)");
-    expect(stripVTControlCharacters(output)).toContain("[active] [source] [branch main] [TypeScript] [MIT]");
+    expect(stripVTControlCharacters(output)).not.toContain("\nStatus\n");
+    expect(stripVTControlCharacters(output)).not.toContain("[active] [source] [branch main] [TypeScript] [MIT]");
   });
 
   test("renders provenance warnings with an orange warning prefix", () => {
@@ -197,7 +199,6 @@ describe("terminal rendering", () => {
     const output = renderRepo(snapshot("acme/tool"), { color: true });
 
     expect(output).toContain("\u001b[38;2;49;120;198mTypeScript");
-    expect(output).toContain("\u001b[48;2;49;120;198m");
     expect(stripVTControlCharacters(output)).toContain("Primary language  TypeScript");
     expect(stripVTControlCharacters(output)).toContain("Language mix      TypeScript 90%, Shell 10%");
   });

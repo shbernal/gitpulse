@@ -36,9 +36,6 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
     ...renderRepositoryDescription(snapshot),
     renderKeyValueList([["Topics", formatTopics(snapshot, theme)]], theme, ""),
     "",
-    theme.section("Status"),
-    repoBadges(snapshot, theme).join(" "),
-    "",
     theme.section("Pulse"),
     ...renderMetricRows(
       [
@@ -506,18 +503,6 @@ function row(
   selector: (item: SnapshotSuccess) => string,
 ): string[] {
   return [label, ...snapshots.map(selector)];
-}
-
-function repoBadges(snapshot: RepoSnapshot, theme: Theme): string[] {
-  return [
-    snapshot.repository.archived ? theme.badge("archived", "bad") : theme.badge("active", "good"),
-    snapshot.repository.disabled ? theme.badge("disabled", "bad") : null,
-    snapshot.repository.fork ? theme.badge("fork", "warn") : theme.badge("source", "info"),
-    snapshot.repository.template ? theme.badge("template", "info") : null,
-    theme.badge(`branch ${snapshot.repository.defaultBranch}`, "info"),
-    snapshot.repository.primaryLanguage ? theme.languageBadge(snapshot.repository.primaryLanguage) : theme.badge("language n/a", "muted"),
-    theme.badge(snapshot.repository.license ?? "no license", snapshot.repository.license ? "good" : "warn"),
-  ].filter((badge): badge is string => Boolean(badge));
 }
 
 function renderMetricRows(metrics: Array<[string, CompositeMetric]>, theme: Theme, prefix = "  "): string[] {
