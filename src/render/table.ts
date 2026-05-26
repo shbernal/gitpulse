@@ -477,6 +477,10 @@ function formatCacheAgeRange(ageHours: number[]): string {
   const firstDuration = formatCacheAgeDuration(first);
   const lastDuration = formatCacheAgeDuration(last);
 
+  if (firstDuration.text === lastDuration.text) {
+    return formatCacheAge(first);
+  }
+
   if (firstDuration.unit && firstDuration.unit === lastDuration.unit) {
     return `${firstDuration.value}-${lastDuration.value}${firstDuration.unit} ago`;
   }
@@ -502,7 +506,8 @@ function formatCacheAgeDuration(ageHours: number): { text: string; value: string
     return { text: `${formatAgeNumber(ageHours)}h`, value: formatAgeNumber(ageHours), unit: "h" };
   }
 
-  return { text: `${formatAgeNumber(ageHours / 24)}d`, value: formatAgeNumber(ageHours / 24), unit: "d" };
+  const days = String(Math.max(2, Math.round(ageHours / 24)));
+  return { text: `${days}d`, value: days, unit: "d" };
 }
 
 function formatAgeNumber(value: number): string {

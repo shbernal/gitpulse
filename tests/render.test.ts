@@ -96,9 +96,10 @@ describe("terminal rendering", () => {
   });
 
   test("renders cache source metadata when provided", () => {
-    const output = renderRepo(snapshot("acme/tool"), { color: false }, { kind: "cache", cachedAt: "2026-05-13T00:00:00.000Z", ageHours: 72 });
+    const output = renderRepo(snapshot("acme/tool"), { color: false }, { kind: "cache", cachedAt: "2026-05-13T00:00:00.000Z", ageHours: 72.4 });
 
     expect(output).toContain("data source: cache, fetched 3d ago");
+    expect(output).not.toContain("3.0d ago");
   });
 
   test("renders a comparison scoreboard", () => {
@@ -193,6 +194,23 @@ describe("terminal rendering", () => {
 
     expect(output).toContain("data sources: cache, fetched 3-9m ago");
     expect(output).not.toContain("Repository  Source");
+  });
+
+  test("collapses comparison cache day ranges when rounded days match", () => {
+    const output = renderComparison(
+      [
+        { ok: true, snapshot: snapshot("acme/one") },
+        { ok: true, snapshot: snapshot("acme/two") },
+      ],
+      { color: false },
+      [
+        { kind: "cache", cachedAt: "2026-05-13T11:57:00.000Z", ageHours: 72.1 },
+        { kind: "cache", cachedAt: "2026-05-13T11:51:00.000Z", ageHours: 73.9 },
+      ],
+    );
+
+    expect(output).toContain("data sources: cache, fetched 3d ago");
+    expect(output).not.toContain("3-3d ago");
   });
 
   test("can render semantic ANSI color", () => {
