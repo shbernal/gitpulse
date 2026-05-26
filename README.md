@@ -130,15 +130,17 @@ Control terminal color:
 gitpulse cli/cli --color auto
 gitpulse cli/cli --color always
 gitpulse cli/cli --color never
+gitpulse cli/cli --theme tokyo-night
+gitpulse cli/cli --theme nord
 ```
 
 ## Output
 
-Human-readable output is the default. Repository reports start with a `Repo` section that identifies the repository as `owner/repo (URL)`, then show score bars for explainable composite signals and grouped metric sections. Documentation presence is shown through `gitpulse docs`, not the default repository report. User profile reports show public profile facts and a repository-footprint summary. Comparison reports start with repository descriptions and a scoreboard. Comparison labels use repository names unless owner prefixes are needed to disambiguate matching names.
+Human-readable output is the default. Repository reports start with a `Repo` section that identifies the repository as `owner/repo` followed by the repository URL on its own muted line, then show score bars for explainable composite signals and grouped metric sections. Documentation presence is shown through `gitpulse docs`, not the default repository report. User profile reports show public profile facts and a repository-footprint summary. Comparison reports start with repository descriptions and a scoreboard. Comparison labels use repository names unless owner prefixes are needed to disambiguate matching names.
 
-Gitpulse uses semantic terminal color for repository state, score bands, activity freshness, documentation presence in docs reports, provenance warnings, fetch errors, and common programming languages. Color defaults to `--color auto`, which enables color for TTY output, disables it for non-TTY output, honors `NO_COLOR`, and honors `FORCE_COLOR`. Use `--color always` to force color or `--color never` to disable it.
+Gitpulse uses semantic terminal color for repository state, score bands, activity freshness, documentation presence in docs reports, provenance warnings, fetch errors, and common programming languages. Color defaults to `--color auto`, which enables color for TTY output, disables it for non-TTY output, honors `NO_COLOR`, and honors `FORCE_COLOR`. Use `--color always` to force color or `--color never` to disable it. Use `--theme` to choose a terminal palette; supported themes are documented in [Terminal Themes](docs/THEMES.md).
 
-Repository, docs, user, and comparison reports end with a `Data Provenance` section. It discloses fetched/source information first, then any warnings as `[warning]` lines. Sources show whether each snapshot came from the GitHub API, a fresh cache entry, or stale cache after a failed refresh.
+Repository, docs, user, and comparison reports end with a `Data Provenance` footer. It discloses fetched/source information first, then any warnings as `[warning]` lines. Sources show whether each snapshot came from the GitHub API, a fresh cache entry, or stale cache after a failed refresh.
 
 Use `--json` for scripts and integrations. JSON output is not colorized and includes a stable envelope:
 
@@ -237,7 +239,8 @@ eval "$(gitpulse completions bash)"
 
 The Bash completion completes top-level and nested Gitpulse commands, shared
 flags, `--color` values, repository candidates from local cache/history, and
-user profile logins from local user profile cache/history. It includes browser
+`--theme` values, repository candidates from local cache/history, and user
+profile logins from local user profile cache/history. It includes browser
 open commands and does not call GitHub while completing.
 
 ## Authentication

@@ -40,9 +40,16 @@ export function renderRepo(snapshot: RepoSnapshot, options: RepoRenderOptions = 
   const theme = createTheme(options);
   const output = [
     theme.section("Repo"),
-    formatRepositoryTitle(snapshot, theme),
+    ...renderRepositoryHeader(snapshot, theme),
     ...renderRepositoryDescription(snapshot),
-    renderKeyValueList([["Topics", formatTopics(snapshot, theme)]], theme, ""),
+    renderKeyValueList(
+      [
+        ["Topics", formatTopics(snapshot, theme)],
+        ...renderRepositoryStateRows(snapshot, theme),
+      ],
+      theme,
+      "",
+    ),
     "",
     theme.section("Pulse"),
     ...renderMetricRows(
@@ -186,10 +193,6 @@ export function renderUserProfile(snapshot: UserProfileSnapshot, options: Render
         ["Public repos fetched", theme.value(formatFetchedCount(snapshot))],
         ["Total stars", theme.value(formatCompactNumber(snapshot.repositories.totalStars))],
         ["Total forks", theme.value(formatCompactNumber(snapshot.repositories.totalForks))],
-        [
-          "Recently pushed",
-          theme.value(`${formatInteger(snapshot.repositories.recentlyPushedCount)} in last ${snapshot.repositories.recentPushWindowDays}d`),
-        ],
         ["Archived repos", theme.value(formatInteger(snapshot.repositories.archivedCount))],
         ["Fork repos", theme.value(formatInteger(snapshot.repositories.forkCount))],
         ["Primary languages", formatUserLanguages(snapshot, theme)],
@@ -199,9 +202,6 @@ export function renderUserProfile(snapshot: UserProfileSnapshot, options: Render
     "",
     theme.section("Top repositories"),
     renderUserRepositoryTable(snapshot.repositories.topRepositories, theme),
-    "",
-    theme.section("Recently pushed repositories"),
-    renderUserRepositoryTable(snapshot.repositories.recentlyPushedRepositories, theme),
     "",
   ];
 
@@ -352,7 +352,11 @@ function renderUserRepositoryTable(repositories: UserRepositorySummary[], theme:
 }
 
 function formatRepositoryTitle(snapshot: RepoSnapshot, theme: Theme): string {
-  return `${theme.repo(snapshot.repository.fullName)} ${theme.muted(`(${snapshot.repository.url})`)}`;
+  return theme.repo(snapshot.repository.fullName);
+}
+
+function renderRepositoryHeader(snapshot: RepoSnapshot, theme: Theme): string[] {
+  return [formatRepositoryTitle(snapshot, theme), theme.muted(snapshot.repository.url)];
 }
 
 function renderRepositoryDescription(snapshot: RepoSnapshot): string[] {
@@ -361,7 +365,7 @@ function renderRepositoryDescription(snapshot: RepoSnapshot): string[] {
 
 function renderComparisonRepositoryDescriptions(snapshots: SnapshotSuccess[], theme: Theme): string[] {
   return snapshots.flatMap(({ snapshot }) => [
-    formatRepositoryTitle(snapshot, theme),
+    ...renderRepositoryHeader(snapshot, theme),
     ...renderRepositoryDescription(snapshot),
   ]);
 }
@@ -384,7 +388,7 @@ function renderDataProvenance(
     ...input.warnings.map((warning) => theme.warning(`[warning] ${warning}`)),
   ].filter((line): line is string => Boolean(line));
 
-  return lines.length > 0 ? [theme.section("Data Provenance"), ...lines, ""] : [];
+  return lines.length > 0 ? [theme.footer("Data Provenance"), ...lines, ""] : [];
 }
 
 function formatFetchedCount(snapshot: UserProfileSnapshot): string {
@@ -399,9 +403,15 @@ function formatUserLanguages(snapshot: UserProfileSnapshot, theme: Theme): strin
     return theme.missing();
   }
 
-  return snapshot.repositories.primaryLanguages
-    .map((language) => `${theme.language(language.name)} ${theme.value(`${formatInteger(language.repositoryCount)} repos, ${formatPercent(language.percent)}`)}`)
-    .join(", ");
+  const visibleLanguages = snapshot.repositories.primaryLanguages.slice(0, 3);
+  const hiddenCount = snapshot.repositories.primaryLanguages.length - visibleLanguages.length;
+  const parts = visibleLanguages
+    .map((language) => `${theme.language(language.name)} ${theme.value(`${formatInteger(language.repositoryCount)} (${formatPercent(language.percent)})`)}`);
+  if (hiddenCount > 0) {
+    parts.push(theme.muted(`+${hiddenCount} more`));
+  }
+
+  return parts.join(", ");
 }
 
 function formatUserRepositoryState(repository: UserRepositorySummary, theme: Theme): string {
@@ -670,6 +680,14 @@ function formatState(snapshot: RepoSnapshot, theme: Theme): string {
   ].filter((state): state is string => Boolean(state));
 
   return states.length > 0 ? states.join(", ") : theme.tone("active", "good");
+}
+
+function renderRepositoryStateRows(snapshot: RepoSnapshot, theme: Theme): Array<[string, string]> {
+  return hasRepositoryState(snapshot) ? [["State", formatState(snapshot, theme)]] : [];
+}
+
+function hasRepositoryState(snapshot: RepoSnapshot): boolean {
+  return snapshot.repository.archived || snapshot.repository.disabled || snapshot.repository.fork || snapshot.repository.template;
 }
 
 function formatDateWithAgeTone(isoDate: string | null | undefined, days: number | null, theme: Theme): string {

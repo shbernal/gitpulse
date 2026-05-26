@@ -1,12 +1,16 @@
 import pc from "picocolors";
 import { stripVTControlCharacters } from "node:util";
 import { getLanguageColor, type Rgb } from "./language-colors";
+import { defaultThemeName, getPalette, type ThemeName, type ThemePalette } from "./palettes";
 
 export type RenderOptions = {
   color?: boolean;
+  theme?: ThemeName;
 };
 
-export type ColorMode = "always" | "auto" | "never";
+export const COLOR_MODES = ["auto", "always", "never"] as const;
+
+export type ColorMode = (typeof COLOR_MODES)[number];
 
 type Tone = "bad" | "good" | "info" | "muted" | "warn";
 
@@ -42,6 +46,7 @@ export function shouldUseColor(
 export function createTheme(options: RenderOptions = {}) {
   const color = Boolean(options.color);
   const colors = pc.createColors(color);
+  const palette = getPalette(options.theme ?? defaultThemeName);
   const paintForeground = (value: string, foreground: Rgb) =>
     color ? `\u001b[38;2;${foreground.red};${foreground.green};${foreground.blue}m${value}\u001b[39m` : value;
   const paintBlock = (value: string, background: Rgb) => {
@@ -58,36 +63,32 @@ export function createTheme(options: RenderOptions = {}) {
       "\u001b[49m",
     ].join("");
   };
-  const applyTone = (value: string, tone: Tone) => {
+  const paletteTone = (tone: Tone): Rgb => {
     switch (tone) {
       case "bad":
-        return colors.bold(colors.red(value));
+        return palette.bad;
       case "good":
-        return colors.bold(colors.green(value));
+        return palette.good;
       case "info":
-        return colors.bold(colors.cyan(value));
+        return palette.info;
       case "muted":
-        return colors.dim(value);
+        return palette.muted;
       case "warn":
-        return colors.bold(colors.yellow(value));
+        return palette.warn;
     }
   };
+  const applyTone = (value: string, tone: Tone) => {
+    const painted = paintForeground(value, paletteTone(tone));
+    return tone === "muted" ? colors.dim(painted) : colors.bold(painted);
+  };
   const applyBadgeTone = (value: string, tone: Tone) => {
-    switch (tone) {
-      case "bad":
-        return colors.bgRed(colors.white(colors.bold(value)));
-      case "good":
-        return colors.bgGreen(colors.black(colors.bold(value)));
-      case "info":
-        return colors.bgCyan(colors.black(colors.bold(value)));
-      case "muted":
-        return colors.inverse(colors.dim(value));
-      case "warn":
-        return colors.bgYellow(colors.black(colors.bold(value)));
-    }
+    return paintBlock(colors.bold(value), paletteTone(tone));
   };
 
   return {
+    palette(): ThemePalette {
+      return palette;
+    },
     badge(label: string, tone: Tone = "muted"): string {
       return applyBadgeTone(`[${label}]`, tone);
     },
@@ -110,30 +111,33 @@ export function createTheme(options: RenderOptions = {}) {
       return applyTone(value, "muted");
     },
     label(value: string): string {
-      return colors.blue(value);
+      return colors.dim(paintForeground(value, palette.label));
     },
     language(value: string): string {
       const languageColor = getLanguageColor(value);
-      return languageColor ? colors.bold(paintForeground(value, languageColor)) : colors.bold(colors.white(value));
+      return colors.bold(paintForeground(value, languageColor ?? palette.value));
     },
     languageBadge(value: string): string {
       const languageColor = getLanguageColor(value);
       return languageColor ? paintBlock(colors.bold(`[${value}]`), languageColor) : applyBadgeTone(`[${value}]`, "info");
     },
     repo(value: string): string {
-      return colors.bold(colors.cyan(value));
+      return colors.bold(paintForeground(value, palette.repo));
     },
     section(value: string): string {
-      return colors.bold(colors.underline(colors.magenta(value)));
+      return colors.bold(paintForeground(value, palette.section));
+    },
+    footer(value: string): string {
+      return colors.dim(paintForeground(value, palette.footer));
     },
     tone(value: string, tone: Tone): string {
       return applyTone(value, tone);
     },
     value(value: string): string {
-      return colors.bold(colors.white(value));
+      return colors.bold(paintForeground(value, palette.value));
     },
     warning(value: string): string {
-      return colors.bold(paintForeground(value, { red: 245, green: 158, blue: 11 }));
+      return colors.bold(paintForeground(value, palette.warn));
     },
   };
 }

@@ -13,7 +13,8 @@ import { GitHubClient } from "./github/client";
 import { renderHistory } from "./render/history";
 import { renderComparisonJson, renderDocsJson, renderRepoJson, renderUserProfileJson } from "./render/json";
 import { renderComparison, renderDocs, renderRepo, renderUserProfile } from "./render/table";
-import { shouldUseColor, type ColorMode, type RenderOptions } from "./render/terminal";
+import { THEME_NAMES, type ThemeName } from "./render/palettes";
+import { COLOR_MODES, shouldUseColor, type ColorMode, type RenderOptions } from "./render/terminal";
 import type { SnapshotWithSource, UserProfileWithSource } from "./types";
 
 type CommandOptions = {
@@ -24,6 +25,7 @@ type CommandOptions = {
   maxCacheHours?: number;
   offline?: boolean;
   refresh?: boolean;
+  theme?: ThemeName;
 };
 
 type CliDependencies = {
@@ -102,9 +104,10 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
     .description("Show recently consulted targets")
     .option("--json", "emit JSON output")
     .addOption(colorOption())
+    .addOption(themeOption())
     .action(async (_options: CommandOptions, command: Command) => {
       const options = command.optsWithGlobals<CommandOptions>();
-      await runHistory(Boolean(options.json), options.color ?? "auto");
+      await runHistory(Boolean(options.json), options);
     });
 
   historyCommand
@@ -176,13 +179,18 @@ function addCacheOptions(command: Command): Command {
   return command
     .option("--json", "emit JSON output")
     .addOption(colorOption())
+    .addOption(themeOption())
     .option("--refresh", "bypass the cache and refresh from the GitHub API")
     .option("--offline", "use the local cache only, even when cached data is stale")
     .addOption(maxCacheHoursOption());
 }
 
 function colorOption(): Option {
-  return new Option("--color <mode>", "color output: auto, always, never").choices(["auto", "always", "never"]);
+  return new Option("--color <mode>", "color output: auto, always, never").choices([...COLOR_MODES]);
+}
+
+function themeOption(): Option {
+  return new Option("--theme <name>", "terminal theme").choices([...THEME_NAMES]);
 }
 
 function maxCacheHoursOption(): Option {
@@ -435,14 +443,21 @@ async function runUserWeb(login: string, openUrl: UrlOpener): Promise<void> {
   }
 }
 
-async function runHistory(json: boolean, colorMode: ColorMode): Promise<void> {
+async function runHistory(json: boolean, options: CommandOptions): Promise<void> {
   try {
     const events = await readHistoryEvents();
+    const renderOptions = await loadRenderOptions(options);
+
+    if (!renderOptions.ok) {
+      console.error(`gitpulse: ${renderOptions.message}`);
+      process.exitCode = 1;
+      return;
+    }
 
     if (json) {
       console.log(JSON.stringify({ schemaVersion: 4, command: "history", events }, null, 2));
     } else {
-      console.log(renderHistory(events, { color: shouldUseColor(colorMode) }));
+      console.log(renderHistory(events, renderOptions.value));
     }
   } catch (error) {
     console.error(`gitpulse: ${errorMessage(error)}`);
@@ -537,6 +552,16 @@ type RuntimeOptionsResult =
       message: string;
     };
 
+type RenderOptionsResult =
+  | {
+      ok: true;
+      value: RenderOptions;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
 async function loadRuntimeOptions(options: CommandOptions): Promise<RuntimeOptionsResult> {
   if (options.refresh && options.offline) {
     return {
@@ -548,6 +573,7 @@ async function loadRuntimeOptions(options: CommandOptions): Promise<RuntimeOptio
   try {
     const config = await loadConfig();
     const mode: CacheMode = options.refresh ? "refresh" : options.offline ? "offline" : "default";
+    const renderOptions = resolveRenderOptions(config, options);
 
     return {
       ok: true,
@@ -561,9 +587,7 @@ async function loadRuntimeOptions(options: CommandOptions): Promise<RuntimeOptio
         contributorFetchLimit: options.contributorFetchLimit ?? config.contributors.fetchLimit,
         explain: Boolean(options.explain),
         json: Boolean(options.json),
-        renderOptions: {
-          color: shouldUseColor(options.color ?? "auto"),
-        },
+        renderOptions,
       },
     };
   } catch (error) {
@@ -572,6 +596,27 @@ async function loadRuntimeOptions(options: CommandOptions): Promise<RuntimeOptio
       message: error instanceof ConfigError ? error.message : errorMessage(error),
     };
   }
+}
+
+async function loadRenderOptions(options: CommandOptions): Promise<RenderOptionsResult> {
+  try {
+    return {
+      ok: true,
+      value: resolveRenderOptions(await loadConfig(), options),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof ConfigError ? error.message : errorMessage(error),
+    };
+  }
+}
+
+function resolveRenderOptions(config: Awaited<ReturnType<typeof loadConfig>>, options: CommandOptions): RenderOptions {
+  return {
+    color: shouldUseColor(options.color ?? config.output.color),
+    theme: options.theme ?? config.output.theme,
+  };
 }
 
 async function resolveRepositoryInputs(inputs: string[]): Promise<{ ok: true; values: string[] } | { ok: false; message: string }> {

@@ -37,6 +37,10 @@ describe("config parsing", () => {
       contributors: {
         fetchLimit: 100,
       },
+      output: {
+        color: "auto",
+        theme: "tokyo-night",
+      },
     });
   });
 
@@ -47,6 +51,15 @@ describe("config parsing", () => {
   test("parses contributor fetch limits", () => {
     expect(parseConfig({ contributors: { fetchLimit: 250 } }).contributors.fetchLimit).toBe(250);
     expect(() => parseConfig({ contributors: { fetchLimit: 0 } })).toThrow("contributors.fetchLimit");
+  });
+
+  test("parses output color and theme settings", () => {
+    expect(parseConfig({ output: { color: "always", theme: "nord" } }).output).toEqual({
+      color: "always",
+      theme: "nord",
+    });
+    expect(() => parseConfig({ output: { color: "sometimes" } })).toThrow("output.color");
+    expect(() => parseConfig({ output: { theme: "neon" } })).toThrow("output.theme");
   });
 });
 

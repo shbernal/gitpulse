@@ -23,7 +23,9 @@ export type UserProfileCollectionOptions = {
 
 const defaultUserRepositoryFetchLimit = 100;
 const recentPushWindowDays = 90;
-const displayedRepositoryLimit = 5;
+const displayedLanguageLimit = 5;
+const displayedRecentRepositoryLimit = 5;
+const displayedTopRepositoryLimit = 10;
 
 export async function collectUserProfileSnapshot(
   client: GitHubClient,
@@ -161,8 +163,8 @@ function buildRepositoryFootprint(
     archivedCount: repositories.filter((repository) => repository.archived).length,
     forkCount: repositories.filter((repository) => repository.fork).length,
     primaryLanguages: buildLanguageFootprint(repositories),
-    topRepositories: [...repositories].sort(compareTopRepositories).slice(0, displayedRepositoryLimit),
-    recentlyPushedRepositories: recentlyPushed.slice(0, displayedRepositoryLimit),
+    topRepositories: [...repositories].sort(compareTopRepositories).slice(0, displayedTopRepositoryLimit),
+    recentlyPushedRepositories: recentlyPushed.slice(0, displayedRecentRepositoryLimit),
   };
 }
 
@@ -184,7 +186,7 @@ function buildLanguageFootprint(repositories: UserRepositorySummary[]): UserLang
       percent: repositories.length > 0 ? Math.round((repositoryCount / repositories.length) * 1000) / 10 : 0,
     }))
     .sort((left, right) => right.repositoryCount - left.repositoryCount || left.name.localeCompare(right.name))
-    .slice(0, displayedRepositoryLimit);
+    .slice(0, displayedLanguageLimit);
 }
 
 function compareTopRepositories(left: UserRepositorySummary, right: UserRepositorySummary): number {

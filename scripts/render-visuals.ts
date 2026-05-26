@@ -4,6 +4,7 @@ import { delimiter, join } from "node:path";
 import { spawn } from "node:child_process";
 import { ansiToSvg, visibleLineLengths } from "./ansi-to-svg";
 import { visualOutputCases } from "./visual-fixtures";
+import { defaultThemeName, getPalette, rgbToCss } from "../src/render/palettes";
 
 type ManifestEntry = {
   allowOverflow: boolean;
@@ -16,6 +17,7 @@ type ManifestEntry = {
   id: string;
   maxVisibleLineLength: number;
   notes: string[];
+  theme: string;
   title: string;
 };
 
@@ -34,12 +36,15 @@ async function main(): Promise<void> {
     const pngPath = join(outputDir, `${outputCase.id}.png`);
     const lineLengths = visibleLineLengths(outputCase.ansi);
     const maxVisibleLineLength = Math.max(...lineLengths);
+    const palette = getPalette(outputCase.theme ?? defaultThemeName);
 
     await writeFile(ansiPath, outputCase.ansi);
     await writeFile(
       svgPath,
       ansiToSvg(outputCase.ansi, {
         columns: outputCase.columns,
+        defaultBackground: rgbToCss(palette.background),
+        defaultForeground: rgbToCss(palette.text),
         title: outputCase.title,
       }),
     );
@@ -57,6 +62,7 @@ async function main(): Promise<void> {
       id: outputCase.id,
       maxVisibleLineLength,
       notes: outputCase.notes,
+      theme: outputCase.theme ?? defaultThemeName,
       title: outputCase.title,
     });
   }

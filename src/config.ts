@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
+import { defaultThemeName, isThemeName, type ThemeName } from "./render/palettes";
+import { COLOR_MODES, type ColorMode } from "./render/terminal";
 
 type Env = Record<string, string | undefined>;
 
@@ -13,6 +15,10 @@ export type GitpulseConfig = {
   contributors: {
     fetchLimit: number;
   };
+  output: {
+    color: ColorMode;
+    theme: ThemeName;
+  };
 };
 
 export const defaultConfig: GitpulseConfig = {
@@ -23,6 +29,10 @@ export const defaultConfig: GitpulseConfig = {
   },
   contributors: {
     fetchLimit: 100,
+  },
+  output: {
+    color: "auto",
+    theme: defaultThemeName,
   },
 };
 
@@ -75,6 +85,9 @@ export function parseConfig(value: unknown): GitpulseConfig {
     contributors: {
       ...defaultConfig.contributors,
     },
+    output: {
+      ...defaultConfig.output,
+    },
   };
 
   if (value.cache !== undefined) {
@@ -121,6 +134,28 @@ export function parseConfig(value: unknown): GitpulseConfig {
     }
   }
 
+  if (value.output !== undefined) {
+    if (!isRecord(value.output)) {
+      throw new ConfigError("Config field output must be an object.");
+    }
+
+    if (value.output.color !== undefined) {
+      if (!isColorMode(value.output.color)) {
+        throw new ConfigError("Config field output.color must be one of: auto, always, never.");
+      }
+
+      config.output.color = value.output.color;
+    }
+
+    if (value.output.theme !== undefined) {
+      if (!isThemeName(value.output.theme)) {
+        throw new ConfigError("Config field output.theme must be one of: tokyo-night, catppuccin-mocha, nord, gruvbox-dark, dracula.");
+      }
+
+      config.output.theme = value.output.theme;
+    }
+  }
+
   return config;
 }
 
@@ -134,6 +169,10 @@ function isNonNegativeNumber(value: unknown): value is number {
 
 function isPositiveInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+function isColorMode(value: unknown): value is ColorMode {
+  return typeof value === "string" && COLOR_MODES.includes(value as ColorMode);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

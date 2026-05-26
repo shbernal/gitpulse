@@ -273,11 +273,13 @@ describe("completion commands", () => {
     expect(script).toContain("docs web user history cache config completions");
     expect(script).not.toContain("repo compare");
     expect(script).toContain("--explain");
+    expect(script).toContain("--theme");
     expect(script).toContain('compgen -W "web"');
     expect(script).toContain("docs|web");
     expect(script).toContain("__complete repos --current");
     expect(script).toContain("__complete users --current");
     expect(script).toContain("auto always never");
+    expect(script).toContain("tokyo-night catppuccin-mocha nord gruvbox-dark dracula");
     expect(script).toContain("complete -F _gitpulse gitpulse");
   });
 
@@ -323,7 +325,7 @@ describe("CLI shorthand wiring", () => {
       const rootOutput = await withProcessEnv(env, () =>
         captureStdout(() => main(["node", "gitpulse", "tool", "--offline", "--color", "never"])),
       );
-      expect(rootOutput).toContain("acme/tool (https://github.com/acme/tool)");
+      expect(rootOutput).toContain("acme/tool\nhttps://github.com/acme/tool");
 
       const explainOutput = await withProcessEnv(env, () =>
         captureStdout(() => main(["node", "gitpulse", "tool", "--offline", "--color", "never", "--explain"])),

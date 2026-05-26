@@ -32,3 +32,6 @@ during review.
 Keep this workflow separate from JSON output. Visual review can change color,
 spacing, labels, and emphasis in terminal reports, but machine-readable JSON
 should remain plain, stable, and covered by normal tests.
+
+Theme preview artifacts are generated for every supported terminal theme. See
+[Terminal Themes](THEMES.md) for the theme names, config shape, and CLI flag.

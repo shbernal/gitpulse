@@ -4,9 +4,10 @@ _gitpulse()
 {
   local cur prev cmd
   local top_commands="docs web user history cache config completions"
-  local shared_flags="--json --color --refresh --offline --max-cache-hours --contributor-fetch-limit"
+  local theme_values="tokyo-night catppuccin-mocha nord gruvbox-dark dracula"
+  local shared_flags="--json --color --theme --refresh --offline --max-cache-hours --contributor-fetch-limit"
   local repo_flags="$shared_flags --explain"
-  local user_flags="--json --color --refresh --offline --max-cache-hours"
+  local user_flags="--json --color --theme --refresh --offline --max-cache-hours"
 
   COMPREPLY=()
   cur="\${COMP_WORDS[COMP_CWORD]}"
@@ -15,6 +16,10 @@ _gitpulse()
   case "$prev" in
     --color)
       COMPREPLY=( $(compgen -W "auto always never" -- "$cur") )
+      return 0
+      ;;
+    --theme)
+      COMPREPLY=( $(compgen -W "$theme_values" -- "$cur") )
       return 0
       ;;
     --max-cache-hours|--contributor-fetch-limit)

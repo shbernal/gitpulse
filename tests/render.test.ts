@@ -9,8 +9,8 @@ describe("terminal rendering", () => {
   test("renders a compact repository report", () => {
     const output = renderRepo(snapshot("acme/tool"), { color: false });
 
-    expect(output).toStartWith("Repo\nacme/tool (https://github.com/acme/tool)");
-    expect(output).toContain("acme/tool (https://github.com/acme/tool)");
+    expect(output).toStartWith("Repo\nacme/tool\nhttps://github.com/acme/tool");
+    expect(output).toContain("acme/tool\nhttps://github.com/acme/tool");
     expect(output).not.toContain("gitpulse acme/tool");
     expect(output.split("\n").every((line) => !line.startsWith("  "))).toBe(true);
     expect(output).not.toContain("Status");
@@ -92,7 +92,15 @@ describe("terminal rendering", () => {
     expect(output).toContain("1 of 2");
     expect(output).toContain("Top repositories");
     expect(output).toContain("octocat/hello");
-    expect(output).toContain("Recently pushed repositories");
+    expect(output).not.toContain("Recently pushed");
+    expect(output).not.toContain("Recently pushed repositories");
+  });
+
+  test("renders non-active repository state in the top repo block", () => {
+    const output = renderRepo(snapshot("acme/tool", { archived: true }), { color: false });
+
+    expect(section(output, "Repo", "Pulse")).toContain("State   archived");
+    expect(section(output, "Repo", "Pulse")).toContain("Topics  cli, github");
   });
 
   test("renders cache source metadata when provided", () => {
@@ -122,8 +130,8 @@ describe("terminal rendering", () => {
     expect(output).toContain("82/100");
     expect(output).toContain("48/100");
     expect(output).not.toContain("67/100");
-    expect(output).toContain("acme/one (https://github.com/acme/one)");
-    expect(output).toContain("acme/two (https://github.com/acme/two)");
+    expect(output).toContain("acme/one\nhttps://github.com/acme/one");
+    expect(output).toContain("acme/two\nhttps://github.com/acme/two");
     expect(output).not.toContain("Signals");
     expect(output).not.toContain("Activity freshness");
     expect(output).toContain("Popularity");
@@ -217,8 +225,9 @@ describe("terminal rendering", () => {
     const output = renderRepo(snapshot("acme/tool"), { color: true });
 
     expect(output).toContain("\u001b[");
-    expect(output).toContain("\u001b[4m");
-    expect(output).toContain("\u001b[2m(https://github.com/acme/tool)");
+    expect(output).not.toContain("\u001b[4m");
+    expect(output).toContain("\u001b[2m");
+    expect(stripVTControlCharacters(output)).toContain("https://github.com/acme/tool");
     expect(stripVTControlCharacters(output)).not.toContain("\nStatus\n");
     expect(stripVTControlCharacters(output)).not.toContain("[active] [source] [branch main] [TypeScript] [MIT]");
   });
@@ -227,7 +236,14 @@ describe("terminal rendering", () => {
     const output = renderRepo(snapshot("acme/tool", { warnings: ["Repository is archived."] }), { color: true });
 
     expect(stripVTControlCharacters(output)).toContain("\n[warning] Repository is archived.");
-    expect(output).toContain("\u001b[38;2;245;158;11m");
+    expect(output).toContain("\u001b[38;2;224;175;104m");
+  });
+
+  test("uses the selected terminal theme for semantic colors", () => {
+    const output = renderRepo(snapshot("acme/tool"), { color: true, theme: "nord" });
+
+    expect(output).toContain("\u001b[38;2;136;192;208mRepo");
+    expect(output).toContain("\u001b[38;2;143;188;187macme/tool");
   });
 
   test("colors known programming languages in human-readable output", () => {

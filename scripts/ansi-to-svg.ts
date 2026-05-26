@@ -1,5 +1,7 @@
 export type AnsiToSvgOptions = {
   columns?: number;
+  defaultBackground?: string;
+  defaultForeground?: string;
   fontFamily?: string;
   fontSize?: number;
   lineHeight?: number;
@@ -24,14 +26,25 @@ type TextSegment = {
   width: number;
 };
 
-const defaultForeground = "#d1d5db";
-const defaultBackground = "#111827";
+const fallbackForeground = "#d1d5db";
+const fallbackBackground = "#111827";
+
+function createDefaultStyle(foreground = fallbackForeground): AnsiStyle {
+  return {
+    background: null,
+    bold: false,
+    dim: false,
+    foreground,
+    inverse: false,
+    underline: false,
+  };
+}
 
 const defaultStyle: AnsiStyle = {
   background: null,
   bold: false,
   dim: false,
-  foreground: defaultForeground,
+  foreground: fallbackForeground,
   inverse: false,
   underline: false,
 };
@@ -79,6 +92,9 @@ const sgrPattern = /\x1b\[([0-9;]*)m/g;
 
 export function ansiToSvg(input: string, options: AnsiToSvgOptions = {}): string {
   const columns = options.columns ?? 100;
+  const defaultBackground = options.defaultBackground ?? fallbackBackground;
+  const defaultForeground = options.defaultForeground ?? fallbackForeground;
+  const defaultLineStyle = createDefaultStyle(defaultForeground);
   const fontSize = options.fontSize ?? 14;
   const lineHeight = options.lineHeight ?? 21;
   const paddingX = options.paddingX ?? 18;
@@ -87,7 +103,7 @@ export function ansiToSvg(input: string, options: AnsiToSvgOptions = {}): string
     options.fontFamily ?? "JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, monospace";
   const normalized = input.replace(/\r\n?/g, "\n").replace(/\n$/, "");
   const lines = normalized.length > 0 ? normalized.split("\n") : [""];
-  const parsedLines = lines.map(parseAnsiLine);
+  const parsedLines = lines.map((line) => parseAnsiLine(line, defaultLineStyle));
   const lineLengths = lines.map((line) => visibleLength(line));
   const maxLineLength = Math.max(columns, ...lineLengths);
   const charWidth = fontSize * 0.62;
@@ -97,13 +113,15 @@ export function ansiToSvg(input: string, options: AnsiToSvgOptions = {}): string
   const columnGuideX = paddingX + columns * charWidth;
 
   const body = parsedLines
-    .map((segments, lineIndex) => renderLine(segments, { charWidth, fontSize, lineHeight, lineIndex, paddingX, paddingY }))
+    .map((segments, lineIndex) =>
+      renderLine(segments, { charWidth, defaultBackground, fontSize, lineHeight, lineIndex, paddingX, paddingY }),
+    )
     .join("\n");
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
     options.title ? `  <title>${escapeXml(options.title)}</title>` : null,
-    `  <rect width="100%" height="100%" rx="8" fill="${defaultBackground}"/>`,
+    `  <rect width="100%" height="100%" rx="8" fill="${escapeXml(defaultBackground)}"/>`,
     `  <line x1="${formatNumber(columnGuideX)}" y1="${paddingY / 2}" x2="${formatNumber(columnGuideX)}" y2="${height - paddingY / 2}" stroke="${overflow ? "#f59e0b" : "#263244"}" stroke-width="1" stroke-dasharray="4 5" opacity="${overflow ? "0.9" : "0.45"}"/>`,
     `  <g font-family="${escapeXml(fontFamily)}" font-size="${fontSize}">`,
     body,
@@ -131,9 +149,9 @@ export function visibleLength(input: string): number {
   return Array.from(stripAnsi(input)).length;
 }
 
-function parseAnsiLine(line: string): TextSegment[] {
+function parseAnsiLine(line: string, defaultLineStyle = defaultStyle): TextSegment[] {
   const segments: TextSegment[] = [];
-  let style = { ...defaultStyle };
+  let style = { ...defaultLineStyle };
   let cursor = 0;
   let column = 0;
 
@@ -145,7 +163,7 @@ function parseAnsiLine(line: string): TextSegment[] {
       column += width;
     }
 
-    style = applySgr(style, match[1]);
+    style = applySgr(style, match[1], defaultLineStyle);
     cursor = match.index + match[0].length;
   }
 
@@ -158,7 +176,7 @@ function parseAnsiLine(line: string): TextSegment[] {
   return segments;
 }
 
-function applySgr(style: AnsiStyle, paramsText: string): AnsiStyle {
+function applySgr(style: AnsiStyle, paramsText: string, defaultLineStyle = defaultStyle): AnsiStyle {
   const params = paramsText === "" ? [0] : paramsText.split(";").map((value) => Number(value));
   let next = { ...style };
 
@@ -166,7 +184,7 @@ function applySgr(style: AnsiStyle, paramsText: string): AnsiStyle {
     const code = params[index];
 
     if (code === 0) {
-      next = { ...defaultStyle };
+      next = { ...defaultLineStyle };
     } else if (code === 1) {
       next.bold = true;
     } else if (code === 2) {
@@ -183,7 +201,7 @@ function applySgr(style: AnsiStyle, paramsText: string): AnsiStyle {
     } else if (code === 27) {
       next.inverse = false;
     } else if (code === 39) {
-      next.foreground = defaultForeground;
+      next.foreground = defaultLineStyle.foreground;
     } else if (code === 49) {
       next.background = null;
     } else if (Object.hasOwn(foregroundPalette, code)) {
@@ -208,6 +226,7 @@ function renderLine(
   segments: TextSegment[],
   layout: {
     charWidth: number;
+    defaultBackground: string;
     fontSize: number;
     lineHeight: number;
     lineIndex: number;
@@ -218,7 +237,7 @@ function renderLine(
   const y = layout.paddingY + layout.fontSize + layout.lineIndex * layout.lineHeight;
   const backgrounds = segments
     .map((segment) => {
-      const style = effectiveStyle(segment.style);
+      const style = effectiveStyle(segment.style, layout.defaultBackground);
       if (!style.background || segment.width === 0) {
         return null;
       }
@@ -234,7 +253,7 @@ function renderLine(
         return "";
       }
 
-      const style = effectiveStyle(segment.style);
+      const style = effectiveStyle(segment.style, layout.defaultBackground);
       const attributes = [
         `fill="${escapeXml(style.foreground)}"`,
         style.bold ? 'font-weight="700"' : null,
@@ -251,7 +270,7 @@ function renderLine(
   return [...backgrounds, `    <text x="${layout.paddingX}" y="${y}" xml:space="preserve">${spans}</text>`].join("\n");
 }
 
-function effectiveStyle(style: AnsiStyle): AnsiStyle {
+function effectiveStyle(style: AnsiStyle, defaultBackground = fallbackBackground): AnsiStyle {
   if (!style.inverse) {
     return style;
   }

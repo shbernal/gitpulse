@@ -239,6 +239,7 @@ The generated Bash completion completes:
 - Shared repository flags:
   - `--json`
   - `--color`
+  - `--theme`
   - `--refresh`
   - `--offline`
   - `--max-cache-hours`
@@ -246,6 +247,7 @@ The generated Bash completion completes:
 - User profile flags:
   - `--json`
   - `--color`
+  - `--theme`
   - `--refresh`
   - `--offline`
   - `--max-cache-hours`
@@ -253,6 +255,8 @@ The generated Bash completion completes:
 Flag value completion can stay minimal at first:
 
 - `--color` should complete `auto`, `always`, and `never`.
+- `--theme` should complete `tokyo-night`, `catppuccin-mocha`, `nord`,
+  `gruvbox-dark`, and `dracula`.
 - Numeric flags do not need value completion.
 
 ## Error UX

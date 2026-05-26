@@ -230,6 +230,7 @@ Default output should be optimized for humans in a terminal:
 - Dates shown in understandable absolute form.
 - Relative recency where helpful, such as "18 days ago."
 - Light color usage when supported.
+- Configurable terminal themes for human-readable output.
 
 Documentation output should stay focused in `gitpulse docs <repo>` so default
 repository and comparison reports remain compact.

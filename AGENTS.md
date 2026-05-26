@@ -67,6 +67,7 @@ repository shorthand. Keep any future shorthand predictable and deterministic.
 - `docs/PROJECT_SPEC.md`: broader product vision, users, signals, and non-goals.
 - `docs/COMPOSITE_METRICS.md`: current composite metric formulas, caveats, and interpretation rules.
 - `docs/COMPLETIONS.md`: shell completion and local shorthand behavior.
+- `docs/THEMES.md`: supported terminal themes, `--theme`, and output config.
 - `docs/FUTURE_LOC_ANALYSIS.md`: deferred source-inspection plan for line counts.
 - `docs/FUTURE_MAINTENANCE_AND_DOCS.md`: documentation command context and
   later maintenance-tooling analysis plan.

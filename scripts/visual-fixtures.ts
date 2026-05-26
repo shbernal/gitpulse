@@ -1,4 +1,5 @@
 import { renderComparison, renderDocs, renderRepo, renderUserProfile } from "../src/render/table";
+import { THEME_NAMES, type ThemeName } from "../src/render/palettes";
 import type { RepoSnapshot, UserProfileSnapshot } from "../src/types";
 
 export const visualOutputColumns = 100;
@@ -9,6 +10,7 @@ export type VisualOutputCase = {
   columns: number;
   id: string;
   notes: string[];
+  theme?: ThemeName;
   title: string;
 };
 
@@ -123,6 +125,14 @@ export function visualOutputCases(): VisualOutputCase[] {
       notes: ["Intentional fixed-width pressure case. The column guide shows where 100 columns ends."],
       title: "Long content pressure report",
     },
+    ...THEME_NAMES.map((theme) => ({
+      ansi: renderRepo(strongRepo, { color: true, theme }, { kind: "api" }),
+      columns: visualOutputColumns,
+      id: `theme-${theme}`,
+      notes: [`Theme preview for ${theme}.`],
+      theme,
+      title: `Theme preview: ${theme}`,
+    })),
   ];
 }
 
@@ -253,6 +263,21 @@ function userSnapshot(login: string): UserProfileSnapshot {
   const topRepository = userRepository(login, "hello", "TypeScript", 12_400, 880, false, false, 3);
   const archivedRepository = userRepository(login, "old-extension", "JavaScript", 940, 120, true, false, 780);
   const forkRepository = userRepository(login, "patched-tool", "Rust", 620, 44, false, true, 24);
+  const cliRepository = userRepository(login, "cli-utils", "Go", 510, 61, false, false, 12);
+  const apiRepository = userRepository(login, "api-client", "Python", 420, 38, false, false, 42);
+  const themeRepository = userRepository(login, "theme-pack", "CSS", 260, 19, false, false, 160);
+  const docsRepository = userRepository(login, "docs-site", "MDX", 180, 12, false, false, 70);
+  const labRepository = userRepository(login, "lab-notes", null, 75, 6, false, false, 8);
+  const topRepositories = [
+    topRepository,
+    archivedRepository,
+    forkRepository,
+    cliRepository,
+    apiRepository,
+    themeRepository,
+    docsRepository,
+    labRepository,
+  ];
 
   return {
     fetchedAt: "2026-05-16T00:00:00.000Z",
@@ -272,7 +297,7 @@ function userSnapshot(login: string): UserProfileSnapshot {
       login,
       name: "The Octocat",
       publicGists: 1,
-      publicRepos: 3,
+      publicRepos: topRepositories.length,
       siteAdmin: false,
       twitterUsername: "github",
       type: "User",
@@ -281,21 +306,23 @@ function userSnapshot(login: string): UserProfileSnapshot {
     },
     repositories: {
       archivedCount: 1,
-      fetchedCount: 3,
+      fetchedCount: topRepositories.length,
       fetchLimit: 100,
       forkCount: 1,
       primaryLanguages: [
-        { name: "TypeScript", percent: 34, repositoryCount: 1 },
-        { name: "JavaScript", percent: 33, repositoryCount: 1 },
-        { name: "Rust", percent: 33, repositoryCount: 1 },
+        { name: "TypeScript", percent: 14.3, repositoryCount: 1 },
+        { name: "JavaScript", percent: 14.3, repositoryCount: 1 },
+        { name: "Rust", percent: 14.3, repositoryCount: 1 },
+        { name: "Go", percent: 14.3, repositoryCount: 1 },
+        { name: "Python", percent: 14.3, repositoryCount: 1 },
       ],
-      publicRepoCount: 3,
+      publicRepoCount: topRepositories.length,
       recentPushWindowDays: 90,
-      recentlyPushedCount: 2,
-      recentlyPushedRepositories: [topRepository, forkRepository],
-      topRepositories: [topRepository, archivedRepository, forkRepository],
-      totalForks: 1044,
-      totalStars: 13_960,
+      recentlyPushedCount: 5,
+      recentlyPushedRepositories: [topRepository, forkRepository, cliRepository, apiRepository, labRepository],
+      topRepositories,
+      totalForks: topRepositories.reduce((sum, repository) => sum + repository.forks, 0),
+      totalStars: topRepositories.reduce((sum, repository) => sum + repository.stars, 0),
       truncated: false,
     },
     warnings: [],
@@ -305,7 +332,7 @@ function userSnapshot(login: string): UserProfileSnapshot {
 function userRepository(
   login: string,
   name: string,
-  primaryLanguage: string,
+  primaryLanguage: string | null,
   stars: number,
   forks: number,
   archived: boolean,
