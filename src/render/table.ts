@@ -79,7 +79,6 @@ export function renderRepo(snapshot: RepoSnapshot, options: RepoRenderOptions = 
     renderFieldGrid(
       [
         { label: "Created", value: theme.value(formatDateWithAge(snapshot.repository.createdAt, snapshot.activity.ageDays)) },
-        { label: "Last push", value: formatDateWithAgeTone(snapshot.repository.pushedAt, snapshot.activity.daysSinceLastPush, theme) },
         { label: "Latest commit", value: formatDateWithAgeTone(snapshot.activity.latestCommitAt, snapshot.activity.daysSinceLatestCommit, theme) },
         { label: "Latest release", value: formatRelease(snapshot, theme) },
         { label: "Releases", value: theme.value(formatInteger(snapshot.activity.releaseCount)) },
@@ -255,7 +254,6 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
     {
       title: "Activity",
       rows: [
-        row("Last push", snapshots, ({ snapshot }) => formatRelativeDaysTone(snapshot.activity.daysSinceLastPush, theme)),
         row("Latest commit", snapshots, ({ snapshot }) => formatRelativeDaysTone(snapshot.activity.daysSinceLatestCommit, theme)),
         row("Latest release", snapshots, ({ snapshot }) => formatRelativeDaysTone(snapshot.activity.daysSinceLatestRelease, theme)),
         row("Total number of commits", snapshots, ({ snapshot }) => valueOrMissing(formatInteger(snapshot.activity.totalCommitCount), theme)),
