@@ -7,9 +7,9 @@ about whether a repository is good, safe, or worth adopting.
 The current implementation computes two composite metrics:
 
 - Activity freshness.
-- Popularity.
+- Popularity Score.
 
-Each metric is rounded, clamped to `0-100`, and labeled with the same score
+Activity freshness is rounded, clamped to `0-100`, and labeled with score
 bands:
 
 | Score range | Label |
@@ -19,8 +19,13 @@ bands:
 | `25-49` | `limited` |
 | `0-24` | `weak` |
 
+Popularity Score is an open-ended logarithmic index over weighted adoption
+signals. It is not clamped to `0-100`, and each `+1.0` increase means roughly
+`10x` more PU.
+
 Machine-readable JSON exposes each score with its input values so consumers can
-inspect how the score was produced.
+inspect how the score was produced. Popularity Score also exposes the weighted
+PU total.
 
 For deeper debugging, repository reports support explanation mode:
 
@@ -92,29 +97,49 @@ commits if they still have release history and are not archived. A repository
 with a latest commit slightly over 90 days old can still reach the `strong` band
 when other activity inputs are present.
 
-## Popularity
+## Popularity Score
 
-Popularity answers: "How much visible GitHub adoption and contributor
-surface does this repository have?"
+Popularity Score answers: "How much visible GitHub adoption surface does this
+repository have?"
 
-It uses a logarithmic score so very large repositories do not dominate linearly.
-For each input:
+It first converts visible adoption signals into PU. PU means Popularity Units:
+a weighted count of stars, forks, and watchers where stronger intent signals
+count more than stars.
 
 ```text
-points = log10(min(value, cap) + 1) / log10(cap + 1) * weight
+popularityUnits = stars + (8 * forks) + (5 * watchers)
+popularityScore = log10(popularityUnits + 1)
 ```
 
-| Signal | Cap | Weight |
-| --- | ---: | ---: |
-| Stars | `100000` | `35` |
-| Forks | `25000` | `25` |
-| Watchers | `10000` | `15` |
-| Contributors | `100` | `25` |
+| Signal | Unit weight |
+| --- | ---: |
+| Star | `1` |
+| Fork | `8` |
+| Watcher | `5` |
 
 Watchers are sourced from GitHub REST `subscribers_count`, not the legacy
-`watchers_count` field that mirrors stars. Contributors use the total
-contributor count when available, falling back to the fetched contributor row
-count.
+`watchers_count` field that mirrors stars.
+
+The default terminal output renders the score with the weighted total in
+parentheses, for example:
+
+```text
+Popularity Score  5.42 (263.4k PU)
+```
+
+Approximate scale:
+
+| Score | Approximate PU |
+| ---: | ---: |
+| `3.00` | `1k` |
+| `4.00` | `10k` |
+| `5.00` | `100k` |
+| `6.00` | `1m` |
+| `7.00` | `10m` |
+
+Contributors are intentionally not part of Popularity Score. Contributor count
+is a community and maintenance-surface signal, while Popularity Score is limited
+to public adoption intent signals.
 
 This score does not measure project quality, governance, issue health, or how
 recently the community has been active.

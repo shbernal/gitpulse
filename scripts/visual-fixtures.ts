@@ -16,7 +16,6 @@ export type VisualOutputCase = {
 
 export function visualOutputCases(): VisualOutputCase[] {
   const strongRepo = repoSnapshot("acme/pulsekit", {
-    popularityScore: 88,
     description: "Terminal-first project health snapshots for dependency and contribution decisions.",
     forks: 2450,
     license: "Apache-2.0",
@@ -29,8 +28,6 @@ export function visualOutputCases(): VisualOutputCase[] {
     activityScore: 12,
     archived: true,
     commitDays: 940,
-    popularityLabel: "limited",
-    popularityScore: 31,
     description: "Older automation project retained for existing users.",
     forks: 86,
     latestCommitAt: "2023-10-20T00:00:00Z",
@@ -48,8 +45,6 @@ export function visualOutputCases(): VisualOutputCase[] {
     watchers: 22,
   });
   const tinyRepo = repoSnapshot("tiny/fresh", {
-    popularityLabel: "weak",
-    popularityScore: 18,
     description: "Small but active tool with a narrow maintainer surface.",
     forks: 4,
     stars: 37,
@@ -141,8 +136,6 @@ type RepoSnapshotOptions = {
   activityScore?: number;
   archived?: boolean;
   commitDays?: number;
-  popularityLabel?: string;
-  popularityScore?: number;
   description?: string | null;
   disabled?: boolean;
   fork?: boolean;
@@ -176,6 +169,11 @@ function repoSnapshot(fullName: string, options: RepoSnapshotOptions = {}): Repo
   const commitDays = options.commitDays ?? 2;
   const totalContributors = options.totalContributors ?? 76;
   const topContributorShare = options.topContributorShare ?? 18.4;
+  const forks = options.forks ?? 120;
+  const stars = options.stars ?? 980;
+  const watchers = options.watchers ?? 33;
+  const popularityUnits = stars + forks * 8 + watchers * 5;
+  const popularityScore = Number(Math.log10(popularityUnits + 1).toFixed(2));
 
   return {
     ref: { owner, name },
@@ -187,7 +185,7 @@ function repoSnapshot(fullName: string, options: RepoSnapshotOptions = {}): Repo
       description: options.description ?? "A useful developer tool.",
       disabled: options.disabled ?? false,
       fork: options.fork ?? false,
-      forks: options.forks ?? 120,
+      forks,
       fullName,
       languages: languageBreakdown(primaryLanguage),
       license: options.license ?? "MIT",
@@ -197,12 +195,12 @@ function repoSnapshot(fullName: string, options: RepoSnapshotOptions = {}): Repo
       primaryLanguage,
       pushedAt: options.latestCommitAt ?? "2026-05-14T00:00:00Z",
       sizeKb: options.sizeKb ?? 81_240,
-      stars: options.stars ?? 980,
+      stars,
       template: options.template ?? false,
       topics: options.topics ?? ["cli", "github"],
       updatedAt: "2026-05-15T00:00:00Z",
       url: `https://github.com/${fullName}`,
-      watchers: options.watchers ?? 33,
+      watchers,
     },
     activity: {
       ageDays: 2327,
@@ -233,7 +231,7 @@ function repoSnapshot(fullName: string, options: RepoSnapshotOptions = {}): Repo
     },
     metrics: {
       activityFreshness: { inputs: {}, label: options.activityLabel ?? "strong", score: options.activityScore ?? 91 },
-      popularity: { inputs: {}, label: options.popularityLabel ?? "moderate", score: options.popularityScore ?? 67 },
+      popularity: { inputs: {}, label: null, scale: "index", score: popularityScore, units: popularityUnits },
     },
     warnings: options.warnings ?? [],
   };

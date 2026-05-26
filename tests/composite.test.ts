@@ -40,25 +40,33 @@ describe("composite metrics", () => {
     });
   });
 
-  test("explains logarithmic popularity caps", () => {
+  test("explains open-ended weighted popularity score", () => {
     const analysis = buildCompositeMetricsAnalysis({
       ...baseInput(),
-      stars: 1_000_000,
-      forks: 0,
-      watchers: 0,
-      contributors: 100,
     }).popularity;
 
-    expect(analysis.score).toBe(60);
+    expect(analysis.score).toBe(2.31);
+    expect(analysis.rawScore).toBe(2.31);
+    expect(analysis.maxScore).toBeNull();
+    expect(analysis.units).toBe(205);
+    expect(analysis.label).toBeNull();
+    expect(analysis.scale).toBe("index");
     expect(analysis.contributions.find((contribution) => contribution.id === "stars")).toMatchObject({
-      points: 35,
-      maxPoints: 35,
-      inputs: { value: 1_000_000, cap: 100_000, cappedValue: 100_000 },
+      points: 100,
+      maxPoints: null,
+      inputs: { value: 100, weight: 1, popularityUnits: 100 },
     });
-    expect(analysis.contributions.find((contribution) => contribution.id === "contributors")).toMatchObject({
+    expect(analysis.contributions.find((contribution) => contribution.id === "forks")).toMatchObject({
+      points: 80,
+      maxPoints: null,
+      inputs: { value: 10, weight: 8, popularityUnits: 80 },
+    });
+    expect(analysis.contributions.find((contribution) => contribution.id === "watchers")).toMatchObject({
       points: 25,
-      maxPoints: 25,
+      maxPoints: null,
+      inputs: { value: 5, weight: 5, popularityUnits: 25 },
     });
+    expect(analysis.contributions.some((contribution) => contribution.id === "contributors")).toBe(false);
   });
 
   test("keeps existing compact metric output shape", () => {
@@ -72,6 +80,10 @@ describe("composite metrics", () => {
       archived: false,
     });
     expect(metrics.popularity.inputs.watchers).toBe(5);
+    expect(metrics.popularity.score).toBe(2.31);
+    expect(metrics.popularity.label).toBeNull();
+    expect(metrics.popularity.scale).toBe("index");
+    expect(metrics.popularity.units).toBe(205);
   });
 });
 
@@ -85,6 +97,5 @@ function baseInput(): CompositeMetricsInput {
     stars: 100,
     forks: 10,
     watchers: 5,
-    contributors: 3,
   };
 }

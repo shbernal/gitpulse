@@ -210,7 +210,6 @@ function buildSnapshot(input: {
       stars: input.repository.stargazers_count,
       forks: input.repository.forks_count,
       watchers: input.repository.subscribers_count,
-      contributors: contributors.totalCount ?? contributors.fetchedCount,
     }),
     warnings,
   };

@@ -55,7 +55,7 @@ export function renderRepo(snapshot: RepoSnapshot, options: RepoRenderOptions = 
     ...renderMetricRows(
       [
         ["Activity freshness", snapshot.metrics.activityFreshness],
-        ["Popularity", snapshot.metrics.popularity],
+        ["Popularity Score", snapshot.metrics.popularity],
       ],
       theme,
       "",
@@ -270,7 +270,7 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
     "",
     theme.section("Scoreboard"),
     renderTable(
-      ["Repository", "Activity", "Popularity", "Stars", "Forks", "Last commit", "Release", "State"],
+      ["Repository", "Activity", "Popularity Score", "Stars", "Forks", "Last commit", "Release", "State"],
       snapshots.map(({ snapshot }, index) => [
         theme.repo(repoLabels[index]),
         formatMetricCompact(snapshot.metrics.activityFreshness, theme),
@@ -535,9 +535,14 @@ function row(
 function renderMetricRows(metrics: Array<[string, CompositeMetric]>, theme: Theme, prefix = "  "): string[] {
   const labelWidth = Math.max(...metrics.map(([label]) => label.length));
   return metrics.map(([label, metric]) => {
+    if (metric.scale === "index") {
+      return `${prefix}${padVisibleEnd(theme.label(label), labelWidth)}  ${formatMetricCompact(metric, theme)}`;
+    }
+
     const tone = scoreTone(metric.score);
     const score = `${String(metric.score).padStart(3)}/100`;
-    return `${prefix}${padVisibleEnd(theme.label(label), labelWidth)}  ${theme.bar(metric.score)}  ${theme.tone(score, tone)}  ${theme.tone(metric.label, tone)}`;
+    const scoreLabel = metric.label ?? "";
+    return `${prefix}${padVisibleEnd(theme.label(label), labelWidth)}  ${theme.bar(metric.score)}  ${theme.tone(score, tone)}  ${theme.tone(scoreLabel, tone)}`;
   });
 }
 
@@ -547,22 +552,27 @@ function renderScoreAnalysis(snapshot: RepoSnapshot, theme: Theme): string[] {
   return [
     ...renderMetricAnalysis("Activity freshness", analysis.activityFreshness, theme),
     "",
-    ...renderMetricAnalysis("Popularity", analysis.popularity, theme),
+    ...renderMetricAnalysis("Popularity Score", analysis.popularity, theme),
   ];
 }
 
 function renderMetricAnalysis(label: string, analysis: CompositeMetricAnalysis, theme: Theme): string[] {
+  if (analysis.scale === "index") {
+    return renderIndexMetricAnalysis(label, analysis, theme);
+  }
+
   const tone = scoreTone(analysis.score);
   const labelWidth = Math.max("Raw total".length, ...analysis.contributions.map((contribution) => contribution.label.length));
   const pointWidth = Math.max(
-    `${formatPoints(analysis.rawScore, analysis.maxScore)}`.length,
-    ...analysis.contributions.map((contribution) => formatPoints(contribution.points, contribution.maxPoints).length),
+    `${formatPoints(analysis.rawScore, analysis.maxScore ?? 0)}`.length,
+    ...analysis.contributions.map((contribution) => formatPoints(contribution.points, contribution.maxPoints ?? 0).length),
   );
   const rows = analysis.contributions.map((contribution) => renderContribution(contribution, theme, labelWidth, pointWidth));
-  const rawPoints = padVisibleEnd(theme.value(formatPoints(analysis.rawScore, analysis.maxScore)), pointWidth);
+  const rawPoints = padVisibleEnd(theme.value(formatPoints(analysis.rawScore, analysis.maxScore ?? 0)), pointWidth);
+  const scoreLabel = analysis.label ?? "";
 
   return [
-    `${theme.label(label)}  ${theme.tone(`${analysis.score}/100`, tone)}  ${theme.tone(analysis.label, tone)}`,
+    `${theme.label(label)}  ${theme.tone(`${analysis.score}/100`, tone)}  ${theme.tone(scoreLabel, tone)}`,
     ...rows,
     [
       padVisibleEnd(theme.label("Raw total"), labelWidth),
@@ -572,11 +582,41 @@ function renderMetricAnalysis(label: string, analysis: CompositeMetricAnalysis, 
   ];
 }
 
+function renderIndexMetricAnalysis(label: string, analysis: CompositeMetricAnalysis, theme: Theme): string[] {
+  const labelWidth = Math.max("Weighted total".length, ...analysis.contributions.map((contribution) => contribution.label.length));
+  const unitWidth = Math.max(
+    formatPopularityUnits(analysis.units).length,
+    ...analysis.contributions.map((contribution) => formatPopularityUnits(contribution.points).length),
+  );
+  const rows = analysis.contributions.map((contribution) => renderUnitContribution(contribution, theme, labelWidth, unitWidth));
+  const totalUnits = padVisibleEnd(theme.value(formatPopularityUnits(analysis.units)), unitWidth);
+  const rawUnits = analysis.units === undefined ? "n/a" : formatInteger(analysis.units);
+
+  return [
+    `${theme.label(label)}  ${formatPopularityMetric(analysis.score, analysis.units, theme)}`,
+    ...rows,
+    [
+      padVisibleEnd(theme.label("Weighted total"), labelWidth),
+      totalUnits,
+      theme.muted(`log10(${rawUnits} + 1) = ${formatPopularityScore(analysis.score)}`),
+    ].join("  "),
+  ];
+}
+
 function renderContribution(contribution: CompositeContribution, theme: Theme, labelWidth: number, pointWidth: number): string {
-  const points = padVisibleEnd(theme.value(formatPoints(contribution.points, contribution.maxPoints)), pointWidth);
+  const points = padVisibleEnd(theme.value(formatPoints(contribution.points, contribution.maxPoints ?? 0)), pointWidth);
   return [
     padVisibleEnd(theme.label(contribution.label), labelWidth),
     points,
+    theme.muted(`${contribution.rule} (${contribution.detail})`),
+  ].join("  ");
+}
+
+function renderUnitContribution(contribution: CompositeContribution, theme: Theme, labelWidth: number, unitWidth: number): string {
+  const units = padVisibleEnd(theme.value(formatPopularityUnits(contribution.points)), unitWidth);
+  return [
+    padVisibleEnd(theme.label(contribution.label), labelWidth),
+    units,
     theme.muted(`${contribution.rule} (${contribution.detail})`),
   ].join("  ");
 }
@@ -667,8 +707,24 @@ function formatContributorCount(snapshot: RepoSnapshot, theme: Theme): string {
 }
 
 function formatMetricCompact(metric: CompositeMetric, theme: Theme): string {
+  if (metric.scale === "index") {
+    return formatPopularityMetric(metric.score, metric.units, theme);
+  }
+
   const tone = scoreTone(metric.score);
   return theme.tone(`${metric.score}/100`, tone);
+}
+
+function formatPopularityMetric(score: number, units: number | undefined, theme: Theme): string {
+  return theme.value(`${formatPopularityScore(score)} (${formatPopularityUnits(units)})`);
+}
+
+function formatPopularityScore(score: number): string {
+  return score.toFixed(2);
+}
+
+function formatPopularityUnits(units: number | undefined): string {
+  return units === undefined ? "n/a PU" : `${formatCompactNumber(units)} PU`;
 }
 
 function formatState(snapshot: RepoSnapshot, theme: Theme): string {

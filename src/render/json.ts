@@ -2,7 +2,7 @@ import { buildComparisonSummary } from "../metrics/compare";
 import { buildCompositeMetricsAnalysisFromSnapshot } from "../metrics/composite";
 import type { SnapshotResult, SnapshotSource, UserProfileResult } from "../types";
 
-const schemaVersion = 4;
+const schemaVersion = 5;
 
 export function renderRepoJson(result: SnapshotResult, source?: SnapshotSource, options: { explainScores?: boolean } = {}): string {
   return JSON.stringify(

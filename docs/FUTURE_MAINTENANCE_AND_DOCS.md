@@ -47,7 +47,7 @@ The default human-readable comparison report does not include:
 
 The removal of `maintenanceVisibility` from JSON shipped as a schema-versioned
 change. Repository, docs, and comparison JSON envelopes now use schema version
-`3`.
+`5`.
 
 ## `gitpulse docs`
 

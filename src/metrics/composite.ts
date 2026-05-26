@@ -12,14 +12,13 @@ export type CompositeMetricsInput = {
   stars: number;
   forks: number;
   watchers: number;
-  contributors: number;
 };
 
 export type CompositeContribution = {
   id: string;
   label: string;
   points: number;
-  maxPoints: number;
+  maxPoints: number | null;
   rule: string;
   detail: string;
   inputs: Record<string, CompositeSignalValue>;
@@ -27,9 +26,11 @@ export type CompositeContribution = {
 
 export type CompositeMetricAnalysis = {
   score: number;
-  label: string;
+  label: string | null;
+  scale: NonNullable<CompositeMetric["scale"]>;
   rawScore: number;
-  maxScore: number;
+  maxScore: number | null;
+  units?: number;
   inputs: CompositeMetric["inputs"];
   contributions: CompositeContribution[];
 };
@@ -53,12 +54,18 @@ const releaseFreshnessBuckets = [
   [730, 10],
 ] as const satisfies readonly FreshnessBucket[];
 
+const popularityWeights = {
+  stars: 1,
+  forks: 8,
+  watchers: 5,
+} as const;
+
 export function buildCompositeMetrics(input: CompositeMetricsInput): CompositeMetrics {
   const analysis = buildCompositeMetricsAnalysis(input);
 
   return {
-    activityFreshness: metric(analysis.activityFreshness.score, analysis.activityFreshness.inputs),
-    popularity: metric(analysis.popularity.score, analysis.popularity.inputs),
+    activityFreshness: metric(analysis.activityFreshness),
+    popularity: metric(analysis.popularity),
   };
 }
 
@@ -79,7 +86,6 @@ export function buildCompositeMetricsAnalysisFromSnapshot(snapshot: RepoSnapshot
     stars: snapshot.repository.stars,
     forks: snapshot.repository.forks,
     watchers: snapshot.repository.watchers,
-    contributors: snapshot.contributors.totalCount ?? snapshot.contributors.fetchedCount,
   });
 }
 
@@ -143,6 +149,7 @@ function buildActivityFreshnessAnalysis(input: CompositeMetricsInput): Composite
   return {
     score,
     label: scoreLabel(score),
+    scale: "bounded",
     rawScore: roundDetail(rawScore),
     maxScore: 100,
     inputs: {
@@ -157,40 +164,44 @@ function buildActivityFreshnessAnalysis(input: CompositeMetricsInput): Composite
 }
 
 function buildPopularityAnalysis(input: CompositeMetricsInput): CompositeMetricAnalysis {
+  const starUnits = input.stars * popularityWeights.stars;
+  const forkUnits = input.forks * popularityWeights.forks;
+  const watcherUnits = input.watchers * popularityWeights.watchers;
+  const units = starUnits + forkUnits + watcherUnits;
+  const score = roundDetail(Math.log10(units + 1));
   const contributions = [
-    logContribution("stars", "Stars", input.stars, 100_000, 35),
-    logContribution("forks", "Forks", input.forks, 25_000, 25),
-    logContribution("watchers", "Watchers", input.watchers, 10_000, 15),
-    logContribution("contributors", "Contributors", input.contributors, 100, 25),
+    unitContribution("stars", "Stars", input.stars, popularityWeights.stars),
+    unitContribution("forks", "Forks", input.forks, popularityWeights.forks),
+    unitContribution("watchers", "Watchers", input.watchers, popularityWeights.watchers),
   ];
-  const rawScoreValue =
-    logScore(input.stars, 100_000, 35) +
-    logScore(input.forks, 25_000, 25) +
-    logScore(input.watchers, 10_000, 15) +
-    logScore(input.contributors, 100, 25);
-  const score = clampScore(rawScoreValue);
-  const rawScore = roundDetail(rawScoreValue);
 
   return {
     score,
-    label: scoreLabel(score),
-    rawScore,
-    maxScore: 100,
+    label: null,
+    scale: "index",
+    rawScore: score,
+    maxScore: null,
+    units,
     inputs: {
       stars: input.stars,
       forks: input.forks,
       watchers: input.watchers,
-      contributors: input.contributors,
+      popularityUnits: units,
+      starWeight: popularityWeights.stars,
+      forkWeight: popularityWeights.forks,
+      watcherWeight: popularityWeights.watchers,
     },
     contributions,
   };
 }
 
-function metric(score: number, inputs: CompositeMetric["inputs"]): CompositeMetric {
+function metric(analysis: CompositeMetricAnalysis): CompositeMetric {
   return {
-    score,
-    label: scoreLabel(score),
-    inputs,
+    score: analysis.score,
+    label: analysis.label,
+    scale: analysis.scale,
+    ...(analysis.units === undefined ? {} : { units: analysis.units }),
+    inputs: analysis.inputs,
   };
 }
 
@@ -220,24 +231,20 @@ function freshnessContribution(input: {
   };
 }
 
-function logContribution(id: string, label: string, value: number, cap: number, weight: number): CompositeContribution {
-  const cappedValue = Math.min(value, cap);
-  const normalized = Math.log10(cappedValue + 1) / Math.log10(cap + 1);
-  const points = normalized * weight;
+function unitContribution(id: string, label: string, value: number, weight: number): CompositeContribution {
+  const units = value * weight;
 
   return {
     id,
     label,
-    points: roundDetail(points),
-    maxPoints: weight,
-    rule: `logarithmic cap ${cap}`,
-    detail: `value ${value}, cap ${cap}, weight ${weight}`,
+    points: units,
+    maxPoints: null,
+    rule: `${weight}x PU`,
+    detail: `value ${value}, weight ${weight}`,
     inputs: {
       value,
-      cap,
       weight,
-      cappedValue,
-      normalized: roundDetail(normalized),
+      popularityUnits: units,
     },
   };
 }
@@ -252,11 +259,6 @@ function freshnessRule(days: number | null, buckets: readonly FreshnessBucket[],
   }
 
   return `> ${buckets[buckets.length - 1][0]} days`;
-}
-
-function logScore(value: number, cap: number, weight: number): number {
-  const normalized = Math.log10(Math.min(value, cap) + 1) / Math.log10(cap + 1);
-  return normalized * weight;
 }
 
 function clampScore(value: number): number {

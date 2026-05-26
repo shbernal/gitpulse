@@ -74,7 +74,9 @@ export type ContributorSignals = {
 
 export type CompositeMetric = {
   score: number;
-  label: string;
+  label: string | null;
+  scale?: "bounded" | "index";
+  units?: number;
   inputs: Record<string, number | boolean | null>;
 };
 

@@ -19,7 +19,10 @@ describe("collectSnapshot", () => {
     expect(result.snapshot.activity.totalCommitCount).toBe(0);
     expect(result.snapshot.contributors.totalCount).toBe(0);
     expect(result.snapshot.metrics.popularity.inputs.watchers).toBe(7);
+    expect(result.snapshot.metrics.popularity.inputs.popularityUnits).toBe(175);
+    expect(result.snapshot.metrics.popularity.score).toBe(2.25);
     expect(Object.hasOwn(result.snapshot.metrics.popularity.inputs, "subscribers")).toBe(false);
+    expect(Object.hasOwn(result.snapshot.metrics.popularity.inputs, "contributors")).toBe(false);
   });
 
   test("passes contributor fetch limits into snapshot collection", async () => {

@@ -18,7 +18,8 @@ describe("terminal rendering", () => {
     expect(output).toContain("Pulse");
     expect(output).toContain("[########--]");
     expect(output).toContain("Activity freshness");
-    expect(output).toContain("Popularity");
+    expect(output).toContain("Popularity Score");
+    expect(output).toContain("2.37 (236 PU)");
     expect(output).not.toContain("Score Analysis");
     expect(output).not.toContain("Maintenance visibility");
     expect(output).not.toContain("Documentation");
@@ -77,7 +78,7 @@ describe("terminal rendering", () => {
     expect(section(output, "Score Analysis", "At a glance")).toContain("+55/55");
     expect(section(output, "Score Analysis", "At a glance")).toContain("Release presence");
     expect(section(output, "Score Analysis", "At a glance")).toContain("Watchers");
-    expect(section(output, "Score Analysis", "At a glance")).toContain("Raw total");
+    expect(section(output, "Score Analysis", "At a glance")).toContain("Weighted total");
   });
 
   test("renders a GitHub user profile report", () => {
@@ -128,13 +129,14 @@ describe("terminal rendering", () => {
     expect(output).toContain("one");
     expect(output).toContain("two");
     expect(output).toContain("82/100");
-    expect(output).toContain("48/100");
+    expect(output).toContain("2.37 (236 PU)");
+    expect(output).toContain("2.20 (156 PU)");
     expect(output).not.toContain("67/100");
     expect(output).toContain("acme/one\nhttps://github.com/acme/one");
     expect(output).toContain("acme/two\nhttps://github.com/acme/two");
     expect(output).not.toContain("Signals");
     expect(output).not.toContain("Activity freshness");
-    expect(output).toContain("Popularity");
+    expect(output).toContain("Popularity Score");
     expect(output).not.toContain("Maintenance visibility");
     expect(output).not.toContain("Documentation");
     expect(output).not.toContain("Docs");
@@ -276,7 +278,7 @@ describe("JSON rendering", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
     const parsed = JSON.parse(renderRepoJson(result, { kind: "api" }));
 
-    expect(parsed.schemaVersion).toBe(4);
+    expect(parsed.schemaVersion).toBe(5);
     expect(parsed.command).toBe("repo");
     expect(parsed.source.kind).toBe("api");
     expect(parsed.result.ok).toBe(true);
@@ -291,12 +293,18 @@ describe("JSON rendering", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
     const parsed = JSON.parse(renderRepoJson(result, { kind: "api" }, { explainScores: true }));
 
-    expect(parsed.schemaVersion).toBe(4);
+    expect(parsed.schemaVersion).toBe(5);
     expect(parsed.command).toBe("repo");
     expect(parsed.analysis.activityFreshness.contributions[0]).toMatchObject({
       id: "commitOrPushFreshness",
       points: 55,
       maxPoints: 55,
+    });
+    expect(parsed.analysis.popularity).toMatchObject({
+      score: 2.37,
+      scale: "index",
+      maxScore: null,
+      units: 236,
     });
     expect(
       parsed.analysis.popularity.contributions.some((contribution: { id: string }) => contribution.id === "watchers"),
@@ -310,7 +318,7 @@ describe("JSON rendering", () => {
     ];
     const parsed = JSON.parse(renderComparisonJson(results, [{ kind: "cache", cachedAt: "2026-05-16T00:00:00.000Z", ageHours: 1 }]));
 
-    expect(parsed.schemaVersion).toBe(4);
+    expect(parsed.schemaVersion).toBe(5);
     expect(parsed.command).toBe("compare");
     expect(parsed.results).toHaveLength(2);
     expect(parsed.results[0].source.kind).toBe("cache");
@@ -321,7 +329,7 @@ describe("JSON rendering", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
     const parsed = JSON.parse(renderDocsJson(result, { kind: "api" }));
 
-    expect(parsed.schemaVersion).toBe(4);
+    expect(parsed.schemaVersion).toBe(5);
     expect(parsed.command).toBe("docs");
     expect(parsed.source.kind).toBe("api");
     expect(parsed.result.ok).toBe(true);
@@ -334,7 +342,7 @@ describe("JSON rendering", () => {
     const result: UserProfileResult = { ok: true, snapshot: userSnapshot("octocat") };
     const parsed = JSON.parse(renderUserProfileJson(result, { kind: "api" }));
 
-    expect(parsed.schemaVersion).toBe(4);
+    expect(parsed.schemaVersion).toBe(5);
     expect(parsed.command).toBe("user");
     expect(parsed.source.kind).toBe("api");
     expect(parsed.result.ok).toBe(true);
@@ -366,6 +374,9 @@ function snapshot(
 ): RepoSnapshot {
   const [owner, name] = fullName.split("/");
   const commitDays = options.commitDays ?? 2;
+  const stars = options.stars ?? 100;
+  const popularityUnits = stars + 12 * 8 + 8 * 5;
+  const popularityScore = Number(Math.log10(popularityUnits + 1).toFixed(2));
 
   return {
     ref: { owner, name },
@@ -384,7 +395,7 @@ function snapshot(
         { name: "Shell", bytes: 100, percent: 10 },
       ],
       license: "MIT",
-      stars: options.stars ?? 100,
+      stars,
       forks: 12,
       watchers: 8,
       openIssues: 3,
@@ -426,7 +437,7 @@ function snapshot(
     },
     metrics: {
       activityFreshness: { score: 82, label: "strong", inputs: {} },
-      popularity: { score: 48, label: "limited", inputs: {} },
+      popularity: { score: popularityScore, label: null, scale: "index", units: popularityUnits, inputs: {} },
     },
     warnings: options.warnings ?? [],
   };

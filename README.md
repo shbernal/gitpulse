@@ -136,7 +136,7 @@ gitpulse cli/cli --theme nord
 
 ## Output
 
-Human-readable output is the default. Repository reports start with a `Repo` section that identifies the repository as `owner/repo` followed by the repository URL on its own muted line, then show score bars for explainable composite signals and grouped metric sections. Documentation presence is shown through `gitpulse docs`, not the default repository report. User profile reports show public profile facts and a repository-footprint summary. Comparison reports start with repository descriptions and a scoreboard. Comparison labels use repository names unless owner prefixes are needed to disambiguate matching names.
+Human-readable output is the default. Repository reports start with a `Repo` section that identifies the repository as `owner/repo` followed by the repository URL on its own muted line, then show explainable composite signals and grouped metric sections. Activity freshness is shown as a score bar; Popularity Score is shown as an open-ended logarithmic score with PU in parentheses. PU means Popularity Units: `stars + 8*forks + 5*watchers`. Documentation presence is shown through `gitpulse docs`, not the default repository report. User profile reports show public profile facts and a repository-footprint summary. Comparison reports start with repository descriptions and a scoreboard. Comparison labels use repository names unless owner prefixes are needed to disambiguate matching names.
 
 Gitpulse uses semantic terminal color for repository state, score bands, activity freshness, documentation presence in docs reports, provenance warnings, fetch errors, and common programming languages. Color defaults to `--color auto`, which enables color for TTY output, disables it for non-TTY output, honors `NO_COLOR`, and honors `FORCE_COLOR`. Use `--color always` to force color or `--color never` to disable it. Use `--theme` to choose a terminal palette; supported themes are documented in [Terminal Themes](docs/THEMES.md).
 
@@ -146,7 +146,7 @@ Use `--json` for scripts and integrations. JSON output is not colorized and incl
 
 ```json
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "command": "repo",
   "source": {
     "kind": "cache",
@@ -270,9 +270,11 @@ Phase 1 collects deterministic GitHub API data:
 - Documentation signals for `gitpulse docs`: README, changelog, contributing guide, code of conduct, security policy.
 - Contributor signals: total contributor count, fetched contributor rows for concentration metrics, top contributor, top contributor share.
 - User profile signals for `gitpulse user`: public profile facts, account age, follower/following counts, public repo and gist counts, public repository footprint, top repositories, recently pushed repositories, primary languages across fetched public repositories.
-- Explainable composite signals: activity freshness, popularity.
+- Explainable composite signals: activity freshness, Popularity Score.
 
 Watcher counts are sourced from GitHub REST `subscribers_count`, because GitHub's legacy `watchers_count` mirrors `stargazers_count`.
+
+Popularity Score is an open-ended logarithmic score over weighted adoption signals. PU means Popularity Units: `stars + 8*forks + 5*watchers`. The PU total is shown in parentheses in human-readable output.
 
 Total contributor and total commit counts are inferred from GitHub REST pagination. Contributor collection uses GitHub's `anon=true` contributor mode so anonymous author identities are included. Contributor concentration metrics use the first `contributors.fetchLimit` rows returned by GitHub's contributor endpoint, sorted by contribution count.
 

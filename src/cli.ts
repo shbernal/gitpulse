@@ -455,7 +455,7 @@ async function runHistory(json: boolean, options: CommandOptions): Promise<void>
     }
 
     if (json) {
-      console.log(JSON.stringify({ schemaVersion: 4, command: "history", events }, null, 2));
+      console.log(JSON.stringify({ schemaVersion: 5, command: "history", events }, null, 2));
     } else {
       console.log(renderHistory(events, renderOptions.value));
     }
