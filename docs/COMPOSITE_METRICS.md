@@ -144,6 +144,10 @@ to public adoption intent signals.
 This score does not measure project quality, governance, issue health, or how
 recently the community has been active.
 
+Popularity benchmarking is intentionally future work. See
+[Popularity Benchmarks](next-features/popularity-benchmarks.md) for the curated
+reference-repository proposal.
+
 ## Interpretation Rules
 
 - Treat composite metrics as grouped evidence, not verdicts.
