@@ -48,7 +48,7 @@ export function renderRepo(snapshot: RepoSnapshot, options: RepoRenderOptions = 
     ...renderMetricRows(
       [
         ["Activity freshness", snapshot.metrics.activityFreshness],
-        ["Community footprint", snapshot.metrics.communityFootprint],
+        ["Popularity", snapshot.metrics.popularity],
       ],
       theme,
       "",
@@ -270,11 +270,11 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
     "",
     theme.section("Scoreboard"),
     renderTable(
-      ["Repository", "Activity", "Community", "Stars", "Forks", "Last commit", "Release", "State"],
+      ["Repository", "Activity", "Popularity", "Stars", "Forks", "Last commit", "Release", "State"],
       snapshots.map(({ snapshot }, index) => [
         theme.repo(repoLabels[index]),
         formatMetricCompact(snapshot.metrics.activityFreshness, theme),
-        formatMetricCompact(snapshot.metrics.communityFootprint, theme),
+        formatMetricCompact(snapshot.metrics.popularity, theme),
         theme.value(formatCompactNumber(snapshot.repository.stars)),
         theme.value(formatCompactNumber(snapshot.repository.forks)),
         formatRelativeDaysTone(snapshot.activity.daysSinceLatestCommit, theme),
@@ -532,7 +532,7 @@ function renderScoreAnalysis(snapshot: RepoSnapshot, theme: Theme): string[] {
   return [
     ...renderMetricAnalysis("Activity freshness", analysis.activityFreshness, theme),
     "",
-    ...renderMetricAnalysis("Community footprint", analysis.communityFootprint, theme),
+    ...renderMetricAnalysis("Popularity", analysis.popularity, theme),
   ];
 }
 

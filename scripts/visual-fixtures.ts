@@ -14,7 +14,7 @@ export type VisualOutputCase = {
 
 export function visualOutputCases(): VisualOutputCase[] {
   const strongRepo = repoSnapshot("acme/pulsekit", {
-    communityScore: 88,
+    popularityScore: 88,
     description: "Terminal-first project health snapshots for dependency and contribution decisions.",
     forks: 2450,
     license: "Apache-2.0",
@@ -27,8 +27,8 @@ export function visualOutputCases(): VisualOutputCase[] {
     activityScore: 12,
     archived: true,
     commitDays: 940,
-    communityLabel: "limited",
-    communityScore: 31,
+    popularityLabel: "limited",
+    popularityScore: 31,
     description: "Older automation project retained for existing users.",
     forks: 86,
     latestCommitAt: "2023-10-20T00:00:00Z",
@@ -46,8 +46,8 @@ export function visualOutputCases(): VisualOutputCase[] {
     watchers: 22,
   });
   const tinyRepo = repoSnapshot("tiny/fresh", {
-    communityLabel: "weak",
-    communityScore: 18,
+    popularityLabel: "weak",
+    popularityScore: 18,
     description: "Small but active tool with a narrow maintainer surface.",
     forks: 4,
     stars: 37,
@@ -68,7 +68,7 @@ export function visualOutputCases(): VisualOutputCase[] {
       ansi: renderRepo(strongRepo, { color: true }, { kind: "api" }),
       columns: visualOutputColumns,
       id: "repo-strong",
-      notes: ["Single repository report with strong activity and community scores."],
+      notes: ["Single repository report with strong activity and popularity scores."],
       title: "Single repository report",
     },
     {
@@ -131,8 +131,8 @@ type RepoSnapshotOptions = {
   activityScore?: number;
   archived?: boolean;
   commitDays?: number;
-  communityLabel?: string;
-  communityScore?: number;
+  popularityLabel?: string;
+  popularityScore?: number;
   description?: string | null;
   disabled?: boolean;
   fork?: boolean;
@@ -223,7 +223,7 @@ function repoSnapshot(fullName: string, options: RepoSnapshotOptions = {}): Repo
     },
     metrics: {
       activityFreshness: { inputs: {}, label: options.activityLabel ?? "strong", score: options.activityScore ?? 91 },
-      communityFootprint: { inputs: {}, label: options.communityLabel ?? "moderate", score: options.communityScore ?? 67 },
+      popularity: { inputs: {}, label: options.popularityLabel ?? "moderate", score: options.popularityScore ?? 67 },
     },
     warnings: options.warnings ?? [],
   };

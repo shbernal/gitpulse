@@ -144,7 +144,7 @@ Use `--json` for scripts and integrations. JSON output is not colorized and incl
 
 ```json
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "command": "repo",
   "source": {
     "kind": "cache",
@@ -267,7 +267,7 @@ Phase 1 collects deterministic GitHub API data:
 - Documentation signals for `gitpulse docs`: README, changelog, contributing guide, code of conduct, security policy.
 - Contributor signals: total contributor count, fetched contributor rows for concentration metrics, top contributor, top contributor share.
 - User profile signals for `gitpulse user`: public profile facts, account age, follower/following counts, public repo and gist counts, public repository footprint, top repositories, recently pushed repositories, primary languages across fetched public repositories.
-- Explainable composite signals: activity freshness, community footprint.
+- Explainable composite signals: activity freshness, popularity.
 
 Watcher counts are sourced from GitHub REST `subscribers_count`, because GitHub's legacy `watchers_count` mirrors `stargazers_count`.
 

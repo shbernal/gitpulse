@@ -559,7 +559,7 @@ function snapshot(fullName: string): RepoSnapshot {
     },
     metrics: {
       activityFreshness: { score: 0, label: "weak", inputs: {} },
-      communityFootprint: { score: 0, label: "weak", inputs: {} },
+      popularity: { score: 0, label: "weak", inputs: {} },
     },
     warnings: [],
   };

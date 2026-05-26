@@ -80,7 +80,7 @@ export type CompositeMetric = {
 
 export type CompositeMetrics = {
   activityFreshness: CompositeMetric;
-  communityFootprint: CompositeMetric;
+  popularity: CompositeMetric;
 };
 
 export type UserProfileFacts = {

@@ -3,7 +3,7 @@ import path from "node:path";
 import type { RepoRef, RepoSnapshot } from "../types";
 import { snapshotCachePath } from "./paths";
 
-export const cacheSchemaVersion = 4 as const;
+export const cacheSchemaVersion = 5 as const;
 
 type Env = Record<string, string | undefined>;
 

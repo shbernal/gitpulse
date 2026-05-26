@@ -40,14 +40,14 @@ describe("composite metrics", () => {
     });
   });
 
-  test("explains logarithmic community footprint caps", () => {
+  test("explains logarithmic popularity caps", () => {
     const analysis = buildCompositeMetricsAnalysis({
       ...baseInput(),
       stars: 1_000_000,
       forks: 0,
       watchers: 0,
       contributors: 100,
-    }).communityFootprint;
+    }).popularity;
 
     expect(analysis.score).toBe(60);
     expect(analysis.contributions.find((contribution) => contribution.id === "stars")).toMatchObject({
@@ -71,7 +71,7 @@ describe("composite metrics", () => {
       releaseCount: 1,
       archived: false,
     });
-    expect(metrics.communityFootprint.inputs.watchers).toBe(5);
+    expect(metrics.popularity.inputs.watchers).toBe(5);
   });
 });
 

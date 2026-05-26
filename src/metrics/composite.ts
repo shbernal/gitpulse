@@ -36,7 +36,7 @@ export type CompositeMetricAnalysis = {
 
 export type CompositeMetricsAnalysis = {
   activityFreshness: CompositeMetricAnalysis;
-  communityFootprint: CompositeMetricAnalysis;
+  popularity: CompositeMetricAnalysis;
 };
 
 const activityFreshnessBuckets = [
@@ -58,14 +58,14 @@ export function buildCompositeMetrics(input: CompositeMetricsInput): CompositeMe
 
   return {
     activityFreshness: metric(analysis.activityFreshness.score, analysis.activityFreshness.inputs),
-    communityFootprint: metric(analysis.communityFootprint.score, analysis.communityFootprint.inputs),
+    popularity: metric(analysis.popularity.score, analysis.popularity.inputs),
   };
 }
 
 export function buildCompositeMetricsAnalysis(input: CompositeMetricsInput): CompositeMetricsAnalysis {
   return {
     activityFreshness: buildActivityFreshnessAnalysis(input),
-    communityFootprint: buildCommunityFootprintAnalysis(input),
+    popularity: buildPopularityAnalysis(input),
   };
 }
 
@@ -156,7 +156,7 @@ function buildActivityFreshnessAnalysis(input: CompositeMetricsInput): Composite
   };
 }
 
-function buildCommunityFootprintAnalysis(input: CompositeMetricsInput): CompositeMetricAnalysis {
+function buildPopularityAnalysis(input: CompositeMetricsInput): CompositeMetricAnalysis {
   const contributions = [
     logContribution("stars", "Stars", input.stars, 100_000, 35),
     logContribution("forks", "Forks", input.forks, 25_000, 25),

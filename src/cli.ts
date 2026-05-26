@@ -440,7 +440,7 @@ async function runHistory(json: boolean, colorMode: ColorMode): Promise<void> {
     const events = await readHistoryEvents();
 
     if (json) {
-      console.log(JSON.stringify({ schemaVersion: 3, command: "history", events }, null, 2));
+      console.log(JSON.stringify({ schemaVersion: 4, command: "history", events }, null, 2));
     } else {
       console.log(renderHistory(events, { color: shouldUseColor(colorMode) }));
     }

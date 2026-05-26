@@ -18,7 +18,7 @@ describe("terminal rendering", () => {
     expect(output).toContain("Pulse");
     expect(output).toContain("[########--]");
     expect(output).toContain("Activity freshness");
-    expect(output).toContain("Community footprint");
+    expect(output).toContain("Popularity");
     expect(output).not.toContain("Score Analysis");
     expect(output).not.toContain("Maintenance visibility");
     expect(output).not.toContain("Documentation");
@@ -125,7 +125,7 @@ describe("terminal rendering", () => {
     expect(output).toContain("acme/two (https://github.com/acme/two)");
     expect(output).not.toContain("Signals");
     expect(output).not.toContain("Activity freshness");
-    expect(output).not.toContain("Community footprint");
+    expect(output).toContain("Popularity");
     expect(output).not.toContain("Maintenance visibility");
     expect(output).not.toContain("Documentation");
     expect(output).not.toContain("Docs");
@@ -242,7 +242,7 @@ describe("JSON rendering", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
     const parsed = JSON.parse(renderRepoJson(result, { kind: "api" }));
 
-    expect(parsed.schemaVersion).toBe(3);
+    expect(parsed.schemaVersion).toBe(4);
     expect(parsed.command).toBe("repo");
     expect(parsed.source.kind).toBe("api");
     expect(parsed.result.ok).toBe(true);
@@ -257,7 +257,7 @@ describe("JSON rendering", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
     const parsed = JSON.parse(renderRepoJson(result, { kind: "api" }, { explainScores: true }));
 
-    expect(parsed.schemaVersion).toBe(3);
+    expect(parsed.schemaVersion).toBe(4);
     expect(parsed.command).toBe("repo");
     expect(parsed.analysis.activityFreshness.contributions[0]).toMatchObject({
       id: "commitOrPushFreshness",
@@ -265,7 +265,7 @@ describe("JSON rendering", () => {
       maxPoints: 55,
     });
     expect(
-      parsed.analysis.communityFootprint.contributions.some((contribution: { id: string }) => contribution.id === "watchers"),
+      parsed.analysis.popularity.contributions.some((contribution: { id: string }) => contribution.id === "watchers"),
     ).toBe(true);
   });
 
@@ -276,7 +276,7 @@ describe("JSON rendering", () => {
     ];
     const parsed = JSON.parse(renderComparisonJson(results, [{ kind: "cache", cachedAt: "2026-05-16T00:00:00.000Z", ageHours: 1 }]));
 
-    expect(parsed.schemaVersion).toBe(3);
+    expect(parsed.schemaVersion).toBe(4);
     expect(parsed.command).toBe("compare");
     expect(parsed.results).toHaveLength(2);
     expect(parsed.results[0].source.kind).toBe("cache");
@@ -287,7 +287,7 @@ describe("JSON rendering", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
     const parsed = JSON.parse(renderDocsJson(result, { kind: "api" }));
 
-    expect(parsed.schemaVersion).toBe(3);
+    expect(parsed.schemaVersion).toBe(4);
     expect(parsed.command).toBe("docs");
     expect(parsed.source.kind).toBe("api");
     expect(parsed.result.ok).toBe(true);
@@ -300,7 +300,7 @@ describe("JSON rendering", () => {
     const result: UserProfileResult = { ok: true, snapshot: userSnapshot("octocat") };
     const parsed = JSON.parse(renderUserProfileJson(result, { kind: "api" }));
 
-    expect(parsed.schemaVersion).toBe(3);
+    expect(parsed.schemaVersion).toBe(4);
     expect(parsed.command).toBe("user");
     expect(parsed.source.kind).toBe("api");
     expect(parsed.result.ok).toBe(true);
@@ -392,7 +392,7 @@ function snapshot(
     },
     metrics: {
       activityFreshness: { score: 82, label: "strong", inputs: {} },
-      communityFootprint: { score: 48, label: "limited", inputs: {} },
+      popularity: { score: 48, label: "limited", inputs: {} },
     },
     warnings: options.warnings ?? [],
   };

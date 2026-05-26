@@ -7,7 +7,7 @@ about whether a repository is good, safe, or worth adopting.
 The current implementation computes two composite metrics:
 
 - Activity freshness.
-- Community footprint.
+- Popularity.
 
 Each metric is rounded, clamped to `0-100`, and labeled with the same score
 bands:
@@ -92,9 +92,9 @@ commits if they still have release history and are not archived. A repository
 with a latest commit slightly over 90 days old can still reach the `strong` band
 when other activity inputs are present.
 
-## Community Footprint
+## Popularity
 
-Community footprint answers: "How much visible GitHub adoption and contributor
+Popularity answers: "How much visible GitHub adoption and contributor
 surface does this repository have?"
 
 It uses a logarithmic score so very large repositories do not dominate linearly.
