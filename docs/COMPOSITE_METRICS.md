@@ -22,6 +22,19 @@ bands:
 Machine-readable JSON exposes each score with its input values so consumers can
 inspect how the score was produced.
 
+For deeper debugging, repository reports support explanation mode:
+
+```bash
+gitpulse owner/name --explain
+gitpulse owner/name --json --explain
+```
+
+Explanation mode adds a score analysis breakdown for the single-repository
+report. The default terminal and JSON output stay compact unless `--explain` is
+passed. Explanation mode is meant to show why Gitpulse produced a specific
+score from available API data; it is still not a project-quality, security, or
+maintenance verdict.
+
 When a composite metric formula changes, update this document in the same
 change.
 

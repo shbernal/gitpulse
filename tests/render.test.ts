@@ -19,6 +19,7 @@ describe("terminal rendering", () => {
     expect(output).toContain("[########--]");
     expect(output).toContain("Activity freshness");
     expect(output).toContain("Community footprint");
+    expect(output).not.toContain("Score Analysis");
     expect(output).not.toContain("Maintenance visibility");
     expect(output).not.toContain("Documentation");
     expect(output).toContain("At a glance");
@@ -63,6 +64,17 @@ describe("terminal rendering", () => {
     expect(output).toContain("Size");
     expect(output).toContain("1.2 GB");
     expect(output).not.toContain("1,221,981 KB");
+  });
+
+  test("renders composite score analysis on request", () => {
+    const output = renderRepo(snapshot("acme/tool"), { color: false, explainScores: true });
+
+    expect(output).toContain("Score Analysis");
+    expect(section(output, "Score Analysis", "At a glance")).toContain("Commit or push freshness");
+    expect(section(output, "Score Analysis", "At a glance")).toContain("+55/55");
+    expect(section(output, "Score Analysis", "At a glance")).toContain("Release presence");
+    expect(section(output, "Score Analysis", "At a glance")).toContain("Watchers");
+    expect(section(output, "Score Analysis", "At a glance")).toContain("Raw total");
   });
 
   test("renders a GitHub user profile report", () => {
@@ -231,6 +243,23 @@ describe("JSON rendering", () => {
     expect(parsed.result.ok).toBe(true);
     expect(parsed.result.snapshot.repository.fullName).toBe("acme/tool");
     expect(parsed.result.snapshot.metrics.maintenanceVisibility).toBeUndefined();
+    expect(parsed.analysis).toBeUndefined();
+  });
+
+  test("adds repo score analysis to JSON only on request", () => {
+    const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
+    const parsed = JSON.parse(renderRepoJson(result, { kind: "api" }, { explainScores: true }));
+
+    expect(parsed.schemaVersion).toBe(3);
+    expect(parsed.command).toBe("repo");
+    expect(parsed.analysis.activityFreshness.contributions[0]).toMatchObject({
+      id: "commitOrPushFreshness",
+      points: 55,
+      maxPoints: 55,
+    });
+    expect(
+      parsed.analysis.communityFootprint.contributions.some((contribution: { id: string }) => contribution.id === "watchers"),
+    ).toBe(true);
   });
 
   test("wraps comparison output in a stable envelope", () => {

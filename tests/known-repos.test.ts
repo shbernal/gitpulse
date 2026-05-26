@@ -21,7 +21,7 @@ import type { RepoSnapshot, UserProfileSnapshot } from "../src/types";
 type Env = Record<string, string | undefined>;
 
 afterEach(() => {
-  process.exitCode = undefined;
+  process.exitCode = 0;
 });
 
 describe("known repositories", () => {
@@ -272,6 +272,7 @@ describe("completion commands", () => {
 
     expect(script).toContain("docs web user history cache config completions");
     expect(script).not.toContain("repo compare");
+    expect(script).toContain("--explain");
     expect(script).toContain('compgen -W "web"');
     expect(script).toContain("docs|web");
     expect(script).toContain("__complete repos --current");
@@ -324,6 +325,12 @@ describe("CLI shorthand wiring", () => {
       );
       expect(rootOutput).toContain("acme/tool (https://github.com/acme/tool)");
 
+      const explainOutput = await withProcessEnv(env, () =>
+        captureStdout(() => main(["node", "gitpulse", "tool", "--offline", "--color", "never", "--explain"])),
+      );
+      expect(explainOutput).toContain("Score Analysis");
+      expect(explainOutput).toContain("Commit or push freshness");
+
       const docsOutput = await withProcessEnv(env, () =>
         captureStdout(() => main(["node", "gitpulse", "docs", "tool", "--offline", "--color", "never"])),
       );
@@ -369,6 +376,14 @@ describe("CLI shorthand wiring", () => {
       expect(openedUrls).toEqual(["https://github.com/acme/tool"]);
       expect(output).toBe("Opened https://github.com/acme/tool");
     });
+  });
+
+  test("rejects score explanation for inferred comparison output", async () => {
+    const error = await captureStderr(() => main(["node", "gitpulse", "acme/tool", "charmbracelet/gum", "--explain"]));
+
+    expect(error).toBe("gitpulse: --explain is only supported for single repository reports.");
+    expect(process.exitCode).toBe(1);
+    process.exitCode = 0;
   });
 
   test("opens GitHub user profiles through the user web command", async () => {
@@ -443,6 +458,23 @@ async function captureStdout(fn: () => Promise<void>): Promise<string> {
     await fn();
   } finally {
     console.log = original;
+  }
+
+  return output.join("\n");
+}
+
+async function captureStderr(fn: () => Promise<void>): Promise<string> {
+  const output: string[] = [];
+  const original = console.error;
+
+  console.error = (...args: unknown[]) => {
+    output.push(args.join(" "));
+  };
+
+  try {
+    await fn();
+  } finally {
+    console.error = original;
   }
 
   return output.join("\n");

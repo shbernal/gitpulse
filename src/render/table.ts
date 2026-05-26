@@ -7,6 +7,11 @@ import type {
   UserProfileSnapshot,
   UserRepositorySummary,
 } from "../types";
+import {
+  buildCompositeMetricsAnalysisFromSnapshot,
+  type CompositeContribution,
+  type CompositeMetricAnalysis,
+} from "../metrics/composite";
 import { formatDate, formatDateWithAge, formatMonthYear, formatRelativeDays } from "../util/dates";
 import { formatBool, formatCompactNumber, formatInteger, formatPercent, formatSizeKb, truncate } from "../util/format";
 import { formatComparisonRepoLabels, formatRepoRef } from "../util/repo-ref";
@@ -25,10 +30,13 @@ type Field = {
 type Theme = ReturnType<typeof createTheme>;
 type ThemeTone = Parameters<Theme["tone"]>[1];
 type SnapshotSuccess = Extract<SnapshotResult, { ok: true }>;
+type RepoRenderOptions = RenderOptions & {
+  explainScores?: boolean;
+};
 
 const DESCRIPTION_MAX_LENGTH = 240;
 
-export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, source?: SnapshotSource): string {
+export function renderRepo(snapshot: RepoSnapshot, options: RepoRenderOptions = {}, source?: SnapshotSource): string {
   const theme = createTheme(options);
   const output = [
     theme.section("Repo"),
@@ -45,6 +53,13 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
       theme,
       "",
     ),
+  ];
+
+  if (options.explainScores) {
+    output.push("", theme.section("Score Analysis"), ...renderScoreAnalysis(snapshot, theme));
+  }
+
+  output.push(
     "",
     theme.section("At a glance"),
     renderFieldGrid(
@@ -99,7 +114,7 @@ export function renderRepo(snapshot: RepoSnapshot, options: RenderOptions = {}, 
       "",
     ),
     "",
-  ];
+  );
 
   output.push(...renderDataProvenance(theme, { fetchedAt: snapshot.fetchedAt, source, warnings: snapshot.warnings }));
 
@@ -512,6 +527,70 @@ function renderMetricRows(metrics: Array<[string, CompositeMetric]>, theme: Them
     const score = `${String(metric.score).padStart(3)}/100`;
     return `${prefix}${padVisibleEnd(theme.label(label), labelWidth)}  ${theme.bar(metric.score)}  ${theme.tone(score, tone)}  ${theme.tone(metric.label, tone)}`;
   });
+}
+
+function renderScoreAnalysis(snapshot: RepoSnapshot, theme: Theme): string[] {
+  const analysis = buildCompositeMetricsAnalysisFromSnapshot(snapshot);
+
+  return [
+    ...renderMetricAnalysis("Activity freshness", analysis.activityFreshness, theme),
+    "",
+    ...renderMetricAnalysis("Community footprint", analysis.communityFootprint, theme),
+  ];
+}
+
+function renderMetricAnalysis(label: string, analysis: CompositeMetricAnalysis, theme: Theme): string[] {
+  const tone = scoreTone(analysis.score);
+  const labelWidth = Math.max("Raw total".length, ...analysis.contributions.map((contribution) => contribution.label.length));
+  const pointWidth = Math.max(
+    `${formatPoints(analysis.rawScore, analysis.maxScore)}`.length,
+    ...analysis.contributions.map((contribution) => formatPoints(contribution.points, contribution.maxPoints).length),
+  );
+  const rows = analysis.contributions.map((contribution) => renderContribution(contribution, theme, labelWidth, pointWidth));
+  const rawPoints = padVisibleEnd(theme.value(formatPoints(analysis.rawScore, analysis.maxScore)), pointWidth);
+
+  return [
+    `${theme.label(label)}  ${theme.tone(`${analysis.score}/100`, tone)}  ${theme.tone(analysis.label, tone)}`,
+    ...rows,
+    [
+      padVisibleEnd(theme.label("Raw total"), labelWidth),
+      rawPoints,
+      theme.muted(`raw ${formatPoint(analysis.rawScore)} -> rounded/clamped to ${analysis.score}/100`),
+    ].join("  "),
+  ];
+}
+
+function renderContribution(contribution: CompositeContribution, theme: Theme, labelWidth: number, pointWidth: number): string {
+  const points = padVisibleEnd(theme.value(formatPoints(contribution.points, contribution.maxPoints)), pointWidth);
+  return [
+    padVisibleEnd(theme.label(contribution.label), labelWidth),
+    points,
+    theme.muted(`${contribution.rule} (${contribution.detail})`),
+  ].join("  ");
+}
+
+function formatPoints(points: number, maxPoints: number): string {
+  return `${formatSignedPoint(points)}/${formatPoint(maxPoints)}`;
+}
+
+function formatSignedPoint(value: number): string {
+  if (value > 0) {
+    return `+${formatPoint(value)}`;
+  }
+
+  if (value < 0) {
+    return `-${formatPoint(Math.abs(value))}`;
+  }
+
+  return "0";
+}
+
+function formatPoint(value: number): string {
+  if (Number.isInteger(value)) {
+    return String(value);
+  }
+
+  return value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
 }
 
 function formatPrimaryLanguage(language: string | null, theme: Theme): string {

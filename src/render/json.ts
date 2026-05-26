@@ -1,15 +1,17 @@
 import { buildComparisonSummary } from "../metrics/compare";
+import { buildCompositeMetricsAnalysisFromSnapshot } from "../metrics/composite";
 import type { SnapshotResult, SnapshotSource, UserProfileResult } from "../types";
 
 const schemaVersion = 3;
 
-export function renderRepoJson(result: SnapshotResult, source?: SnapshotSource): string {
+export function renderRepoJson(result: SnapshotResult, source?: SnapshotSource, options: { explainScores?: boolean } = {}): string {
   return JSON.stringify(
     {
       schemaVersion,
       command: "repo",
       ...(source ? { source } : {}),
       result,
+      ...(options.explainScores && result.ok ? { analysis: buildCompositeMetricsAnalysisFromSnapshot(result.snapshot) } : {}),
     },
     null,
     2,

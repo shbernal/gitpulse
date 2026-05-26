@@ -5,6 +5,7 @@ _gitpulse()
   local cur prev cmd
   local top_commands="docs web user history cache config completions"
   local shared_flags="--json --color --refresh --offline --max-cache-hours --contributor-fetch-limit"
+  local repo_flags="$shared_flags --explain"
   local user_flags="--json --color --refresh --offline --max-cache-hours"
 
   COMPREPLY=()
@@ -25,8 +26,10 @@ _gitpulse()
     cmd="\${COMP_WORDS[1]}"
     if [[ "$cmd" == "user" ]]; then
       COMPREPLY=( $(compgen -W "$user_flags" -- "$cur") )
-    else
+    elif [[ "$cmd" == "docs" || "$cmd" == "web" ]]; then
       COMPREPLY=( $(compgen -W "$shared_flags" -- "$cur") )
+    else
+      COMPREPLY=( $(compgen -W "$repo_flags" -- "$cur") )
     fi
     return 0
   fi

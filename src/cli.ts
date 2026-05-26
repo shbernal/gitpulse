@@ -19,6 +19,7 @@ import type { SnapshotWithSource, UserProfileWithSource } from "./types";
 type CommandOptions = {
   color?: ColorMode;
   contributorFetchLimit?: number;
+  explain?: boolean;
   json?: boolean;
   maxCacheHours?: number;
   offline?: boolean;
@@ -40,6 +41,7 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
       .version("0.1.0"),
   )
     .argument("[repos...]", "repository references in owner/repo form or exact local shorthand")
+    .option("--explain", "show composite score contribution breakdowns for a single repository")
     .action(async (repos: string[] | undefined, options: CommandOptions) => {
       const values = repos ?? [];
 
@@ -51,6 +53,10 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
       if (values.length === 1) {
         await runRepo(values[0], options);
       } else {
+        if (rejectExplainForNonRepoReport(options)) {
+          return;
+        }
+
         await runCompare(values, options);
       }
     });
@@ -238,9 +244,9 @@ async function runRepo(repo: string, options: CommandOptions): Promise<void> {
   await recordHistory("repo", [repo], [snapshot], now);
 
   if (runtime.value.json) {
-    console.log(renderRepoJson(result, snapshot.source));
+    console.log(renderRepoJson(result, snapshot.source, { explainScores: runtime.value.explain }));
   } else if (result.ok) {
-    console.log(renderRepo(result.snapshot, runtime.value.renderOptions, snapshot.source));
+    console.log(renderRepo(result.snapshot, { ...runtime.value.renderOptions, explainScores: runtime.value.explain }, snapshot.source));
   } else {
     console.error(`gitpulse: ${result.error.message}`);
   }
@@ -301,6 +307,10 @@ async function runCompare(repos: string[], options: CommandOptions): Promise<voi
 }
 
 async function runDocs(repo: string, options: CommandOptions): Promise<void> {
+  if (rejectExplainForNonRepoReport(options)) {
+    return;
+  }
+
   const runtime = await loadRuntimeOptions(options);
 
   if (!runtime.ok) {
@@ -370,6 +380,10 @@ async function runRepoWeb(repo: string, openUrl: UrlOpener): Promise<void> {
 }
 
 async function runUser(login: string, options: CommandOptions): Promise<void> {
+  if (rejectExplainForNonRepoReport(options)) {
+    return;
+  }
+
   const runtime = await loadRuntimeOptions(options);
 
   if (!runtime.ok) {
@@ -474,6 +488,16 @@ function runCompletionsBash(): void {
   console.log(renderBashCompletionScript().trimEnd());
 }
 
+function rejectExplainForNonRepoReport(options: CommandOptions): boolean {
+  if (!options.explain) {
+    return false;
+  }
+
+  console.error("gitpulse: --explain is only supported for single repository reports.");
+  process.exitCode = 1;
+  return true;
+}
+
 async function runCompleteRepos(current: string): Promise<void> {
   const candidates = completeKnownRepos(current, await readKnownRepos());
 
@@ -498,6 +522,7 @@ type RuntimeOptions = {
     mode: CacheMode;
   };
   contributorFetchLimit: number;
+  explain: boolean;
   json: boolean;
   renderOptions: RenderOptions;
 };
@@ -534,6 +559,7 @@ async function loadRuntimeOptions(options: CommandOptions): Promise<RuntimeOptio
           mode,
         },
         contributorFetchLimit: options.contributorFetchLimit ?? config.contributors.fetchLimit,
+        explain: Boolean(options.explain),
         json: Boolean(options.json),
         renderOptions: {
           color: shouldUseColor(options.color ?? "auto"),

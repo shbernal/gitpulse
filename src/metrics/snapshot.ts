@@ -7,8 +7,6 @@ import type {
   ReleaseOverview,
 } from "../github/types";
 import type {
-  CompositeMetric,
-  CompositeMetrics,
   ContributorSignals,
   DocumentationSignal,
   DocumentationSignals,
@@ -20,6 +18,7 @@ import type {
 } from "../types";
 import { daysSince } from "../util/dates";
 import { formatRepoRef, parseRepoRef } from "../util/repo-ref";
+import { buildCompositeMetrics } from "./composite";
 
 type OptionalData<T> = {
   value: T | null;
@@ -203,12 +202,15 @@ function buildSnapshot(input: {
     documentation: input.documentation,
     contributors,
     metrics: buildCompositeMetrics({
-      repository: input.repository,
-      contributors,
       daysSinceLatestCommit,
       daysSinceLastPush,
       daysSinceLatestRelease,
       releaseCount: input.releaseOverview.count,
+      archived: input.repository.archived,
+      stars: input.repository.stargazers_count,
+      forks: input.repository.forks_count,
+      watchers: input.repository.subscribers_count,
+      contributors: contributors.totalCount ?? contributors.fetchedCount,
     }),
     warnings,
   };
@@ -308,109 +310,6 @@ function normalizeLicense(repository: GitHubRepository): string | null {
   }
 
   return repository.license.key ?? repository.license.name;
-}
-
-function buildCompositeMetrics(input: {
-  repository: GitHubRepository;
-  contributors: ContributorSignals;
-  daysSinceLatestCommit: number | null;
-  daysSinceLastPush: number | null;
-  daysSinceLatestRelease: number | null;
-  releaseCount: number;
-}): CompositeMetrics {
-  const freshnessDays = minNullable(input.daysSinceLatestCommit, input.daysSinceLastPush);
-  const activityScore =
-    freshnessScore(freshnessDays, [
-      [30, 55],
-      [90, 45],
-      [180, 35],
-      [365, 20],
-      [730, 10],
-    ]) +
-    freshnessScore(input.daysSinceLatestRelease, [
-      [90, 25],
-      [365, 20],
-      [730, 10],
-    ]) +
-    (input.releaseCount > 0 ? 10 : 0) +
-    (input.repository.archived ? -30 : 10);
-
-  const contributorCount = input.contributors.totalCount ?? input.contributors.fetchedCount;
-  const communityScore =
-    logScore(input.repository.stargazers_count, 100_000, 35) +
-    logScore(input.repository.forks_count, 25_000, 25) +
-    logScore(input.repository.subscribers_count, 10_000, 15) +
-    logScore(contributorCount, 100, 25);
-
-  return {
-    activityFreshness: metric(clampScore(activityScore), {
-      daysSinceLatestCommit: input.daysSinceLatestCommit,
-      daysSinceLastPush: input.daysSinceLastPush,
-      daysSinceLatestRelease: input.daysSinceLatestRelease,
-      releaseCount: input.releaseCount,
-      archived: input.repository.archived,
-    }),
-    communityFootprint: metric(clampScore(communityScore), {
-      stars: input.repository.stargazers_count,
-      forks: input.repository.forks_count,
-      watchers: input.repository.subscribers_count,
-      contributors: contributorCount,
-    }),
-  };
-}
-
-function metric(score: number, inputs: CompositeMetric["inputs"]): CompositeMetric {
-  return {
-    score,
-    label: scoreLabel(score),
-    inputs,
-  };
-}
-
-function freshnessScore(days: number | null, buckets: Array<[number, number]>): number {
-  if (days === null) {
-    return 0;
-  }
-
-  const bucket = buckets.find(([maxDays]) => days <= maxDays);
-  return bucket?.[1] ?? 0;
-}
-
-function logScore(value: number, cap: number, weight: number): number {
-  const normalized = Math.log10(Math.min(value, cap) + 1) / Math.log10(cap + 1);
-  return normalized * weight;
-}
-
-function clampScore(value: number): number {
-  return Math.max(0, Math.min(100, Math.round(value)));
-}
-
-function scoreLabel(score: number): string {
-  if (score >= 75) {
-    return "strong";
-  }
-
-  if (score >= 50) {
-    return "moderate";
-  }
-
-  if (score >= 25) {
-    return "limited";
-  }
-
-  return "weak";
-}
-
-function minNullable(a: number | null, b: number | null): number | null {
-  if (a === null) {
-    return b;
-  }
-
-  if (b === null) {
-    return a;
-  }
-
-  return Math.min(a, b);
 }
 
 function errorToSnapshotError(error: unknown): SnapshotError {
