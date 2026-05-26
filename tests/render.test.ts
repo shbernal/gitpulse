@@ -24,6 +24,7 @@ describe("terminal rendering", () => {
     expect(output).not.toContain("Documentation");
     expect(output).toContain("At a glance");
     expect(section(output, "Repo", "Pulse")).toContain("Topics  cli, github");
+    expect(section(output, "Activity", "Contributors")).not.toContain("Updated");
     expect(section(output, "Project shape", "Data Provenance")).not.toContain("Topics");
     expect(output).toContain("Data Provenance");
     expect(output).toContain("\nData Provenance\nfetched 2026-05-16T00:00:00.000Z");
@@ -242,6 +243,7 @@ describe("JSON rendering", () => {
     expect(parsed.source.kind).toBe("api");
     expect(parsed.result.ok).toBe(true);
     expect(parsed.result.snapshot.repository.fullName).toBe("acme/tool");
+    expect(parsed.result.snapshot.repository.updatedAt).toBe("2026-05-15T00:00:00Z");
     expect(parsed.result.snapshot.metrics.maintenanceVisibility).toBeUndefined();
     expect(parsed.analysis).toBeUndefined();
   });

@@ -80,7 +80,6 @@ export function renderRepo(snapshot: RepoSnapshot, options: RepoRenderOptions = 
       [
         { label: "Created", value: theme.value(formatDateWithAge(snapshot.repository.createdAt, snapshot.activity.ageDays)) },
         { label: "Last push", value: formatDateWithAgeTone(snapshot.repository.pushedAt, snapshot.activity.daysSinceLastPush, theme) },
-        { label: "Updated", value: theme.value(formatDate(snapshot.repository.updatedAt)) },
         { label: "Latest commit", value: formatDateWithAgeTone(snapshot.activity.latestCommitAt, snapshot.activity.daysSinceLatestCommit, theme) },
         { label: "Latest release", value: formatRelease(snapshot, theme) },
         { label: "Releases", value: theme.value(formatInteger(snapshot.activity.releaseCount)) },
