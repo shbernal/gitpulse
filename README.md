@@ -13,6 +13,15 @@ Gitpulse is not a replacement for `gh`. It is a project-health lens: facts first
 
 ## Install
 
+For the GitHub pre-release:
+
+```bash
+git clone https://github.com/shbernal/gitpulse.git
+cd gitpulse
+bun install
+./gitpulse owner/repo
+```
+
 After the package is published:
 
 ```bash
@@ -252,10 +261,9 @@ eval "$(gitpulse completions bash)"
 ```
 
 The Bash completion completes top-level and nested Gitpulse commands, shared
-flags, `--color` values, repository candidates from local cache/history, and
-`--theme` values, repository candidates from local cache/history, and user
-profile logins from local user profile cache/history. It includes browser
-open commands and does not call GitHub while completing.
+flags, `--color` and `--theme` values, repository candidates from local
+cache/history, and user profile logins from local user profile cache/history.
+It includes browser open commands and does not call GitHub while completing.
 
 ## Authentication
 
