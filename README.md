@@ -25,7 +25,7 @@ bun install
 After the package is published:
 
 ```bash
-npm install -g gitpulse
+npm install -g @shbernal/gitpulse
 ```
 
 For local development:

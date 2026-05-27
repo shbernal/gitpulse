@@ -1,5 +1,5 @@
 {
-  "name": "gitpulse",
+  "name": "@shbernal/gitpulse",
   "version": "0.1.0",
   "description": "CLI to take the pulse of development projects.",
   "keywords": [
