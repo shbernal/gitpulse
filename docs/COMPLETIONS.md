@@ -22,6 +22,8 @@ faster while preserving Gitpulse's deterministic command behavior.
   commands.
 - Keep user profile lookup explicit. `gitpulse user <login>` should not make
   user logins part of repository shorthand.
+- Keep `gitpulse starred` explicit. The starred selector is an authenticated
+  command, not a repository completion source.
 
 ## Local State Sources
 
@@ -131,9 +133,9 @@ gitpulse deno
 should not resolve to `denoland/cli` unless there is an exact known owner or
 repository named `deno`. Prefixes belong to shell completion only.
 
-Reserved command words such as `docs`, `web`, `history`, `cache`, `config`,
-`completions`, and `user` remain command names rather than repository
-shorthand.
+Reserved command words such as `docs`, `web`, `starred`, `history`, `cache`,
+`config`, `completions`, and `user` remain command names rather than
+repository shorthand.
 
 ## Completion Matching
 
@@ -216,6 +218,7 @@ The generated Bash completion completes:
 - Top-level commands:
   - `docs`
   - `web`
+  - `starred`
   - `user`
   - `history`
   - `cache`
@@ -236,6 +239,8 @@ The generated Bash completion completes:
 - User profile arguments for:
   - `gitpulse user <login>`
   - `gitpulse user web <login>`
+- No repository argument completion for:
+  - `gitpulse starred`
 - Shared repository flags:
   - `--json`
   - `--color`
@@ -251,12 +256,24 @@ The generated Bash completion completes:
   - `--refresh`
   - `--offline`
   - `--max-cache-hours`
+- Starred repository flags:
+  - `--json`
+  - `--color`
+  - `--theme`
+  - `--refresh`
+  - `--offline`
+  - `--max-cache-hours`
+  - `--list`
+  - `--sort`
+  - `--direction`
 
 Flag value completion can stay minimal at first:
 
 - `--color` should complete `auto`, `always`, and `never`.
 - `--theme` should complete `tokyo-night`, `catppuccin-mocha`, `nord`,
   `gruvbox-dark`, and `dracula`.
+- `--sort` should complete `created` and `updated`.
+- `--direction` should complete `asc` and `desc`.
 - Numeric flags do not need value completion.
 
 ## Error UX
@@ -296,6 +313,8 @@ Use owner/name once to fetch and record it.
 - `gitpulse __complete users --current <token>` prints newline-delimited local
   user login candidates for completion scripts.
 - `gitpulse completions bash` prints the Bash completion script.
+- `gitpulse starred` is a reserved top-level command and therefore is not
+  treated as repository shorthand.
 - `README.md` documents installation and use.
 - `docs/PROJECT_SPEC.md` states that local shorthand is deterministic and does
   not search remote repositories.

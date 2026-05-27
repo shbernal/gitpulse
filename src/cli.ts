@@ -7,15 +7,28 @@ import { completeKnownUsers, readKnownUsers } from "./cache/known-users";
 import { clearCache } from "./cache/maintenance";
 import { type CacheMode } from "./cache/policy";
 import { resolveSnapshot } from "./cache/resolve";
+import { resolveStarredRepositories } from "./cache/resolve-starred";
 import { resolveUserProfileSnapshot } from "./cache/resolve-user";
 import { ConfigError, configPath, loadConfig, resetConfig } from "./config";
 import { GitHubClient } from "./github/client";
 import { renderHistory } from "./render/history";
-import { renderComparisonJson, renderDocsJson, renderRepoJson, renderUserProfileJson } from "./render/json";
+import {
+  renderComparisonJson,
+  renderDocsJson,
+  renderRepoJson,
+  renderStarredRepositoriesJson,
+  renderUserProfileJson,
+} from "./render/json";
 import { renderComparison, renderDocs, renderRepo, renderUserProfile } from "./render/table";
 import { THEME_NAMES, type ThemeName } from "./render/palettes";
 import { COLOR_MODES, shouldUseColor, type ColorMode, type RenderOptions } from "./render/terminal";
-import type { SnapshotWithSource, UserProfileWithSource } from "./types";
+import { selectStarredRepository, type StarredRepositorySelector } from "./starred-selector";
+import type {
+  SnapshotWithSource,
+  StarredRepositoryDirection,
+  StarredRepositorySort,
+  UserProfileWithSource,
+} from "./types";
 
 type CommandOptions = {
   color?: ColorMode;
@@ -28,13 +41,21 @@ type CommandOptions = {
   theme?: ThemeName;
 };
 
+type StarredCommandOptions = CommandOptions & {
+  direction?: StarredRepositoryDirection;
+  list?: boolean;
+  sort?: StarredRepositorySort;
+};
+
 type CliDependencies = {
   openUrl?: UrlOpener;
+  selectStarredRepository?: StarredRepositorySelector;
 };
 
 export async function main(argv = process.argv, dependencies: CliDependencies = {}): Promise<void> {
   const program = new Command();
   const openUrl = dependencies.openUrl ?? openUrlInBrowser;
+  const starredSelector = dependencies.selectStarredRepository ?? selectStarredRepository;
 
   addSharedOptions(
     program
@@ -79,6 +100,15 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
     .argument("<repo>", "repository reference in owner/repo form or exact local shorthand")
     .action(async (repo: string) => {
       await runRepoWeb(repo, openUrl);
+    });
+
+  addCacheOptions(program.command("starred").description("Pick one of your starred repositories to inspect"))
+    .option("--list", "print starred repository names instead of opening a selector")
+    .addOption(starredSortOption())
+    .addOption(starredDirectionOption())
+    .action(async (_options: StarredCommandOptions, command: Command) => {
+      const options = command.optsWithGlobals<StarredCommandOptions>();
+      await runStarred(options, starredSelector);
     });
 
   const userCommand = addCacheOptions(
@@ -201,6 +231,18 @@ function contributorFetchLimitOption(): Option {
   return new Option("--contributor-fetch-limit <count>", "override how many contributors are fetched for concentration metrics").argParser(
     parsePositiveInteger,
   );
+}
+
+function starredSortOption(): Option {
+  return new Option("--sort <field>", "starred repository sort: created, updated")
+    .choices(["created", "updated"])
+    .default("created");
+}
+
+function starredDirectionOption(): Option {
+  return new Option("--direction <direction>", "starred repository direction: asc, desc")
+    .choices(["asc", "desc"])
+    .default("desc");
 }
 
 function parseMaxCacheHours(value: string): number {
@@ -441,6 +483,74 @@ async function runUserWeb(login: string, openUrl: UrlOpener): Promise<void> {
     console.error(`gitpulse: ${errorMessage(error)}`);
     process.exitCode = 1;
   }
+}
+
+async function runStarred(options: StarredCommandOptions, selector: StarredRepositorySelector): Promise<void> {
+  const runtime = await loadRuntimeOptions(options);
+
+  if (!runtime.ok) {
+    console.error(`gitpulse: ${runtime.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const client = new GitHubClient();
+  const now = new Date();
+  const starred = await resolveStarredRepositories(client, {
+    ...runtime.value.cache,
+    sort: options.sort ?? "created",
+    direction: options.direction ?? "desc",
+    now,
+  });
+  const result = starred.result;
+
+  if (!result.ok) {
+    if (runtime.value.json) {
+      console.log(renderStarredRepositoriesJson(result, starred.source));
+    } else {
+      console.error(`gitpulse: ${result.error.message}`);
+    }
+
+    process.exitCode = 1;
+    return;
+  }
+
+  if (options.list) {
+    if (runtime.value.json) {
+      console.log(renderStarredRepositoriesJson(result, starred.source));
+    } else {
+      const repositoryNames = result.list.repositories.map((repository) => repository.fullName);
+
+      if (repositoryNames.length > 0) {
+        console.log(repositoryNames.join("\n"));
+      }
+    }
+
+    return;
+  }
+
+  if (result.list.repositories.length === 0) {
+    console.error("gitpulse: No starred repositories found.");
+    process.exitCode = 1;
+    return;
+  }
+
+  let selected;
+
+  try {
+    selected = await selector(result.list.repositories);
+  } catch (error) {
+    console.error(`gitpulse: ${errorMessage(error)}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!selected) {
+    process.exitCode = 130;
+    return;
+  }
+
+  await runRepo(selected, options);
 }
 
 async function runHistory(json: boolean, options: CommandOptions): Promise<void> {

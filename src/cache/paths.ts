@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import path from "node:path";
-import type { RepoRef } from "../types";
+import type { RepoRef, StarredRepositoryDirection, StarredRepositorySort } from "../types";
 
 type Env = Record<string, string | undefined>;
 
@@ -18,6 +18,13 @@ export function snapshotCachePath(ref: RepoRef, env: Env = process.env): string 
 
 export function userProfileCachePath(login: string, env: Env = process.env): string {
   return path.join(gitpulseCacheDir(env), "snapshots", "github-users", `${safeSegment(login)}.json`);
+}
+
+export function starredRepositoriesCachePath(
+  options: { sort: StarredRepositorySort; direction: StarredRepositoryDirection },
+  env: Env = process.env,
+): string {
+  return path.join(gitpulseCacheDir(env), "snapshots", "github-starred", `self-${options.sort}-${options.direction}.json`);
 }
 
 export function historyPath(env: Env = process.env): string {

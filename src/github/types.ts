@@ -60,6 +60,20 @@ export type GitHubUserRepository = {
   fork: boolean;
 };
 
+export type GitHubStarredRepository = {
+  full_name: string;
+  name: string;
+  description: string | null;
+  html_url: string;
+  pushed_at: string | null;
+  updated_at: string;
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  archived: boolean;
+  fork: boolean;
+};
+
 export type UserRepositoryOverview = {
   repositories: GitHubUserRepository[];
   fetchLimit: number;

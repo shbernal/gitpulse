@@ -52,21 +52,25 @@ gitpulse owner/name
 gitpulse owner/a owner/b [owner/c...]
 gitpulse docs owner/name
 gitpulse web owner/name
+gitpulse starred
 gitpulse user login
 gitpulse user web login
 ```
 
 The root command infers the mode from positional repository arguments: one
 repository renders a single repository report, while two or more repositories
-render a comparison. Reserved command words such as `docs`, `web`, `history`,
-`cache`, `config`, `completions`, and `user` remain command names rather than
-repository shorthand. Keep any future shorthand predictable and deterministic.
+render a comparison. Reserved command words such as `docs`, `web`, `starred`,
+`history`, `cache`, `config`, `completions`, and `user` remain command names
+rather than repository shorthand. Keep any future shorthand predictable and
+deterministic.
 
 ## Documentation Map
 
 - `docs/PROJECT_SPEC.md`: broader product vision, users, signals, and non-goals.
 - `docs/COMPOSITE_METRICS.md`: current composite metric formulas, caveats, and interpretation rules.
 - `docs/COMPLETIONS.md`: shell completion and local shorthand behavior.
+- `docs/STARRED.md`: authenticated starred-repository picker behavior,
+  caching, selector fallback, and non-goals.
 - `docs/THEMES.md`: supported terminal themes, `--theme`, and output config.
 - `docs/FUTURE_LOC_ANALYSIS.md`: deferred source-inspection plan for line counts.
 - `docs/FUTURE_MAINTENANCE_AND_DOCS.md`: documentation command context and

@@ -89,6 +89,32 @@ gitpulse user octocat
 It should not be inferred from bare root arguments, because root arguments are
 repository references or deterministic local repository shorthand.
 
+### Starred Repository Picker
+
+Given the authenticated user's GitHub account, Gitpulse should make it easy to
+choose one repository from their starred list and run the normal repository
+report:
+
+```bash
+gitpulse starred
+```
+
+The starred command is a discovery convenience, not a replacement for GitHub
+search. It should use the existing Octokit/GitHub token model, read from
+`GITHUB_TOKEN`, and leave `gh auth` integration as a possible later
+authentication-source choice.
+
+Script-friendly listing should be available without opening a selector:
+
+```bash
+gitpulse starred --list
+gitpulse starred --list --json
+```
+
+The command should not add every starred repository to local shorthand. Only
+the repository the user selects and inspects should flow through the normal
+snapshot cache and history path.
+
 ### Evaluation Lenses
 
 Gitpulse should organize raw datapoints into a few practical lenses. These lenses should guide output structure and future metric design:
@@ -246,6 +272,15 @@ gitpulse web owner/name
 gitpulse user web octocat
 ```
 
+Authenticated starred-repository selection may collect the user's starred
+repository list, open a local selector, and then run the normal single
+repository report for the selected `owner/name`:
+
+```bash
+gitpulse starred
+gitpulse starred --list
+```
+
 Repository arguments may use exact bare local shorthand after a repository has
 appeared in Gitpulse's cache or consultation history. This shorthand is
 deterministic and local-only: command execution does not use prefix matching or
@@ -255,8 +290,8 @@ once so Gitpulse can fetch and record it.
 The root command infers the report mode from positional repository arguments:
 one repository renders a single repository report, while two or more
 repositories render a comparison. Reserved command words such as `docs`,
-`web`, `user`, `history`, `cache`, `config`, and `completions` remain command
-names rather than repository shorthand.
+`web`, `starred`, `user`, `history`, `cache`, `config`, and `completions`
+remain command names rather than repository shorthand.
 
 Comparison output should emphasize the scoreboard and grouped side-by-side metrics, without prescribing a choice.
 
@@ -265,6 +300,7 @@ Machine-readable output should be available:
 ```bash
 gitpulse owner/name --json
 gitpulse docs owner/name --json
+gitpulse starred --list --json
 gitpulse user octocat --json
 gitpulse owner/a owner/b --json
 ```

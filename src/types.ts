@@ -146,6 +146,31 @@ export type UserRepositoryFootprint = {
   recentlyPushedRepositories: UserRepositorySummary[];
 };
 
+export type StarredRepositorySort = "created" | "updated";
+
+export type StarredRepositoryDirection = "asc" | "desc";
+
+export type StarredRepositorySummary = {
+  fullName: string;
+  name: string;
+  description: string | null;
+  url: string;
+  primaryLanguage: string | null;
+  stars: number;
+  forks: number;
+  archived: boolean;
+  fork: boolean;
+  pushedAt: string | null;
+  updatedAt: string;
+};
+
+export type StarredRepositoryList = {
+  fetchedAt: string;
+  sort: StarredRepositorySort;
+  direction: StarredRepositoryDirection;
+  repositories: StarredRepositorySummary[];
+};
+
 export type RepoSnapshot = {
   ref: RepoRef;
   fetchedAt: string;
@@ -195,6 +220,16 @@ export type UserProfileResult =
       error: SnapshotError;
     };
 
+export type StarredRepositoryResult =
+  | {
+      ok: true;
+      list: StarredRepositoryList;
+    }
+  | {
+      ok: false;
+      error: SnapshotError;
+    };
+
 export type SnapshotSource =
   | {
       kind: "api";
@@ -221,5 +256,10 @@ export type SnapshotWithSource = {
 
 export type UserProfileWithSource = {
   result: UserProfileResult;
+  source: SnapshotSource;
+};
+
+export type StarredRepositoriesWithSource = {
+  result: StarredRepositoryResult;
   source: SnapshotSource;
 };

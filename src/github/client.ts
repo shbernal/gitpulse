@@ -1,5 +1,5 @@
 import { Octokit } from "octokit";
-import type { RepoRef } from "../types";
+import type { RepoRef, StarredRepositoryDirection, StarredRepositorySort } from "../types";
 import { formatRepoRef } from "../util/repo-ref";
 import type {
   CommitOverview,
@@ -9,6 +9,7 @@ import type {
   GitHubContributor,
   GitHubRelease,
   GitHubRepository,
+  GitHubStarredRepository,
   GitHubUser,
   GitHubUserRepository,
   ReleaseOverview,
@@ -131,6 +132,23 @@ export class GitHubClient {
       };
     } catch (error) {
       throw normalizeGitHubError(error, `Could not fetch public repositories for ${login}.`);
+    }
+  }
+
+  async getAuthenticatedUserStarredRepositories(options: {
+    sort: StarredRepositorySort;
+    direction: StarredRepositoryDirection;
+  }): Promise<GitHubStarredRepository[]> {
+    try {
+      const repositories = await this.octokit.paginate(this.octokit.rest.activity.listReposStarredByAuthenticatedUser, {
+        sort: options.sort,
+        direction: options.direction,
+        per_page: githubPageSizeLimit,
+      });
+
+      return repositories as GitHubStarredRepository[];
+    } catch (error) {
+      throw normalizeGitHubError(error, "Could not fetch starred repositories.");
     }
   }
 
