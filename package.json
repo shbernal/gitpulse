@@ -1,6 +1,6 @@
 {
   "name": "@shbernal/gitpulse",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "CLI to take the pulse of development projects.",
   "keywords": [
     "cli",
@@ -12,8 +12,12 @@
   ],
   "type": "module",
   "packageManager": "bun@1.3.13",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shbernal/gitpulse"
+  },
   "bin": {
-    "gitpulse": "./dist/cli.js"
+    "gitpulse": "dist/cli.js"
   },
   "files": [
     "dist/cli.js",

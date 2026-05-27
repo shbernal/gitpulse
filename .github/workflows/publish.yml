@@ -9,6 +9,9 @@ permissions:
   contents: read
   id-token: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: publish-npm-${{ github.ref }}
   cancel-in-progress: false
@@ -46,9 +49,15 @@ jobs:
         run: |
           PACKAGE_NAME="$(node -p "require('./package.json').name")"
           PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          REPOSITORY_URL="$(node -p "require('./package.json').repository?.url || ''")"
 
           if [ "$PACKAGE_NAME" != "@shbernal/gitpulse" ]; then
             echo "::error::Expected package '@shbernal/gitpulse' but found '$PACKAGE_NAME'."
+            exit 1
+          fi
+
+          if [ "$REPOSITORY_URL" != "https://github.com/shbernal/gitpulse" ]; then
+            echo "::error::Expected repository URL 'https://github.com/shbernal/gitpulse' but found '$REPOSITORY_URL'."
             exit 1
           fi
 
