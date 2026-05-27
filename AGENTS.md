@@ -53,6 +53,8 @@ gitpulse owner/a owner/b [owner/c...]
 gitpulse docs owner/name
 gitpulse web owner/name
 gitpulse starred
+gitpulse search query
+gitpulse search query --lucky
 gitpulse user login
 gitpulse user web login
 ```
@@ -60,9 +62,14 @@ gitpulse user web login
 The root command infers the mode from positional repository arguments: one
 repository renders a single repository report, while two or more repositories
 render a comparison. Reserved command words such as `docs`, `web`, `starred`,
-`history`, `cache`, `config`, `completions`, and `user` remain command names
-rather than repository shorthand. Keep any future shorthand predictable and
-deterministic.
+`search`, `history`, `cache`, `config`, `completions`, and `user` remain
+command names rather than repository shorthand.
+
+Bare repository shorthand must stay local-only and deterministic. The root
+command must not perform remote GitHub search for unknown words, with or without
+`--lucky`; unknown shorthand should fail with a clear message asking for
+`owner/name`. Repository discovery belongs behind the explicit
+`gitpulse search ...` command.
 
 ## Documentation Map
 
@@ -76,6 +83,8 @@ deterministic.
 - `docs/COMPLETIONS.md`: shell completion and local shorthand behavior.
 - `docs/STARRED.md`: authenticated starred-repository picker behavior,
   caching, selector fallback, and non-goals.
+- `docs/SEARCH.md`: explicit GitHub repository search command, selector,
+  `--lucky`, cache behavior, and root-command boundary.
 - `docs/THEMES.md`: supported terminal themes, `--theme`, and output config.
 - `docs/VISUAL_OUTPUT.md`: deterministic visual review workflow for
   human-readable terminal output.
@@ -94,3 +103,7 @@ deterministic.
   intentional.
 - Keep commits lean and focused: one independent change per commit when practical,
   even when the user only says "commit."
+- Push back when a proposed feature would weaken the local-only deterministic
+  bare-shorthand contract. In particular, do not add remote search fallback to
+  the root command; keep remote repository discovery explicit under
+  `gitpulse search`.

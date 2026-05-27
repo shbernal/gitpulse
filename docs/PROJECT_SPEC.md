@@ -99,9 +99,10 @@ report:
 gitpulse starred
 ```
 
-The starred command is a discovery convenience, not a replacement for GitHub
-search. It should use the existing Octokit/GitHub token model, read from
-`GITHUB_TOKEN`, and avoid relying on `gh auth` as an implicit token source.
+The starred command is a discovery convenience for the authenticated user's own
+starred repositories, not a general search surface. It should use the existing
+Octokit/GitHub token model, read from `GITHUB_TOKEN`, and avoid relying on
+`gh auth` as an implicit token source.
 
 Script-friendly listing should be available without opening a selector:
 
@@ -113,6 +114,30 @@ gitpulse starred --list --json
 The command should not add every starred repository to local shorthand. Only
 the repository the user selects and inspects should flow through the normal
 snapshot cache and history path.
+
+### Repository Search
+
+Given a search query, Gitpulse should make it easy to discover a GitHub
+repository and run the normal repository report:
+
+```bash
+gitpulse search ripgrep
+gitpulse search terminal fuzzy finder
+gitpulse search ripgrep --lucky
+gitpulse search ripgrep --list
+gitpulse search ripgrep --list --json
+```
+
+The search command is the only remote repository-search surface. It may open a
+local selector, print a script-friendly list, emit JSON, or use `--lucky` to run
+the first result directly.
+
+Search should not weaken root shorthand semantics. Unknown bare root arguments
+remain unknown shorthand errors rather than remote searches.
+
+Search result caches are separate from repository snapshots. Only the selected
+or lucky repository should flow through the normal repository snapshot cache and
+history path.
 
 ### Evaluation Lenses
 
@@ -283,6 +308,15 @@ gitpulse starred
 gitpulse starred --list
 ```
 
+Repository search may query GitHub, open a local selector, and then run the
+normal single repository report for the selected `owner/name`:
+
+```bash
+gitpulse search ripgrep
+gitpulse search ripgrep --lucky
+gitpulse search ripgrep --list
+```
+
 Repository arguments may use exact bare local shorthand after a repository has
 appeared in Gitpulse's cache or consultation history. This shorthand is
 deterministic and local-only: command execution does not use prefix matching or
@@ -292,8 +326,8 @@ once so Gitpulse can fetch and record it.
 The root command infers the report mode from positional repository arguments:
 one repository renders a single repository report, while two or more
 repositories render a comparison. Reserved command words such as `docs`,
-`web`, `starred`, `user`, `history`, `cache`, `config`, and `completions`
-remain command names rather than repository shorthand.
+`web`, `starred`, `search`, `user`, `history`, `cache`, `config`, and
+`completions` remain command names rather than repository shorthand.
 
 Comparison output should emphasize the scoreboard and grouped side-by-side metrics, without prescribing a choice.
 
@@ -303,6 +337,7 @@ Machine-readable output should be available:
 gitpulse owner/name --json
 gitpulse docs owner/name --json
 gitpulse starred --list --json
+gitpulse search query --list --json
 gitpulse user octocat --json
 gitpulse owner/a owner/b --json
 ```

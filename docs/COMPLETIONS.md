@@ -24,6 +24,8 @@ faster while preserving Gitpulse's deterministic command behavior.
   user logins part of repository shorthand.
 - Keep `gitpulse starred` explicit. The starred selector is an authenticated
   command, not a repository completion source.
+- Keep `gitpulse search` explicit. Remote repository search is a runtime
+  command, not a completion source and not a root shorthand fallback.
 
 ## Local State Sources
 
@@ -133,7 +135,7 @@ should not resolve to `denoland/cli` unless there is an exact known owner or
 repository named `deno`. Prefixes belong to shell completion only.
 
 Reserved command words such as `docs`, `web`, `starred`, `history`, `cache`,
-`config`, `completions`, and `user` remain command names rather than
+`config`, `completions`, `search`, and `user` remain command names rather than
 repository shorthand.
 
 ## Completion Matching
@@ -217,6 +219,7 @@ The generated Bash completion completes:
   - `docs`
   - `web`
   - `starred`
+  - `search`
   - `user`
   - `history`
   - `cache`
@@ -239,6 +242,7 @@ The generated Bash completion completes:
   - `gitpulse user web <login>`
 - No repository argument completion for:
   - `gitpulse starred`
+  - `gitpulse search`
 - Shared repository flags:
   - `--json`
   - `--color`
@@ -264,14 +268,29 @@ The generated Bash completion completes:
   - `--list`
   - `--sort`
   - `--direction`
+- Search repository flags:
+  - `--json`
+  - `--color`
+  - `--theme`
+  - `--refresh`
+  - `--offline`
+  - `--max-cache-hours`
+  - `--list`
+  - `--lucky`
+  - `--sort`
+  - `--order`
+  - `--limit`
 
 Flag value completion can stay minimal at first:
 
 - `--color` should complete `auto`, `always`, and `never`.
 - `--theme` should complete `tokyo-night`, `catppuccin-mocha`, `nord`,
   `gruvbox-dark`, and `dracula`.
-- `--sort` should complete `created` and `updated`.
+- `--sort` should complete `created` and `updated` for `starred`.
+- `--sort` should complete `best-match`, `stars`, `forks`,
+  `help-wanted-issues`, and `updated` for `search`.
 - `--direction` should complete `asc` and `desc`.
+- `--order` should complete `asc` and `desc`.
 - Numeric flags do not need value completion.
 
 ## Error UX
@@ -313,6 +332,10 @@ Use owner/name once to fetch and record it.
 - `gitpulse completions bash` prints the Bash completion script.
 - `gitpulse starred` is a reserved top-level command and therefore is not
   treated as repository shorthand.
+- `gitpulse search` is a reserved top-level command and therefore is not
+  treated as repository shorthand.
+- `gitpulse search <query>` is explicit remote search. Root repository
+  shorthand does not search GitHub when a word is unknown.
 - `README.md` documents installation and use.
 - `docs/PROJECT_SPEC.md` states that local shorthand is deterministic and does
   not search remote repositories.

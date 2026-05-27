@@ -270,11 +270,13 @@ describe("completion commands", () => {
   test("generates the expected Bash hooks", () => {
     const script = renderBashCompletionScript();
 
-    expect(script).toContain("docs web starred user history cache config completions");
+    expect(script).toContain("docs web starred search user history cache config completions");
     expect(script).not.toContain("repo compare");
     expect(script).toContain("--explain");
     expect(script).toContain("--theme");
     expect(script).toContain("--list --sort --direction");
+    expect(script).toContain("--list --lucky --sort --order --limit");
+    expect(script).toContain("best-match stars forks help-wanted-issues updated");
     expect(script).toContain("created updated");
     expect(script).toContain("asc desc");
     expect(script).toContain('compgen -W "web"');

@@ -1,5 +1,11 @@
 import { Octokit } from "octokit";
-import type { RepoRef, StarredRepositoryDirection, StarredRepositorySort } from "../types";
+import type {
+  RepoRef,
+  SearchRepositoryOrder,
+  SearchRepositorySort,
+  StarredRepositoryDirection,
+  StarredRepositorySort,
+} from "../types";
 import { formatRepoRef } from "../util/repo-ref";
 import type {
   CommitOverview,
@@ -9,10 +15,12 @@ import type {
   GitHubContributor,
   GitHubRelease,
   GitHubRepository,
+  GitHubSearchRepository,
   GitHubStarredRepository,
   GitHubUser,
   GitHubUserRepository,
   ReleaseOverview,
+  SearchRepositoryOverview,
   UserRepositoryOverview,
 } from "./types";
 
@@ -149,6 +157,29 @@ export class GitHubClient {
       return repositories as GitHubStarredRepository[];
     } catch (error) {
       throw normalizeGitHubError(error, "Could not fetch starred repositories.");
+    }
+  }
+
+  async searchRepositories(options: {
+    query: string;
+    sort: SearchRepositorySort;
+    order: SearchRepositoryOrder;
+    limit: number;
+  }): Promise<SearchRepositoryOverview> {
+    try {
+      const response = await this.octokit.rest.search.repos({
+        q: options.query,
+        ...(options.sort === "best-match" ? {} : { sort: options.sort, order: options.order }),
+        per_page: Math.min(options.limit, githubPageSizeLimit),
+      });
+
+      return {
+        repositories: response.data.items.slice(0, options.limit) as GitHubSearchRepository[],
+        totalCount: response.data.total_count,
+        incompleteResults: response.data.incomplete_results,
+      };
+    } catch (error) {
+      throw normalizeGitHubError(error, `Could not search repositories for "${options.query}".`);
     }
   }
 

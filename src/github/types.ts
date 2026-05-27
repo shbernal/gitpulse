@@ -74,6 +74,27 @@ export type GitHubStarredRepository = {
   fork: boolean;
 };
 
+export type GitHubSearchRepository = {
+  full_name: string;
+  name: string;
+  description: string | null;
+  html_url: string;
+  pushed_at: string | null;
+  updated_at: string;
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  archived: boolean;
+  fork: boolean;
+  score?: number;
+};
+
+export type SearchRepositoryOverview = {
+  repositories: GitHubSearchRepository[];
+  totalCount: number;
+  incompleteResults: boolean;
+};
+
 export type UserRepositoryOverview = {
   repositories: GitHubUserRepository[];
   fetchLimit: number;

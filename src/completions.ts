@@ -3,16 +3,18 @@ export function renderBashCompletionScript(commandName = "gitpulse"): string {
 _gitpulse()
 {
   local cur prev cmd
-  local top_commands="docs web starred user history cache config completions"
+  local top_commands="docs web starred search user history cache config completions"
   local theme_values="tokyo-night catppuccin-mocha nord gruvbox-dark dracula"
   local shared_flags="--json --color --theme --refresh --offline --max-cache-hours --contributor-fetch-limit"
   local repo_flags="$shared_flags --explain"
   local starred_flags="--json --color --theme --refresh --offline --max-cache-hours --list --sort --direction"
+  local search_flags="--json --color --theme --refresh --offline --max-cache-hours --list --lucky --sort --order --limit"
   local user_flags="--json --color --theme --refresh --offline --max-cache-hours"
 
   COMPREPLY=()
   cur="\${COMP_WORDS[COMP_CWORD]}"
   prev="\${COMP_WORDS[COMP_CWORD-1]}"
+  cmd="\${COMP_WORDS[1]}"
 
   case "$prev" in
     --color)
@@ -24,24 +26,33 @@ _gitpulse()
       return 0
       ;;
     --sort)
-      COMPREPLY=( $(compgen -W "created updated" -- "$cur") )
+      if [[ "$cmd" == "search" ]]; then
+        COMPREPLY=( $(compgen -W "best-match stars forks help-wanted-issues updated" -- "$cur") )
+      else
+        COMPREPLY=( $(compgen -W "created updated" -- "$cur") )
+      fi
       return 0
       ;;
     --direction)
       COMPREPLY=( $(compgen -W "asc desc" -- "$cur") )
       return 0
       ;;
-    --max-cache-hours|--contributor-fetch-limit)
+    --order)
+      COMPREPLY=( $(compgen -W "asc desc" -- "$cur") )
+      return 0
+      ;;
+    --max-cache-hours|--contributor-fetch-limit|--limit)
       return 0
       ;;
   esac
 
   if [[ "$cur" == -* ]]; then
-    cmd="\${COMP_WORDS[1]}"
     if [[ "$cmd" == "user" ]]; then
       COMPREPLY=( $(compgen -W "$user_flags" -- "$cur") )
     elif [[ "$cmd" == "starred" ]]; then
       COMPREPLY=( $(compgen -W "$starred_flags" -- "$cur") )
+    elif [[ "$cmd" == "search" ]]; then
+      COMPREPLY=( $(compgen -W "$search_flags" -- "$cur") )
     elif [[ "$cmd" == "docs" || "$cmd" == "web" ]]; then
       COMPREPLY=( $(compgen -W "$shared_flags" -- "$cur") )
     else
@@ -55,8 +66,6 @@ _gitpulse()
     _gitpulse_complete_repos "$cur"
     return 0
   fi
-
-  cmd="\${COMP_WORDS[1]}"
 
   case "$cmd" in
     docs|web)
@@ -83,6 +92,8 @@ _gitpulse()
       COMPREPLY=( $(compgen -W "bash" -- "$cur") )
       ;;
     starred)
+      ;;
+    search)
       ;;
     *)
       _gitpulse_complete_repos "$cur"

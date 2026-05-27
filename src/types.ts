@@ -150,6 +150,10 @@ export type StarredRepositorySort = "created" | "updated";
 
 export type StarredRepositoryDirection = "asc" | "desc";
 
+export type SearchRepositorySort = "best-match" | "stars" | "forks" | "help-wanted-issues" | "updated";
+
+export type SearchRepositoryOrder = "asc" | "desc";
+
 export type StarredRepositorySummary = {
   fullName: string;
   name: string;
@@ -169,6 +173,32 @@ export type StarredRepositoryList = {
   sort: StarredRepositorySort;
   direction: StarredRepositoryDirection;
   repositories: StarredRepositorySummary[];
+};
+
+export type SearchRepositorySummary = {
+  fullName: string;
+  name: string;
+  description: string | null;
+  url: string;
+  primaryLanguage: string | null;
+  stars: number;
+  forks: number;
+  archived: boolean;
+  fork: boolean;
+  pushedAt: string | null;
+  updatedAt: string;
+  score: number | null;
+};
+
+export type SearchRepositoryList = {
+  fetchedAt: string;
+  query: string;
+  sort: SearchRepositorySort;
+  order: SearchRepositoryOrder;
+  limit: number;
+  totalCount: number;
+  incompleteResults: boolean;
+  repositories: SearchRepositorySummary[];
 };
 
 export type RepoSnapshot = {
@@ -230,6 +260,16 @@ export type StarredRepositoryResult =
       error: SnapshotError;
     };
 
+export type SearchRepositoryResult =
+  | {
+      ok: true;
+      list: SearchRepositoryList;
+    }
+  | {
+      ok: false;
+      error: SnapshotError;
+    };
+
 export type SnapshotSource =
   | {
       kind: "api";
@@ -261,5 +301,10 @@ export type UserProfileWithSource = {
 
 export type StarredRepositoriesWithSource = {
   result: StarredRepositoryResult;
+  source: SnapshotSource;
+};
+
+export type SearchRepositoriesWithSource = {
+  result: SearchRepositoryResult;
   source: SnapshotSource;
 };

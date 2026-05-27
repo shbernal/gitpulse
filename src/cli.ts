@@ -6,6 +6,7 @@ import { completeKnownRepos, readKnownRepos, resolveKnownRepoShorthand } from ".
 import { completeKnownUsers, readKnownUsers } from "./cache/known-users";
 import { clearCache } from "./cache/maintenance";
 import { type CacheMode } from "./cache/policy";
+import { resolveSearchRepositories } from "./cache/resolve-search";
 import { resolveSnapshot } from "./cache/resolve";
 import { resolveStarredRepositories } from "./cache/resolve-starred";
 import { resolveUserProfileSnapshot } from "./cache/resolve-user";
@@ -16,14 +17,22 @@ import {
   renderComparisonJson,
   renderDocsJson,
   renderRepoJson,
+  renderSearchRepositoriesJson,
   renderStarredRepositoriesJson,
   renderUserProfileJson,
 } from "./render/json";
 import { renderComparison, renderDocs, renderRepo, renderUserProfile } from "./render/table";
 import { THEME_NAMES, type ThemeName } from "./render/palettes";
 import { COLOR_MODES, shouldUseColor, type ColorMode, type RenderOptions } from "./render/terminal";
-import { selectStarredRepository, type StarredRepositorySelector } from "./starred-selector";
+import {
+  selectSearchRepository,
+  selectStarredRepository,
+  type SearchRepositorySelector,
+  type StarredRepositorySelector,
+} from "./repository-selector";
 import type {
+  SearchRepositoryOrder,
+  SearchRepositorySort,
   SnapshotWithSource,
   StarredRepositoryDirection,
   StarredRepositorySort,
@@ -47,8 +56,17 @@ type StarredCommandOptions = CommandOptions & {
   sort?: StarredRepositorySort;
 };
 
+type SearchCommandOptions = CommandOptions & {
+  limit?: number;
+  list?: boolean;
+  lucky?: boolean;
+  order?: SearchRepositoryOrder;
+  sort?: SearchRepositorySort;
+};
+
 type CliDependencies = {
   openUrl?: UrlOpener;
+  selectSearchRepository?: SearchRepositorySelector;
   selectStarredRepository?: StarredRepositorySelector;
 };
 
@@ -56,6 +74,7 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
   const program = new Command();
   const openUrl = dependencies.openUrl ?? openUrlInBrowser;
   const starredSelector = dependencies.selectStarredRepository ?? selectStarredRepository;
+  const searchSelector = dependencies.selectSearchRepository ?? selectSearchRepository;
 
   addSharedOptions(
     program
@@ -110,6 +129,16 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
       const options = command.optsWithGlobals<StarredCommandOptions>();
       await runStarred(options, starredSelector);
     });
+
+  addSearchOptions(
+    program
+      .command("search")
+      .description("Search GitHub repositories and inspect a selected result")
+      .argument("<query...>", "GitHub repository search query"),
+  ).action(async (queryParts: string[], _options: SearchCommandOptions, command: Command) => {
+    const options = command.optsWithGlobals<SearchCommandOptions>();
+    await runSearch(queryParts, options, searchSelector);
+  });
 
   const userCommand = addCacheOptions(
     program
@@ -215,6 +244,15 @@ function addCacheOptions(command: Command): Command {
     .addOption(maxCacheHoursOption());
 }
 
+function addSearchOptions(command: Command): Command {
+  return addCacheOptions(command)
+    .option("--list", "print search result repository names instead of opening a selector")
+    .option("--lucky", "inspect the first search result without opening a selector")
+    .addOption(searchSortOption())
+    .addOption(searchOrderOption())
+    .addOption(searchLimitOption());
+}
+
 function colorOption(): Option {
   return new Option("--color <mode>", "color output: auto, always, never").choices([...COLOR_MODES]);
 }
@@ -245,6 +283,24 @@ function starredDirectionOption(): Option {
     .default("desc");
 }
 
+function searchSortOption(): Option {
+  return new Option("--sort <field>", "repository search sort: best-match, stars, forks, help-wanted-issues, updated")
+    .choices(["best-match", "stars", "forks", "help-wanted-issues", "updated"])
+    .default("best-match");
+}
+
+function searchOrderOption(): Option {
+  return new Option("--order <order>", "repository search order: asc, desc")
+    .choices(["asc", "desc"])
+    .default("desc");
+}
+
+function searchLimitOption(): Option {
+  return new Option("--limit <count>", "maximum repository search results to fetch")
+    .argParser(parseSearchLimit)
+    .default(20);
+}
+
 function parseMaxCacheHours(value: string): number {
   const hours = Number(value);
 
@@ -260,6 +316,16 @@ function parsePositiveInteger(value: string): number {
 
   if (!Number.isInteger(count) || count <= 0) {
     throw new InvalidArgumentError("Expected a positive integer.");
+  }
+
+  return count;
+}
+
+function parseSearchLimit(value: string): number {
+  const count = parsePositiveInteger(value);
+
+  if (count > 100) {
+    throw new InvalidArgumentError("Expected an integer between 1 and 100.");
   }
 
   return count;
@@ -543,6 +609,106 @@ async function runStarred(options: StarredCommandOptions, selector: StarredRepos
     console.error(`gitpulse: ${errorMessage(error)}`);
     process.exitCode = 1;
     return;
+  }
+
+  if (!selected) {
+    process.exitCode = 130;
+    return;
+  }
+
+  await runRepo(selected, options);
+}
+
+async function runSearch(
+  queryParts: string[],
+  options: SearchCommandOptions,
+  selector: SearchRepositorySelector,
+): Promise<void> {
+  if (options.list && options.lucky) {
+    console.error("gitpulse: --list and --lucky cannot be used together.");
+    process.exitCode = 1;
+    return;
+  }
+
+  const query = queryParts.join(" ").trim();
+
+  if (!query) {
+    console.error("gitpulse: search requires a non-empty query.");
+    process.exitCode = 1;
+    return;
+  }
+
+  const runtime = await loadRuntimeOptions(options);
+
+  if (!runtime.ok) {
+    console.error(`gitpulse: ${runtime.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const searchOptions = {
+    query,
+    sort: options.sort ?? "best-match",
+    order: options.order ?? "desc",
+    limit: options.limit ?? 20,
+  } satisfies {
+    query: string;
+    sort: SearchRepositorySort;
+    order: SearchRepositoryOrder;
+    limit: number;
+  };
+  const client = new GitHubClient();
+  const now = new Date();
+  const search = await resolveSearchRepositories(client, {
+    ...runtime.value.cache,
+    ...searchOptions,
+    now,
+  });
+  const result = search.result;
+
+  if (!result.ok) {
+    if (runtime.value.json) {
+      console.log(renderSearchRepositoriesJson(result, search.source));
+    } else {
+      console.error(`gitpulse: ${result.error.message}`);
+    }
+
+    process.exitCode = 1;
+    return;
+  }
+
+  if (options.list) {
+    if (runtime.value.json) {
+      console.log(renderSearchRepositoriesJson(result, search.source));
+    } else {
+      const repositoryNames = result.list.repositories.map((repository) => repository.fullName);
+
+      if (repositoryNames.length > 0) {
+        console.log(repositoryNames.join("\n"));
+      }
+    }
+
+    return;
+  }
+
+  if (result.list.repositories.length === 0) {
+    console.error(`gitpulse: No repositories found for "${query}".`);
+    process.exitCode = 1;
+    return;
+  }
+
+  let selected;
+
+  if (options.lucky) {
+    selected = result.list.repositories[0].fullName;
+  } else {
+    try {
+      selected = await selector(result.list.repositories);
+    } catch (error) {
+      console.error(`gitpulse: ${errorMessage(error)}`);
+      process.exitCode = 1;
+      return;
+    }
   }
 
   if (!selected) {

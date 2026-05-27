@@ -58,9 +58,9 @@ gitpulse cli gum
 
 Bare shorthand is local-only and exact. Gitpulse does not search GitHub for
 unknown shorthand, and prefix matching is reserved for shell completion.
-Reserved command words such as `docs`, `web`, `history`, `cache`, `config`,
-`completions`, and `user` are always treated as commands, not repository
-shorthand.
+Reserved command words such as `docs`, `web`, `starred`, `search`, `history`,
+`cache`, `config`, `completions`, and `user` are always treated as commands,
+not repository shorthand.
 
 Compare repositories side by side:
 
@@ -73,6 +73,17 @@ Show documentation signals:
 
 ```bash
 gitpulse docs cli/cli
+```
+
+Search GitHub repositories explicitly:
+
+```bash
+gitpulse search ripgrep
+gitpulse search terminal fuzzy finder
+gitpulse search language:rust parser --sort stars
+gitpulse search ripgrep --lucky
+gitpulse search ripgrep --list
+gitpulse search ripgrep --list --json
 ```
 
 Show GitHub user profile signals:
@@ -94,6 +105,7 @@ Emit JSON:
 gitpulse cli/cli --json
 gitpulse cli/cli charmbracelet/gum --json
 gitpulse docs cli/cli --json
+gitpulse search ripgrep --list --json
 gitpulse user octocat --json
 ```
 
@@ -103,6 +115,8 @@ Refresh and cache controls:
 gitpulse cli/cli --refresh
 gitpulse cli/cli --offline
 gitpulse docs cli/cli --refresh
+gitpulse search ripgrep --refresh
+gitpulse search ripgrep --offline
 gitpulse user octocat --refresh
 gitpulse user octocat --offline
 gitpulse cli/cli charmbracelet/gum --max-cache-hours 24
@@ -305,6 +319,7 @@ install -Dm755 ./dist/gitpulse "$HOME/.local/bin/gitpulse"
 - `docs/DOCS_COMMAND.md`: current `gitpulse docs` behavior.
 - `docs/COMPOSITE_METRICS.md`: current composite metric formulas and caveats.
 - `docs/COMPLETIONS.md`: shell completion and local shorthand behavior.
+- `docs/SEARCH.md`: explicit GitHub repository search behavior.
 - `docs/STARRED.md`: authenticated starred-repository picker behavior.
 - `docs/THEMES.md`: supported terminal themes and output config.
 - `docs/VISUAL_OUTPUT.md`: deterministic visual review workflow.

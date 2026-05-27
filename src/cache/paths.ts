@@ -1,6 +1,13 @@
+import { createHash } from "node:crypto";
 import { homedir } from "node:os";
 import path from "node:path";
-import type { RepoRef, StarredRepositoryDirection, StarredRepositorySort } from "../types";
+import type {
+  RepoRef,
+  SearchRepositoryOrder,
+  SearchRepositorySort,
+  StarredRepositoryDirection,
+  StarredRepositorySort,
+} from "../types";
 
 type Env = Record<string, string | undefined>;
 
@@ -27,6 +34,17 @@ export function starredRepositoriesCachePath(
   return path.join(gitpulseCacheDir(env), "snapshots", "github-starred", `self-${options.sort}-${options.direction}.json`);
 }
 
+export function searchRepositoriesCachePath(
+  options: { query: string; sort: SearchRepositorySort; order: SearchRepositoryOrder; limit: number },
+  env: Env = process.env,
+): string {
+  const key = `${options.query}\0${options.sort}\0${options.order}\0${options.limit}`;
+  const hash = createHash("sha256").update(key).digest("hex").slice(0, 16);
+  const label = safeSearchLabel(options.query);
+
+  return path.join(gitpulseCacheDir(env), "snapshots", "github-search", `${hash}-${label}.json`);
+}
+
 export function historyPath(env: Env = process.env): string {
   return path.join(gitpulseStateDir(env), "history.jsonl");
 }
@@ -46,4 +64,14 @@ function safeSegment(value: string): string {
     .toLowerCase()
     .replace(/%/g, "%25")
     .replace(/\./g, "%2e");
+}
+
+function safeSearchLabel(value: string): string {
+  const label = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+
+  return label || "query";
 }

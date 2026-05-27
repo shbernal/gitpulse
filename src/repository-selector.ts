@@ -1,9 +1,11 @@
 import { spawn } from "node:child_process";
-import type { StarredRepositorySummary } from "./types";
+import type { SearchRepositorySummary, StarredRepositorySummary } from "./types";
+import { formatCompactNumber } from "./util/format";
 
 type Env = Record<string, string | undefined>;
 
 export type StarredRepositorySelector = (repositories: StarredRepositorySummary[]) => Promise<string | null>;
+export type SearchRepositorySelector = (repositories: SearchRepositorySummary[]) => Promise<string | null>;
 
 export async function selectStarredRepository(
   repositories: StarredRepositorySummary[],
@@ -11,6 +13,26 @@ export async function selectStarredRepository(
 ): Promise<string | null> {
   const input = repositories.map((repository) => repository.fullName).join("\n");
 
+  return selectRepository(input, "starred", "Filter starred repositories", env, "gitpulse starred --list");
+}
+
+export async function selectSearchRepository(
+  repositories: SearchRepositorySummary[],
+  env: Env = process.env,
+): Promise<string | null> {
+  const input = repositories.map(formatSearchRepositoryRow).join("\n");
+  const selected = await selectRepository(input, "search", "Filter search results", env, "gitpulse search <query> --list or --lucky");
+
+  return selected ? selected.split("\t")[0] : null;
+}
+
+async function selectRepository(
+  input: string,
+  prompt: string,
+  placeholder: string,
+  env: Env,
+  fallbackCommand: string,
+): Promise<string | null> {
   if (await commandExists("fzf", env)) {
     return runSelectionCommand(
       "fzf",
@@ -18,9 +40,11 @@ export async function selectStarredRepository(
         "--height=40%",
         "--layout=reverse",
         "--border",
-        "--prompt=starred> ",
+        `--prompt=${prompt}> `,
         "--select-1",
         "--exit-0",
+        "--delimiter=\t",
+        "--with-nth=1,2,3,4,5",
       ],
       input,
       env,
@@ -33,7 +57,7 @@ export async function selectStarredRepository(
       [
         "filter",
         "--placeholder",
-        "Filter starred repositories",
+        placeholder,
         "--height",
         "20",
         "--limit",
@@ -45,7 +69,25 @@ export async function selectStarredRepository(
     );
   }
 
-  throw new Error("No selector found. Install fzf or gum, or use gitpulse starred --list.");
+  throw new Error(`No selector found. Install fzf or gum, or use ${fallbackCommand}.`);
+}
+
+function formatSearchRepositoryRow(repository: SearchRepositorySummary): string {
+  return [
+    repository.fullName,
+    `${formatCompactNumber(repository.stars)} stars`,
+    repository.primaryLanguage ?? "-",
+    formatShortDate(repository.pushedAt ?? repository.updatedAt),
+    sanitizeDescription(repository.description),
+  ].join("\t");
+}
+
+function sanitizeDescription(description: string | null): string {
+  return (description ?? "").replace(/\s+/g, " ").trim();
+}
+
+function formatShortDate(value: string | null): string {
+  return value ? value.slice(0, 10) : "-";
 }
 
 function commandExists(command: string, env: Env): Promise<boolean> {

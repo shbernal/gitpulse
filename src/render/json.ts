@@ -1,6 +1,12 @@
 import { buildComparisonSummary } from "../metrics/compare";
 import { buildCompositeMetricsAnalysisFromSnapshot } from "../metrics/composite";
-import type { SnapshotResult, SnapshotSource, StarredRepositoryResult, UserProfileResult } from "../types";
+import type {
+  SearchRepositoryResult,
+  SnapshotResult,
+  SnapshotSource,
+  StarredRepositoryResult,
+  UserProfileResult,
+} from "../types";
 
 const schemaVersion = 5;
 
@@ -62,6 +68,19 @@ export function renderStarredRepositoriesJson(result: StarredRepositoryResult, s
     {
       schemaVersion,
       command: "starred",
+      ...(source ? { source } : {}),
+      result,
+    },
+    null,
+    2,
+  );
+}
+
+export function renderSearchRepositoriesJson(result: SearchRepositoryResult, source?: SnapshotSource): string {
+  return JSON.stringify(
+    {
+      schemaVersion,
+      command: "search",
       ...(source ? { source } : {}),
       result,
     },
