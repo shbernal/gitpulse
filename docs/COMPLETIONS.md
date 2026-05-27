@@ -48,8 +48,7 @@ than maintain a separate persistent index. This keeps behavior simple:
 - If cache and history are cleared, completion has no repository or user
   candidates.
 
-A separate compact index can be added later if completion becomes slow with
-large local state.
+The implementation does not maintain a separate persistent index.
 
 The user profile cache is not a source for repository shorthand or repository
 completion. It is used only for `gitpulse user <login>` completion.
@@ -176,12 +175,11 @@ Matching rules:
 - Prefer higher-quality matches, then more recent repositories, then
   alphabetical order.
 
-Suggested match quality:
+Match quality:
 
 1. `fullName` starts with the current token.
 2. `owner` starts with the current token.
 3. `name` starts with the current token.
-4. Other future fuzzy matching, if ever added.
 
 The implementation avoids fuzzy matching. Prefix matching is enough and easier
 to reason about.

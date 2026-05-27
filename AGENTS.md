@@ -66,17 +66,21 @@ deterministic.
 
 ## Documentation Map
 
-- `docs/PROJECT_SPEC.md`: broader product vision, users, signals, and non-goals.
+- Top-level `docs/*.md` files document the current implementation only. Put
+  next-feature, deferred-feature, and exploratory notes under
+  `docs/next-features/`.
+- `docs/PROJECT_SPEC.md`: current product scope, users, signals, and non-goals.
+- `docs/DOCS_COMMAND.md`: current `gitpulse docs` behavior and cache/JSON
+  conventions.
 - `docs/COMPOSITE_METRICS.md`: current composite metric formulas, caveats, and interpretation rules.
 - `docs/COMPLETIONS.md`: shell completion and local shorthand behavior.
 - `docs/STARRED.md`: authenticated starred-repository picker behavior,
   caching, selector fallback, and non-goals.
 - `docs/THEMES.md`: supported terminal themes, `--theme`, and output config.
-- `docs/FUTURE_LOC_ANALYSIS.md`: deferred source-inspection plan for line counts.
-- `docs/FUTURE_MAINTENANCE_AND_DOCS.md`: documentation command context and
-  later maintenance-tooling analysis plan.
 - `docs/VISUAL_OUTPUT.md`: deterministic visual review workflow for
   human-readable terminal output.
+- `docs/next-features/`: proposals and deferred feature notes that are not part
+  of the current implementation contract.
 
 ## Contributor Notes
 

@@ -301,9 +301,11 @@ install -Dm755 ./dist/gitpulse "$HOME/.local/bin/gitpulse"
 ## Project Docs
 
 - `AGENTS.md`: contributor and agent operating guidance.
-- `docs/PROJECT_SPEC.md`: broader project direction.
+- `docs/PROJECT_SPEC.md`: current product scope, users, signals, and non-goals.
+- `docs/DOCS_COMMAND.md`: current `gitpulse docs` behavior.
 - `docs/COMPOSITE_METRICS.md`: current composite metric formulas and caveats.
 - `docs/COMPLETIONS.md`: shell completion and local shorthand behavior.
-- `docs/FUTURE_LOC_ANALYSIS.md`: deferred source-inspection plan for line counts.
-- `docs/FUTURE_MAINTENANCE_AND_DOCS.md`: documentation command context and a
-  future tooling-based maintenance metric plan.
+- `docs/STARRED.md`: authenticated starred-repository picker behavior.
+- `docs/THEMES.md`: supported terminal themes and output config.
+- `docs/VISUAL_OUTPUT.md`: deterministic visual review workflow.
+- `docs/next-features/`: deferred feature proposals and exploratory notes.

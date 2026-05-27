@@ -31,14 +31,13 @@ it emits the cached or fetched starred list as structured JSON.
 
 ## Authentication
 
-The first implementation uses Gitpulse's existing Octokit token model:
+The implementation uses Gitpulse's existing Octokit token model:
 
 ```bash
 GITHUB_TOKEN=... gitpulse starred
 ```
 
-No `gh auth` fallback is used in this phase. That can be added later as an
-explicit authentication-source choice if it proves useful.
+No `gh auth` fallback is used.
 
 ## GitHub Data Source
 
@@ -82,9 +81,7 @@ Interactive selection is intentionally a local terminal concern:
 - If neither selector exists, fail with a clear message and suggest
   `gitpulse starred --list`.
 
-The selector receives only `owner/name` lines in the first implementation.
-Richer preview panes can be explored later without changing the command's
-core data flow.
+The selector receives only `owner/name` lines.
 
 ## Non-Goals
 

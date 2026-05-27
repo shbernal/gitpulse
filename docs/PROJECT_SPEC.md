@@ -4,7 +4,7 @@
 
 Gitpulse is a terminal-first project intelligence CLI. It collects public development signals from source repositories and turns them into a compact, inspectable story for developers evaluating a project.
 
-The initial target is GitHub. The broader product should remain forge-aware rather than GitHub-only, so future support for GitLab, Codeberg, Forgejo, or self-hosted sources remains possible.
+The current implementation targets GitHub repositories.
 
 ## Problem
 
@@ -101,8 +101,7 @@ gitpulse starred
 
 The starred command is a discovery convenience, not a replacement for GitHub
 search. It should use the existing Octokit/GitHub token model, read from
-`GITHUB_TOKEN`, and leave `gh auth` integration as a possible later
-authentication-source choice.
+`GITHUB_TOKEN`, and avoid relying on `gh auth` as an implicit token source.
 
 Script-friendly listing should be available without opening a selector:
 
@@ -117,7 +116,7 @@ snapshot cache and history path.
 
 ### Evaluation Lenses
 
-Gitpulse should organize raw datapoints into a few practical lenses. These lenses should guide output structure and future metric design:
+Gitpulse should organize raw datapoints into a few practical lenses. These lenses guide output structure and metric design:
 
 - Adoption: stars, forks, watchers, downstream interest, and ecosystem presence where available.
 - Dynamism: recent commits, releases, issue activity, pull request activity, and contributor movement.
@@ -221,7 +220,8 @@ These describe how easy the project is to evaluate:
 - Security policy presence.
 - Release notes presence.
 
-Phase 1 detects presence and basic metadata only. Deeper content analysis belongs to a later phase.
+Phase 1 detects presence and basic metadata only. It does not perform deeper
+content analysis.
 
 ### User Profile Signals
 
@@ -243,7 +243,9 @@ Metrics should be useful but humble. A high star count can indicate adoption or 
 
 Gitpulse should make metrics easier to inspect, not overclaim what they prove.
 
-Composite metrics are allowed as evidence grouping helpers, but they must remain explainable. If Gitpulse computes an "activity score" or "maintenance score," the output and docs should describe the inputs and weighting. Current formulas live in [Composite Metrics](COMPOSITE_METRICS.md).
+Composite metrics are allowed as evidence grouping helpers, but they must
+remain explainable. The output and docs should describe the inputs and
+weighting. Current formulas live in [Composite Metrics](COMPOSITE_METRICS.md).
 
 ## Output Philosophy
 
@@ -318,25 +320,3 @@ Gitpulse should not:
 - Present AI-generated claims without source data.
 - Require authentication for basic public repository checks.
 - Depend on terminal UI features for core functionality.
-
-## Future Directions
-
-Possible later phases:
-
-- AI-assisted README, changelog, and release-note summaries.
-- Package registry signals for ecosystems such as npm, crates.io, PyPI, Go, RubyGems, and Arch/AUR.
-- Security and supply-chain signals.
-- Local repository analysis.
-- Source size and line-of-code analysis as a later source-inspection feature, not a near-term API-only metric. See [Future LOC Analysis](FUTURE_LOC_ANALYSIS.md).
-- A future maintenance metric based on dependency and tooling upkeep rather than documentation presence. See [Future Maintenance Analysis and Docs Command](FUTURE_MAINTENANCE_AND_DOCS.md).
-- Organization-level project comparison.
-- Historical trend charts.
-- Configurable scoring profiles for different decision contexts, such as "dependency," "CLI install," or "contribution target."
-
-## Open Product Questions
-
-- Should Gitpulse keep grouped composite metrics only, or introduce scenario-specific scoring profiles?
-- How should metrics differ for libraries, CLIs, frameworks, and applications?
-- Should Gitpulse eventually include deterministic comparison summary language, and how can it avoid becoming prescriptive?
-- Should Gitpulse support a config file for custom metric weighting?
-- How much historical data can be collected without making the CLI slow or rate-limit prone?

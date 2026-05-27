@@ -43,10 +43,6 @@ maintenance verdict.
 When a composite metric formula changes, update this document in the same
 change.
 
-A later plan may add a tooling-based maintenance analysis that does not use
-documentation presence as an input. See
-[Future Maintenance Analysis and Docs Command](FUTURE_MAINTENANCE_AND_DOCS.md).
-
 ## Activity Freshness
 
 Activity freshness answers: "Does this repository appear to be moving recently?"
@@ -143,10 +139,6 @@ to public adoption intent signals.
 
 This score does not measure project quality, governance, issue health, or how
 recently the community has been active.
-
-Popularity benchmarking is intentionally future work. See
-[Popularity Benchmarks](next-features/popularity-benchmarks.md) for the curated
-reference-repository proposal.
 
 ## Interpretation Rules
 
