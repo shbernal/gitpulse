@@ -1,5 +1,8 @@
 # gitpulse
 
+[![weekly downloads](https://img.shields.io/npm/dw/%40shbernal%2Fgitpulse.svg?label=npm%20downloads&logo=npm)](https://www.npmjs.com/package/@shbernal/gitpulse)
+[![total downloads](https://img.shields.io/npm/dt/%40shbernal%2Fgitpulse.svg?label=npm%20total%20downloads&logo=npm)](https://www.npmjs.com/package/@shbernal/gitpulse)
+
 Gitpulse is a terminal CLI for taking the pulse of development projects. The first implementation focuses on GitHub repositories: it fetches deterministic repository datapoints and presents them as a compact report for developers evaluating whether to contribute to, depend on, compare, or install a project.
 
 Gitpulse is not a replacement for `gh`. It is a project-health lens: facts first, cautious summaries second, final judgment left to the user.
