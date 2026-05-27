@@ -2,6 +2,14 @@
   "name": "gitpulse",
   "version": "0.1.0",
   "description": "CLI to take the pulse of development projects.",
+  "keywords": [
+    "cli",
+    "github",
+    "terminal",
+    "repository-analysis",
+    "developer-tools",
+    "project-health"
+  ],
   "type": "module",
   "packageManager": "bun@1.3.13",
   "bin": {
