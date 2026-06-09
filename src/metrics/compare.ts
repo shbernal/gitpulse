@@ -26,7 +26,7 @@ export function buildComparisonSummary(results: SnapshotResult[]): string[] {
   }
 
   if (newestRelease && isDistinctMinNullable(labeledSnapshots, ({ snapshot }) => snapshot.activity.daysSinceLatestRelease)) {
-    lines.push(`${newestRelease.label} has the newest latest release.`);
+    lines.push(`${newestRelease.label} has the newest stable release.`);
   }
 
   if (mostContributors && isDistinctMax(labeledSnapshots, ({ snapshot }) => contributorCount(snapshot))) {

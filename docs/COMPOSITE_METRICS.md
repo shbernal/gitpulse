@@ -48,7 +48,7 @@ change.
 Activity freshness answers: "Does this repository appear to be moving recently?"
 
 It combines repository push recency, latest default-branch commit recency,
-latest release recency, release presence, and archive state.
+latest stable release recency, release presence, and archive state.
 
 The implementation first computes:
 
@@ -71,9 +71,9 @@ Commit or push freshness contributes up to `55` points:
 | `<= 730` | `10` |
 | `> 730` or missing | `0` |
 
-Release freshness contributes up to `25` points:
+Stable release freshness contributes up to `25` points:
 
-| Days since latest release | Points |
+| Days since latest stable release | Points |
 | --- | ---: |
 | `<= 90` | `25` |
 | `<= 365` | `20` |

@@ -49,7 +49,7 @@ Given `owner/repo`, Gitpulse should display the main repository facts and health
 - Stars, forks, watchers, open issues, open pull requests.
 - Primary language and language distribution.
 - License.
-- Latest release and release cadence.
+- Latest stable release and release cadence.
 - Recent commit activity.
 - Contributor count and concentration.
 - Archived, disabled, fork, template, or mirror status.
@@ -178,7 +178,7 @@ Gitpulse should avoid declaring one project as "best" or "safe." Instead, it sho
 Good comparison framing:
 
 ```text
-Show latest release, latest commit, stars, and forks side by side so the user can see those differences directly.
+Show latest stable release, latest commit, stars, and forks side by side so the user can see those differences directly.
 ```
 
 Bad output:

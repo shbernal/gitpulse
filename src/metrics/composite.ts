@@ -111,14 +111,14 @@ function buildActivityFreshnessAnalysis(input: CompositeMetricsInput): Composite
     }),
     freshnessContribution({
       id: "releaseFreshness",
-      label: "Release freshness",
+      label: "Stable release freshness",
       days: input.daysSinceLatestRelease,
       buckets: releaseFreshnessBuckets,
       maxPoints: 25,
       inputs: {
         daysSinceLatestRelease: input.daysSinceLatestRelease,
       },
-      detail: `latest release ${formatDays(input.daysSinceLatestRelease)}`,
+      detail: `latest stable release ${formatDays(input.daysSinceLatestRelease)}`,
     }),
     {
       id: "releasePresence",

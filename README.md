@@ -162,7 +162,7 @@ gitpulse cli/cli --theme nord
 
 ## Output
 
-Human-readable output is the default. Repository reports start with a `Repo` section that identifies the repository as `owner/repo` followed by the repository URL on its own muted line, then show explainable composite signals and grouped metric sections. Activity freshness is shown as a score bar; Popularity Score is shown as an open-ended logarithmic score with PU in parentheses. PU means Popularity Units: `stars + 8*forks + 5*watchers`. Documentation presence is shown through `gitpulse docs`, not the default repository report. User profile reports show public profile facts and a repository-footprint summary. Comparison reports start with repository descriptions and a scoreboard. Comparison labels use repository names unless owner prefixes are needed to disambiguate matching names.
+Human-readable output is the default. Repository reports start with a `Repo` section that identifies the repository as `owner/repo` followed by the repository URL on its own muted line, then show explainable composite signals and grouped metric sections. Activity freshness is shown as a score bar; the latest release field reports the latest stable GitHub release, excluding drafts and prereleases. Popularity Score is shown as an open-ended logarithmic score with PU in parentheses. PU means Popularity Units: `stars + 8*forks + 5*watchers`. Documentation presence is shown through `gitpulse docs`, not the default repository report. User profile reports show public profile facts and a repository-footprint summary. Comparison reports start with repository descriptions and a scoreboard. Comparison labels use repository names unless owner prefixes are needed to disambiguate matching names.
 
 Gitpulse uses semantic terminal color for repository state, score bands, activity freshness, documentation presence in docs reports, provenance warnings, fetch errors, and common programming languages. Color defaults to `--color auto`, which enables color for TTY output, disables it for non-TTY output, honors `NO_COLOR`, and honors `FORCE_COLOR`. Use `--color always` to force color or `--color never` to disable it. Use `--theme` to choose a terminal palette; supported themes are documented in [Terminal Themes](docs/THEMES.md).
 
@@ -291,7 +291,7 @@ Phase 1 collects deterministic GitHub API data:
 
 - Repository facts: description, URL, created date, updated date, default branch, primary language, language mix, license, topics, archive/fork/template state, size.
 - Adoption signals: stars, forks, watchers, open issues, open pull requests.
-- Activity signals: latest push, latest default-branch commit, total default-branch commits, latest release, release count.
+- Activity signals: latest push, latest default-branch commit, total default-branch commits, latest stable release, release count.
 - Documentation signals for `gitpulse docs`: README, changelog, contributing guide, code of conduct, security policy.
 - Contributor signals: total contributor count, fetched contributor rows for concentration metrics, top contributor, top contributor share.
 - User profile signals for `gitpulse user`: public profile facts, account age, follower/following counts, public repo and gist counts, public repository footprint, top repositories, recently pushed repositories, primary languages across fetched public repositories.

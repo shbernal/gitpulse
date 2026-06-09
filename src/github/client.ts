@@ -219,6 +219,8 @@ export class GitHubClient {
   }
 
   async getReleaseOverview(ref: RepoRef): Promise<ReleaseOverview> {
+    const latest = await this.getLatestStableRelease(ref);
+
     try {
       const response = await this.octokit.rest.repos.listReleases({
         owner: ref.owner,
@@ -227,11 +229,28 @@ export class GitHubClient {
       });
 
       return {
-        latest: (response.data[0] as GitHubRelease | undefined) ?? null,
+        latest,
         count: countFromLinkHeader(response.headers.link, response.data.length),
       };
     } catch (error) {
       throw normalizeGitHubError(error, `Could not fetch releases for ${formatRepoRef(ref)}.`);
+    }
+  }
+
+  private async getLatestStableRelease(ref: RepoRef): Promise<GitHubRelease | null> {
+    try {
+      const response = await this.octokit.rest.repos.getLatestRelease({
+        owner: ref.owner,
+        repo: ref.name,
+      });
+
+      return response.data as GitHubRelease;
+    } catch (error) {
+      if (isNotFound(error)) {
+        return null;
+      }
+
+      throw normalizeGitHubError(error, `Could not fetch latest stable release for ${formatRepoRef(ref)}.`);
     }
   }
 
