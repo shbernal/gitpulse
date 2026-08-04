@@ -10,6 +10,8 @@
     "developer-tools",
     "project-health"
   ],
+  "author": "shbernal",
+  "license": "MIT",
   "type": "module",
   "packageManager": "bun@1.3.13",
   "repository": {
