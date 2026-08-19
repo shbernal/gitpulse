@@ -29,6 +29,12 @@ describe("format helpers", () => {
     expect(formatRelativeDays(0)).toBe("today");
     expect(formatRelativeDays(1)).toBe("1 day ago");
     expect(formatRelativeDays(3)).toBe("3 days ago");
+    expect(formatRelativeDays(60)).toBe("60 days ago");
+    expect(formatRelativeDays(61)).toBe("2 months ago");
+    expect(formatRelativeDays(364)).toBe("11 months ago");
+    expect(formatRelativeDays(365)).toBe("1 year ago");
+    expect(formatRelativeDays(2_850)).toBe("8 years ago");
+    expect(formatRelativeDays(null)).toBe("n/a");
   });
 
   test("truncates long strings", () => {

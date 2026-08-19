@@ -296,7 +296,7 @@ Default output should be optimized for humans in a terminal:
 - Consistent labels.
 - Clear missing-data indicators.
 - Dates shown in understandable absolute form.
-- Relative recency where helpful, such as "18 days ago."
+- Relative recency where helpful, with the unit scaled to the age: days under two months, then months, then years.
 - Light color usage when supported.
 - Configurable terminal themes for human-readable output.
 

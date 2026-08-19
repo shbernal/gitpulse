@@ -1,4 +1,6 @@
 const millisPerDay = 24 * 60 * 60 * 1000;
+const daysPerMonth = 30.44;
+const daysPerYear = 365.25;
 const shortMonths = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
 export function daysSince(isoDate: string | null | undefined, now = new Date()): number | null {
@@ -52,11 +54,21 @@ export function formatRelativeDays(days: number | null): string {
     return "today";
   }
 
-  if (days === 1) {
-    return "1 day ago";
+  if (days < daysPerMonth * 2) {
+    return `${days} ${plural(days, "day")} ago`;
   }
 
-  return `${days} days ago`;
+  if (days < 365) {
+    const months = Math.min(11, Math.round(days / daysPerMonth));
+    return `${months} ${plural(months, "month")} ago`;
+  }
+
+  const years = Math.round(days / daysPerYear);
+  return `${years} ${plural(years, "year")} ago`;
+}
+
+function plural(value: number, unit: string): string {
+  return value === 1 ? unit : `${unit}s`;
 }
 
 export function formatDateWithAge(isoDate: string | null | undefined, days: number | null): string {
