@@ -83,7 +83,7 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
       .description("Take the pulse of GitHub repositories from the terminal.")
       .version(packageVersion),
   )
-    .argument("[repos...]", "repository references in owner/repo form or exact local shorthand")
+    .argument("[owner/repo...]", "one repository to report on, or several to compare; exact local shorthand also works")
     .option("--explain", "show composite score contribution breakdowns for a single repository")
     .action(async (repos: string[] | undefined, options: CommandOptions) => {
       const values = repos ?? [];
