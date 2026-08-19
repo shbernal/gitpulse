@@ -1,109 +1,30 @@
-# AGENTS.md
+# AI project guidelines
 
-## Project Intent
+`gitpulse`: terminal CLI that collects deterministic GitHub repository signals and renders them as a compact project-health report.
 
-Gitpulse is a CLI for taking the pulse of development projects. The initial focus is GitHub repositories, with room to support other forge platforms later.
+- Key commands
+  - `bun test`
+  - `bun run typecheck`
+  - `./gitpulse owner/repo` (local wrapper, same entrypoint as the published CLI)
+  - `bun run visuals` after any change to human-readable output, then inspect the artifacts
 
-The tool should help developers quickly understand whether a project is worth contributing to, relying on as a dependency or building block, or installing as tooling. Gitpulse should provide strong signals and context, not a verdict. The user remains responsible for the final decision.
+- Key documentation
+  - [CONTRIBUTING.md](CONTRIBUTING.md): workflow, layout, conventions
+  - [docs/PROJECT_SPEC.md](docs/PROJECT_SPEC.md): scope, phases, signals, non-goals
+  - [docs/COMPOSITE_METRICS.md](docs/COMPOSITE_METRICS.md): composite formulas and caveats
+  - [docs/COMPLETIONS.md](docs/COMPLETIONS.md), [docs/SEARCH.md](docs/SEARCH.md), [docs/STARRED.md](docs/STARRED.md), [docs/DOCS_COMMAND.md](docs/DOCS_COMMAND.md): per-command contracts
+  - [docs/THEMES.md](docs/THEMES.md), [docs/VISUAL_OUTPUT.md](docs/VISUAL_OUTPUT.md): terminal output
 
-## Product Direction
+- Hard contracts
+  - Bare repository shorthand stays local-only and exact. The root command never searches GitHub for an unknown word, with or without `--lucky`. It fails and asks for `owner/name`. Remote discovery lives under `gitpulse search`. Push back on any proposal that erodes this.
+  - Phase 1 stays deterministic and API-driven. No AI dependency, no subjective NLP.
+  - Reserved command words (`docs`, `web`, `starred`, `search`, `user`, `history`, `cache`, `config`, `completions`) are commands, never shorthand.
+  - Top-level `docs/*.md` describe the shipped implementation. Proposals and deferred ideas go under `docs/next-features/`.
+  - No backwards compatibility. Prefer the cleaner command contract and delete the old one.
 
-Gitpulse is not intended to become a replacement for `gh`. It should not duplicate broad GitHub workflows like managing issues, opening pull requests, or administering repositories.
-
-Instead, it should gather project-health datapoints, organize them clearly, and present a useful story about a repository or a set of competing repositories. Examples include:
-
-- Basic repository facts: stars, forks, creation date, license, default branch, primary language, topics, archive status.
-- Project activity: recent commits, release cadence, issue and pull request activity, contributor distribution.
-- Adoption and community signals: watchers, forks, stars over time when available, contributor count, bus-factor indicators.
-- Documentation signals: README presence, changelog presence, release notes, contributing guide, code of conduct.
-- Comparison views: side-by-side metrics for similar tools such as `yay` versus `paru`, or `gobuster` versus `ffuf`.
-
-## Current Baseline
-
-The repository contains a TypeScript CLI under `src/`. The root `gitpulse` file is a Bun wrapper for local development, and the npm package builds `src/bin.ts` to `dist/cli.js`.
-
-Treat Phase 1 as the implemented deterministic baseline. Future work should preserve the terminal-first command shape while extending data sources or metrics deliberately.
-
-Until Gitpulse has a public release, do not preserve backward compatibility for
-its own sake. Prefer the cleaner command contract when the product shape changes.
-
-## Phase Strategy
-
-Phase 1 is deterministic and API-driven. It focuses on structured metrics from GitHub, local cache/config/history, JSON output, and clear terminal rendering. Avoid AI or subjective NLP features in this phase.
-
-Phase 2 may add deeper textual analysis over READMEs, changelogs, release notes, issue templates, and other informational files. AI-assisted summaries can be explored then, but they should remain explainable and source-backed.
-
-## Engineering Principles
-
-- Prefer deterministic metrics before subjective interpretation.
-- Show the source or meaning of a metric when the metric could be misunderstood.
-- Separate data collection, metric computation, and presentation.
-- Keep GitHub-specific implementation details behind interfaces so other forges can be added later.
-- Make unauthenticated GitHub API usage work for basic commands, but support `GITHUB_TOKEN` for higher rate limits.
-- Keep output useful in terminals and scripts. Human-readable tables should be default; machine-readable JSON should be available.
-- Avoid hiding uncertainty. Missing data, API limits, archived repositories, and partial failures should be visible.
-
-## Expected Commands
-
-The long-term command shape should stay compact:
-
-```bash
-gitpulse owner/name
-gitpulse owner/a owner/b [owner/c...]
-gitpulse docs owner/name
-gitpulse web owner/name
-gitpulse starred
-gitpulse search query
-gitpulse search query --lucky
-gitpulse user login
-gitpulse user web login
-```
-
-The root command infers the mode from positional repository arguments: one
-repository renders a single repository report, while two or more repositories
-render a comparison. Reserved command words such as `docs`, `web`, `starred`,
-`search`, `history`, `cache`, `config`, `completions`, and `user` remain
-command names rather than repository shorthand.
-
-Bare repository shorthand must stay local-only and deterministic. The root
-command must not perform remote GitHub search for unknown words, with or without
-`--lucky`; unknown shorthand should fail with a clear message asking for
-`owner/name`. Repository discovery belongs behind the explicit
-`gitpulse search ...` command.
-
-## Documentation Map
-
-- Top-level `docs/*.md` files document the current implementation only. Put
-  next-feature, deferred-feature, and exploratory notes under
-  `docs/next-features/`.
-- `docs/PROJECT_SPEC.md`: current product scope, users, signals, and non-goals.
-- `docs/DOCS_COMMAND.md`: current `gitpulse docs` behavior and cache/JSON
-  conventions.
-- `docs/COMPOSITE_METRICS.md`: current composite metric formulas, caveats, and interpretation rules.
-- `docs/COMPLETIONS.md`: shell completion and local shorthand behavior.
-- `docs/STARRED.md`: authenticated starred-repository picker behavior,
-  caching, selector fallback, and non-goals.
-- `docs/SEARCH.md`: explicit GitHub repository search command, selector,
-  `--lucky`, cache behavior, and root-command boundary.
-- `docs/THEMES.md`: supported terminal themes, `--theme`, and output config.
-- `docs/VISUAL_OUTPUT.md`: deterministic visual review workflow for
-  human-readable terminal output.
-- `docs/next-features/`: proposals and deferred feature notes that are not part
-  of the current implementation contract.
-
-## Contributor Notes
-
-- Keep changes scoped to the Phase 1 baseline unless the user explicitly asks for broader implementation.
-- Update specs when behavior or command scope changes.
-- Do not introduce AI dependencies into the deterministic Phase 1 baseline.
-- Prefer small, testable modules over a single large CLI file.
-- When adding metrics, document what the metric means and what it does not prove.
-- When changing human-readable terminal output, run `bun run visuals` and inspect
-  the generated artifacts so color, spacing, emphasis, and readability remain
-  intentional.
-- Keep commits lean and focused: one independent change per commit when practical,
-  even when the user only says "commit."
-- Push back when a proposed feature would weaken the local-only deterministic
-  bare-shorthand contract. In particular, do not add remote search fallback to
-  the root command; keep remote repository discovery explicit under
-  `gitpulse search`.
+- Iron Laws
+  - Tokens are expensive, state of the art models need minimal guidance, don't repeat yourself, don't babysit, don't be over-specific.
+  - AI-native project. All code is AI-generated.
+  - Minimal attention when model implements without errors, we document in more detail when model struggles.
+  - Do not expect the user to have read each line, don't lose him on the internals, give visibility on a higher-architectural level.
+  - No journaling: code comments / documentation describe current state, they don't carry a log of their own edit history.

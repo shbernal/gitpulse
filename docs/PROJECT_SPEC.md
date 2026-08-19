@@ -24,6 +24,19 @@ Gitpulse is not `gh` with another interface. It should not focus on managing Git
 
 Gitpulse should be closer to a due-diligence lens for developers: a quick way to understand a repository's state, trajectory, and reliability signals before using it, comparing it, or investing time in it.
 
+## Phase Strategy
+
+Phase 1 is deterministic and API-driven. It covers structured metrics from
+GitHub, local cache/config/history, JSON output, and terminal rendering. It adds
+no AI or subjective NLP features.
+
+Phase 2 may add deeper textual analysis over READMEs, changelogs, release notes,
+issue templates, and other informational files. AI-assisted summaries can be
+explored then, and they must stay explainable and source-backed.
+
+The current implementation is the Phase 1 baseline. New data sources and metrics
+should extend it without changing the terminal-first command shape.
+
 ## Target Users
 
 Primary users:
