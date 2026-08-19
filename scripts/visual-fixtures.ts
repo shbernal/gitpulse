@@ -58,6 +58,16 @@ export function visualOutputCases(): VisualOutputCase[] {
     stars: 12_400,
     topics: ["terminal", "ansi", "visual-review", "cli-design"],
   });
+  const rollingRepo = repoSnapshot("rolling/edgekit", {
+    description: "Editor tooling that ships a stable line alongside nightly, beta, and release-candidate builds.",
+    forks: 410,
+    releaseCount: 312,
+    releaseSummary: rollingReleaseSummary(),
+    stars: 5_900,
+    topics: ["editor", "nightly", "releases"],
+    totalContributors: 143,
+    watchers: 88,
+  });
   const user = userSnapshot("octocat");
 
   return [
@@ -87,16 +97,29 @@ export function visualOutputCases(): VisualOutputCase[] {
       ansi: renderComparison(
         [
           { ok: true, snapshot: strongRepo },
+          { ok: true, snapshot: rollingRepo },
           { ok: true, snapshot: tinyRepo },
           { ok: true, snapshot: warningRepo },
         ],
         { color: true },
-        [{ kind: "api" }, { kind: "cache", cachedAt: "2026-05-25T00:00:00.000Z", ageHours: 8 }, { kind: "stale-cache", cachedAt: "2026-05-01T00:00:00.000Z", ageHours: 600 }],
+        [
+          { kind: "api" },
+          { kind: "api" },
+          { kind: "cache", cachedAt: "2026-05-25T00:00:00.000Z", ageHours: 8 },
+          { kind: "stale-cache", cachedAt: "2026-05-01T00:00:00.000Z", ageHours: 600 },
+        ],
       ),
       columns: visualOutputColumns,
       id: "compare-mixed",
-      notes: ["Comparison report with strong, small-active, and archived repositories."],
+      notes: ["Comparison report with strong, multi-path, small-active, and archived repositories."],
       title: "Mixed comparison report",
+    },
+    {
+      ansi: renderRepo(rollingRepo, { color: true }, { kind: "api" }),
+      columns: visualOutputColumns,
+      id: "repo-release-paths",
+      notes: ["Repository with nightly, beta, and release-candidate paths, a truncated release sample, and drafts."],
+      title: "Multi-path release report",
     },
     {
       ansi: renderDocs(strongRepo, { color: true }, { kind: "api" }),
@@ -149,6 +172,7 @@ type RepoSnapshotOptions = {
   openPullRequests?: number | null;
   primaryLanguage?: string | null;
   releaseCount?: number;
+  releaseSummary?: RepoSnapshot["activity"]["releaseSummary"];
   sizeKb?: number;
   stars?: number;
   template?: boolean;
@@ -213,6 +237,7 @@ function repoSnapshot(fullName: string, options: RepoSnapshotOptions = {}): Repo
       latestReleaseTag: options.latestReleaseTag === undefined ? "v1.0.0" : options.latestReleaseTag,
       releaseCount: options.releaseCount ?? 14,
       totalCommitCount: options.totalCommitCount ?? 1240,
+      releaseSummary: options.releaseSummary ?? releaseSummary(options.releaseCount ?? 14, options.latestReleaseAt === null),
     },
     contributors: {
       fetchLimit: 100,
@@ -234,6 +259,91 @@ function repoSnapshot(fullName: string, options: RepoSnapshotOptions = {}): Repo
       popularity: { inputs: {}, label: null, scale: "index", score: popularityScore, units: popularityUnits },
     },
     warnings: options.warnings ?? [],
+  };
+}
+
+function releaseSummary(totalCount: number, missingStable: boolean): RepoSnapshot["activity"]["releaseSummary"] {
+  return {
+    totalCount,
+    sampledCount: totalCount,
+    sampleLimit: 100,
+    truncated: false,
+    stableCount: missingStable ? 0 : totalCount,
+    prereleaseCount: 0,
+    draftCount: 0,
+    tracks: missingStable
+      ? []
+      : [
+          {
+            kind: "stable",
+            label: "stable",
+            latestName: "v1.0.0",
+            latestTag: "v1.0.0",
+            latestAt: "2026-05-01T00:00:00Z",
+            daysSinceLatest: 15,
+            releaseCount: totalCount,
+            stable: true,
+            prerelease: false,
+          },
+        ],
+  };
+}
+
+function rollingReleaseSummary(): RepoSnapshot["activity"]["releaseSummary"] {
+  return {
+    totalCount: 312,
+    sampledCount: 100,
+    sampleLimit: 100,
+    truncated: true,
+    stableCount: 1,
+    prereleaseCount: 99,
+    draftCount: 2,
+    tracks: [
+      {
+        kind: "stable",
+        label: "stable",
+        latestName: "v1.0.0",
+        latestTag: "v1.0.0",
+        latestAt: "2026-05-01T00:00:00Z",
+        daysSinceLatest: 15,
+        releaseCount: 1,
+        stable: true,
+        prerelease: false,
+      },
+      {
+        kind: "nightly",
+        label: "nightly",
+        latestName: "Nightly Build",
+        latestTag: "nightly",
+        latestAt: "2026-05-15T00:00:00Z",
+        daysSinceLatest: 1,
+        releaseCount: 88,
+        stable: false,
+        prerelease: true,
+      },
+      {
+        kind: "beta",
+        label: "beta",
+        latestName: null,
+        latestTag: "v1.1.0-beta.4",
+        latestAt: "2026-05-07T00:00:00Z",
+        daysSinceLatest: 9,
+        releaseCount: 7,
+        stable: false,
+        prerelease: true,
+      },
+      {
+        kind: "rc",
+        label: "release candidate",
+        latestName: null,
+        latestTag: "v1.1.0-rc.2",
+        latestAt: "2026-05-12T00:00:00Z",
+        daysSinceLatest: 4,
+        releaseCount: 4,
+        stable: false,
+        prerelease: true,
+      },
+    ],
   };
 }
 

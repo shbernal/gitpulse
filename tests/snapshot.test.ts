@@ -54,6 +54,173 @@ describe("collectSnapshot", () => {
     expect(result.snapshot.contributors.fetchLimit).toBe(5);
     expect(result.snapshot.warnings).toContain("Contributor concentration metrics are based on the first 5 contributors.");
   });
+
+  test("summarizes stable and prerelease paths from sampled releases", async () => {
+    const client = githubClient({
+      async getReleaseOverview() {
+        return {
+          latest: {
+            name: "v1.0.0",
+            tag_name: "v1.0.0",
+            published_at: "2026-05-01T00:00:00Z",
+            created_at: "2026-05-01T00:00:00Z",
+            updated_at: "2026-05-01T00:00:00Z",
+            prerelease: false,
+            draft: false,
+          },
+          count: 2,
+          releases: [
+            {
+              name: "Nightly Build",
+              tag_name: "nightly",
+              published_at: "2024-08-07T00:00:00Z",
+              created_at: "2026-06-07T00:00:00Z",
+              updated_at: "2026-06-07T00:00:00Z",
+              prerelease: true,
+              draft: false,
+            },
+            {
+              name: "v1.0.0",
+              tag_name: "v1.0.0",
+              published_at: "2026-05-01T00:00:00Z",
+              created_at: "2026-05-01T00:00:00Z",
+              updated_at: "2026-05-01T00:00:00Z",
+              prerelease: false,
+              draft: false,
+            },
+          ],
+          sampleLimit: 100,
+        };
+      },
+    });
+
+    const result = await collectSnapshot(client, "acme/tool", new Date("2026-06-09T00:00:00.000Z"));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.error.message);
+    }
+
+    expect(result.snapshot.activity.latestReleaseTag).toBe("v1.0.0");
+    expect(result.snapshot.activity.releaseSummary).toMatchObject({
+      totalCount: 2,
+      sampledCount: 2,
+      truncated: false,
+      stableCount: 1,
+      prereleaseCount: 1,
+      tracks: [
+        { kind: "stable", latestTag: "v1.0.0", prerelease: false },
+        { kind: "nightly", latestTag: "nightly", prerelease: true, daysSinceLatest: 2 },
+      ],
+    });
+  });
+
+  test("counts the latest stable release when it falls outside the sampled window", async () => {
+    const client = githubClient({
+      async getReleaseOverview() {
+        return {
+          latest: {
+            name: "v1.0.0",
+            tag_name: "v1.0.0",
+            published_at: "2025-01-01T00:00:00Z",
+            created_at: "2025-01-01T00:00:00Z",
+            updated_at: "2025-01-01T00:00:00Z",
+            prerelease: false,
+            draft: false,
+          },
+          count: 312,
+          releases: [
+            {
+              name: "Nightly Build",
+              tag_name: "nightly-2026-06-07",
+              published_at: "2026-06-07T00:00:00Z",
+              created_at: "2026-06-07T00:00:00Z",
+              updated_at: "2026-06-07T00:00:00Z",
+              prerelease: true,
+              draft: false,
+            },
+          ],
+          sampleLimit: 100,
+        };
+      },
+    });
+
+    const result = await collectSnapshot(client, "acme/tool", new Date("2026-06-09T00:00:00.000Z"));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.error.message);
+    }
+
+    const summary = result.snapshot.activity.releaseSummary;
+
+    expect(summary).toMatchObject({
+      totalCount: 312,
+      sampledCount: 2,
+      truncated: true,
+      stableCount: 1,
+      prereleaseCount: 1,
+      draftCount: 0,
+    });
+    expect(summary.stableCount + summary.prereleaseCount).toBe(summary.sampledCount);
+    expect(summary.tracks[0]).toMatchObject({ kind: "stable", latestTag: "v1.0.0", releaseCount: 1 });
+  });
+
+  test("reports draft releases separately without treating them as a truncated sample", async () => {
+    const client = githubClient({
+      async getReleaseOverview() {
+        return {
+          latest: {
+            name: "v2.0.0",
+            tag_name: "v2.0.0",
+            published_at: "2026-06-01T00:00:00Z",
+            created_at: "2026-06-01T00:00:00Z",
+            updated_at: "2026-06-01T00:00:00Z",
+            prerelease: false,
+            draft: false,
+          },
+          count: 2,
+          releases: [
+            {
+              name: "v2.1.0",
+              tag_name: "v2.1.0",
+              published_at: null,
+              created_at: "2026-06-08T00:00:00Z",
+              updated_at: "2026-06-08T00:00:00Z",
+              prerelease: false,
+              draft: true,
+            },
+            {
+              name: "v2.0.0",
+              tag_name: "v2.0.0",
+              published_at: "2026-06-01T00:00:00Z",
+              created_at: "2026-06-01T00:00:00Z",
+              updated_at: "2026-06-01T00:00:00Z",
+              prerelease: false,
+              draft: false,
+            },
+          ],
+          sampleLimit: 100,
+        };
+      },
+    });
+
+    const result = await collectSnapshot(client, "acme/tool", new Date("2026-06-09T00:00:00.000Z"));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.error.message);
+    }
+
+    expect(result.snapshot.activity.releaseSummary).toMatchObject({
+      totalCount: 2,
+      sampledCount: 1,
+      truncated: false,
+      stableCount: 1,
+      prereleaseCount: 0,
+      draftCount: 1,
+    });
+  });
 });
 
 describe("collectUserProfileSnapshot", () => {
@@ -118,7 +285,7 @@ function githubClient(overrides: Partial<GitHubClient> = {}): GitHubClient {
       return { latest: null, count: 0 };
     },
     async getReleaseOverview() {
-      return { latest: null, count: 0 };
+      return { latest: null, count: 0, releases: [], sampleLimit: 100 };
     },
     async getContributors() {
       return { contributors: [], totalCount: 0, fetchLimit: 100, truncated: false };

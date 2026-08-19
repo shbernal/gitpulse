@@ -26,6 +26,11 @@ describe("terminal rendering", () => {
     expect(output).toContain("At a glance");
     expect(section(output, "Repo", "Pulse")).toContain("Topics  cli, github");
     expect(section(output, "Activity", "Contributors")).toContain("Latest commit");
+    expect(section(output, "Activity", "Contributors")).toContain("Latest stable");
+    expect(section(output, "Activity", "Contributors")).toContain("Release paths");
+    expect(section(output, "Activity", "Contributors")).toContain("stable: v1.0.0 (4 releases)");
+    expect(section(output, "Activity", "Contributors")).toContain("Releases       4");
+    expect(section(output, "Activity", "Contributors")).not.toContain("Sampled");
     expect(section(output, "Activity", "Contributors")).not.toContain("Last push");
     expect(section(output, "Activity", "Contributors")).not.toContain("Updated");
     expect(section(output, "Project shape", "Data Provenance")).not.toContain("Topics");
@@ -359,6 +364,66 @@ describe("JSON rendering", () => {
     expect(renderDocsJson(result)).not.toContain("\u001b[");
     expect(renderUserProfileJson(userResult)).not.toContain("\u001b[");
   });
+
+  test("renders every release path, the sampled window, and excluded drafts", () => {
+    const output = renderRepo(
+      snapshot("acme/tool", {
+        releaseSummary: {
+          totalCount: 312,
+          sampledCount: 100,
+          sampleLimit: 100,
+          truncated: true,
+          stableCount: 1,
+          prereleaseCount: 99,
+          draftCount: 2,
+          tracks: [
+            {
+              kind: "stable",
+              label: "stable",
+              latestName: "v1.0.0",
+              latestTag: "v1.0.0",
+              latestAt: "2026-05-01T00:00:00Z",
+              daysSinceLatest: 15,
+              releaseCount: 1,
+              stable: true,
+              prerelease: false,
+            },
+            {
+              kind: "nightly",
+              label: "nightly",
+              latestName: "Nightly Build",
+              latestTag: "nightly",
+              latestAt: "2026-05-15T00:00:00Z",
+              daysSinceLatest: 1,
+              releaseCount: 88,
+              stable: false,
+              prerelease: true,
+            },
+            {
+              kind: "rc",
+              label: "release candidate",
+              latestName: null,
+              latestTag: "v1.1.0-rc.2",
+              latestAt: "2026-05-12T00:00:00Z",
+              daysSinceLatest: 4,
+              releaseCount: 11,
+              stable: false,
+              prerelease: true,
+            },
+          ],
+        },
+      }),
+      { color: false },
+    );
+    const activity = section(output, "Activity", "Contributors");
+
+    expect(activity).toContain("Releases       312");
+    expect(activity).toContain("Release paths  stable: v1.0.0 (1 release)");
+    expect(activity).toContain("nightly: Nightly Build (88 releases, updated 1 day ago)");
+    expect(activity).toContain("release candidate: v1.1.0-rc.2 (11 releases, updated 4 days ago)");
+    expect(activity).toContain("Sampled        newest 100 of 312 releases, 2 drafts excluded");
+    expect(activity.split("\n").every((line) => line.length <= 100)).toBe(true);
+  });
 });
 
 function snapshot(
@@ -369,6 +434,7 @@ function snapshot(
     sizeKb?: number;
     stars?: number;
     description?: string | null;
+    releaseSummary?: RepoSnapshot["activity"]["releaseSummary"];
     warnings?: string[];
   } = {},
 ): RepoSnapshot {
@@ -417,8 +483,9 @@ function snapshot(
       latestReleaseName: "v1.0.0",
       latestReleaseTag: "v1.0.0",
       daysSinceLatestRelease: 15,
-      releaseCount: 4,
+      releaseCount: options.releaseSummary?.totalCount ?? 4,
       totalCommitCount: 144,
+      releaseSummary: options.releaseSummary ?? releaseSummary(4),
     },
     documentation: {
       readme: { present: true, path: "README.md" },
@@ -440,6 +507,31 @@ function snapshot(
       popularity: { score: popularityScore, label: null, scale: "index", units: popularityUnits, inputs: {} },
     },
     warnings: options.warnings ?? [],
+  };
+}
+
+function releaseSummary(totalCount: number): RepoSnapshot["activity"]["releaseSummary"] {
+  return {
+    totalCount,
+    sampledCount: totalCount,
+    sampleLimit: 100,
+    truncated: false,
+    stableCount: totalCount,
+    prereleaseCount: 0,
+    draftCount: 0,
+    tracks: [
+      {
+        kind: "stable",
+        label: "stable",
+        latestName: "v1.0.0",
+        latestTag: "v1.0.0",
+        latestAt: "2026-05-01T00:00:00Z",
+        daysSinceLatest: 15,
+        releaseCount: totalCount,
+        stable: true,
+        prerelease: false,
+      },
+    ],
   };
 }
 

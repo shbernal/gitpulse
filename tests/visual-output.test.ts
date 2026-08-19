@@ -12,6 +12,7 @@ describe("visual output harness", () => {
       "repo-warning",
       "repo-explain",
       "compare-mixed",
+      "repo-release-paths",
       "docs",
       "user",
       "repo-long-content",

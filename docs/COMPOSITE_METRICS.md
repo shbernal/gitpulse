@@ -49,6 +49,9 @@ Activity freshness answers: "Does this repository appear to be moving recently?"
 
 It combines repository push recency, latest default-branch commit recency,
 latest stable release recency, release presence, and archive state.
+Alternate release paths such as nightly, beta, release-candidate, preview,
+canary, dev, alpha, or other prereleases are displayed as context, but they do
+not currently change the activity freshness score.
 
 The implementation first computes:
 

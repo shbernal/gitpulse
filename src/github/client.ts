@@ -28,6 +28,7 @@ export const githubApiVersion = "2026-03-10";
 const defaultContributorFetchLimit = 100;
 const defaultUserRepositoryFetchLimit = 100;
 const githubPageSizeLimit = 100;
+const releaseSampleLimit = 100;
 
 export class GitHubApiError extends Error {
   readonly status?: number;
@@ -225,12 +226,15 @@ export class GitHubClient {
       const response = await this.octokit.rest.repos.listReleases({
         owner: ref.owner,
         repo: ref.name,
-        per_page: 1,
+        per_page: releaseSampleLimit,
       });
+      const releases = response.data as GitHubRelease[];
 
       return {
         latest,
-        count: countFromLinkHeader(response.headers.link, response.data.length),
+        count: countFromLinkHeader(response.headers.link, releases.length),
+        releases,
+        sampleLimit: releaseSampleLimit,
       };
     } catch (error) {
       throw normalizeGitHubError(error, `Could not fetch releases for ${formatRepoRef(ref)}.`);

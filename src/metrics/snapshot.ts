@@ -4,6 +4,7 @@ import type {
   ContributorOverview,
   GitHubContentItem,
   GitHubRepository,
+  GitHubRelease,
   ReleaseOverview,
 } from "../github/types";
 import type {
@@ -13,6 +14,9 @@ import type {
   LanguageBreakdown,
   RepoRef,
   RepoSnapshot,
+  ReleaseSummary,
+  ReleaseTrack,
+  ReleaseTrackKind,
   SnapshotError,
   SnapshotResult,
 } from "../types";
@@ -85,7 +89,7 @@ export async function collectSnapshot(
       repository,
       languages: languages.value ?? {},
       commitOverview: commitOverview.value ?? { latest: null, count: null },
-      releaseOverview: releaseOverview.value ?? { latest: null, count: 0 },
+      releaseOverview: releaseOverview.value ?? { latest: null, count: 0, releases: [], sampleLimit: 0 },
       contributors: contributors.value ?? {
         contributors: [],
         totalCount: null,
@@ -159,6 +163,7 @@ function buildSnapshot(input: {
   }
 
   const contributors = buildContributorSignals(input.contributors);
+  const releaseSummary = buildReleaseSummary(input.releaseOverview, input.now);
 
   const snapshot: RepoSnapshot = {
     ref: input.ref,
@@ -198,6 +203,7 @@ function buildSnapshot(input: {
       daysSinceLatestRelease,
       releaseCount: input.releaseOverview.count,
       totalCommitCount: input.commitOverview.count,
+      releaseSummary,
     },
     documentation: input.documentation,
     contributors,
@@ -215,6 +221,148 @@ function buildSnapshot(input: {
   };
 
   return snapshot;
+}
+
+function buildReleaseSummary(overview: ReleaseOverview, now: Date): ReleaseSummary {
+  const releases = overview.releases.filter((release) => !release.draft);
+  const draftCount = overview.releases.length - releases.length;
+  const stableReleases = releases.filter((release) => !release.prerelease);
+  const prereleaseReleases = releases.filter((release) => release.prerelease);
+  const stableOutsideSample =
+    overview.latest !== null && !stableReleases.some((release) => release.tag_name === overview.latest?.tag_name);
+  const stableCount = stableReleases.length + (stableOutsideSample ? 1 : 0);
+  const latestStableTrack = overview.latest ? buildReleaseTrack("stable", "stable", [overview.latest], now) : null;
+  const stableTrack = latestStableTrack ? { ...latestStableTrack, releaseCount: stableCount } : null;
+  const prereleaseTracks = groupPrereleaseTracks(prereleaseReleases, now);
+  const tracks = [stableTrack, ...prereleaseTracks].filter((track): track is ReleaseTrack => track !== null);
+
+  return {
+    totalCount: overview.count,
+    sampledCount: stableCount + prereleaseReleases.length,
+    sampleLimit: overview.sampleLimit,
+    truncated: overview.count > overview.releases.length,
+    stableCount,
+    prereleaseCount: prereleaseReleases.length,
+    draftCount,
+    tracks,
+  };
+}
+
+function groupPrereleaseTracks(releases: GitHubRelease[], now: Date): ReleaseTrack[] {
+  const groups = new Map<ReleaseTrackKind, GitHubRelease[]>();
+
+  for (const release of releases) {
+    const kind = classifyPrereleaseTrack(release);
+    groups.set(kind, [...(groups.get(kind) ?? []), release]);
+  }
+
+  return [...groups.entries()]
+    .map(([kind, group]) => buildReleaseTrack(kind, releaseTrackLabel(kind), group, now))
+    .filter((track): track is ReleaseTrack => track !== null)
+    .sort((a, b) => releaseTrackSortKey(a) - releaseTrackSortKey(b));
+}
+
+function buildReleaseTrack(kind: ReleaseTrackKind, label: string, releases: GitHubRelease[], now: Date): ReleaseTrack | null {
+  const latest = latestReleaseByDate(releases);
+
+  if (!latest) {
+    return null;
+  }
+
+  const latestAt = releaseDate(latest, kind);
+
+  return {
+    kind,
+    label,
+    latestName: latest.name,
+    latestTag: latest.tag_name,
+    latestAt,
+    daysSinceLatest: daysSince(latestAt, now),
+    releaseCount: releases.length,
+    stable: kind === "stable",
+    prerelease: kind !== "stable",
+  };
+}
+
+function latestReleaseByDate(releases: GitHubRelease[]): GitHubRelease | null {
+  if (releases.length === 0) {
+    return null;
+  }
+
+  return releases.reduce((latest, release) => (releaseTimestamp(release) > releaseTimestamp(latest) ? release : latest), releases[0]);
+}
+
+function releaseTimestamp(release: GitHubRelease): number {
+  return Date.parse(releaseDate(release, release.prerelease ? "prerelease" : "stable") ?? release.created_at) || 0;
+}
+
+function releaseDate(release: GitHubRelease, kind: ReleaseTrackKind): string | null {
+  if (kind === "stable") {
+    return release.published_at ?? release.created_at ?? null;
+  }
+
+  return release.updated_at ?? release.published_at ?? release.created_at ?? null;
+}
+
+function classifyPrereleaseTrack(release: GitHubRelease): ReleaseTrackKind {
+  const text = `${release.tag_name} ${release.name ?? ""}`.toLowerCase();
+
+  if (text.includes("nightly")) {
+    return "nightly";
+  }
+
+  if (text.includes("canary")) {
+    return "canary";
+  }
+
+  if (/(^|[^a-z])dev([^a-z]|$)/.test(text)) {
+    return "dev";
+  }
+
+  if (/(^|[^a-z])alpha([^a-z]|$)/.test(text)) {
+    return "alpha";
+  }
+
+  if (/(^|[^a-z])beta([^a-z]|$)/.test(text)) {
+    return "beta";
+  }
+
+  if (/(^|[^a-z])rc[.\d-]*([^a-z]|$)|release candidate/.test(text)) {
+    return "rc";
+  }
+
+  if (text.includes("preview")) {
+    return "preview";
+  }
+
+  return "prerelease";
+}
+
+function releaseTrackLabel(kind: ReleaseTrackKind): string {
+  switch (kind) {
+    case "rc":
+      return "release candidate";
+    case "prerelease":
+      return "prerelease";
+    default:
+      return kind;
+  }
+}
+
+function releaseTrackSortKey(track: ReleaseTrack): number {
+  const order: Record<ReleaseTrackKind, number> = {
+    stable: 0,
+    nightly: 1,
+    canary: 2,
+    dev: 3,
+    alpha: 4,
+    beta: 5,
+    rc: 6,
+    preview: 7,
+    prerelease: 8,
+  };
+
+  return order[track.kind];
 }
 
 async function optional<T>(fn: () => Promise<T>, label: string): Promise<OptionalData<T>> {

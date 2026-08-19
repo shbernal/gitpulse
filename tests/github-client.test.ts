@@ -11,6 +11,9 @@ describe("GitHubClient release overview", () => {
             tag_name: "v26.5.6",
             published_at: "2026-05-05T18:30:21Z",
             created_at: "2026-05-05T18:02:39Z",
+            updated_at: "2026-05-05T18:30:21Z",
+            prerelease: false,
+            draft: false,
           },
         };
       },
@@ -22,6 +25,9 @@ describe("GitHubClient release overview", () => {
               tag_name: "nightly",
               published_at: "2024-08-07T00:43:43Z",
               created_at: "2026-06-07T13:46:07Z",
+              updated_at: "2026-06-07T14:02:06Z",
+              prerelease: true,
+              draft: false,
             },
           ],
           headers: {
@@ -36,6 +42,8 @@ describe("GitHubClient release overview", () => {
     expect(overview.latest?.tag_name).toBe("v26.5.6");
     expect(overview.latest?.name).toBe("v26.5.6");
     expect(overview.count).toBe(31);
+    expect(overview.releases).toHaveLength(1);
+    expect(overview.sampleLimit).toBe(100);
   });
 
   test("treats a missing stable release as no latest release", async () => {
@@ -51,6 +59,9 @@ describe("GitHubClient release overview", () => {
               tag_name: "nightly",
               published_at: "2026-06-01T00:00:00Z",
               created_at: "2026-06-01T00:00:00Z",
+              updated_at: "2026-06-01T00:00:00Z",
+              prerelease: true,
+              draft: false,
             },
           ],
           headers: {},
@@ -62,6 +73,7 @@ describe("GitHubClient release overview", () => {
 
     expect(overview.latest).toBeNull();
     expect(overview.count).toBe(1);
+    expect(overview.releases[0]?.tag_name).toBe("nightly");
   });
 });
 

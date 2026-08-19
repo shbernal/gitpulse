@@ -2,6 +2,8 @@ import type {
   CompositeMetric,
   DocumentationSignal,
   RepoSnapshot,
+  ReleaseSummary,
+  ReleaseTrack,
   SnapshotResult,
   SnapshotSource,
   UserProfileSnapshot,
@@ -87,13 +89,14 @@ export function renderRepo(snapshot: RepoSnapshot, options: RepoRenderOptions = 
       [
         { label: "Created", value: theme.value(formatDateWithAge(snapshot.repository.createdAt, snapshot.activity.ageDays)) },
         { label: "Latest commit", value: formatDateWithAgeTone(snapshot.activity.latestCommitAt, snapshot.activity.daysSinceLatestCommit, theme) },
-        { label: "Latest release", value: formatRelease(snapshot, theme) },
+        { label: "Latest stable", value: formatRelease(snapshot, theme) },
         { label: "Releases", value: theme.value(formatInteger(snapshot.activity.releaseCount)) },
       ],
       theme,
       2,
       "",
     ),
+    renderKeyValueList(renderReleaseRows(snapshot, theme), theme, ""),
     "",
     theme.section("Contributors"),
     renderKeyValueList(
@@ -255,9 +258,10 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
       title: "Activity",
       rows: [
         row("Latest commit", snapshots, ({ snapshot }) => formatRelativeDaysTone(snapshot.activity.daysSinceLatestCommit, theme)),
-        row("Latest release", snapshots, ({ snapshot }) => formatRelativeDaysTone(snapshot.activity.daysSinceLatestRelease, theme)),
+        row("Latest stable", snapshots, ({ snapshot }) => formatRelativeDaysTone(snapshot.activity.daysSinceLatestRelease, theme)),
+        row("Release paths", snapshots, ({ snapshot }) => formatReleasePathLabels(snapshot, theme)),
         row("Total number of commits", snapshots, ({ snapshot }) => valueOrMissing(formatInteger(snapshot.activity.totalCommitCount), theme)),
-        row("Release count", snapshots, ({ snapshot }) => theme.value(formatInteger(snapshot.activity.releaseCount))),
+        row("Release count", snapshots, ({ snapshot }) => formatReleaseCount(snapshot, theme)),
         row("Open issues", snapshots, ({ snapshot }) => theme.value(formatInteger(snapshot.repository.openIssues))),
         row("Open PRs", snapshots, ({ snapshot }) => theme.value(formatInteger(snapshot.repository.openPullRequests))),
       ],
@@ -319,7 +323,15 @@ function renderFieldGrid(fields: Field[], theme: Theme, columns = 2, prefix = " 
 
 function renderKeyValueList(rows: Array<[string, string]>, theme: Theme, prefix = "  "): string {
   const labelWidth = Math.max(...rows.map(([label]) => visibleLength(label)));
-  return rows.map(([label, value]) => `${prefix}${padVisibleEnd(theme.label(label), labelWidth)}  ${value}`).join("\n");
+  const continuation = `${prefix}${" ".repeat(labelWidth + 2)}`;
+
+  return rows
+    .map(([label, value]) => {
+      const [first = "", ...rest] = value.split("\n");
+      const head = `${prefix}${padVisibleEnd(theme.label(label), labelWidth)}  ${first}`;
+      return [head, ...rest.map((line) => `${continuation}${line}`)].join("\n");
+    })
+    .join("\n");
 }
 
 function renderTable(headers: string[], rows: string[][], theme: Theme): string {
@@ -671,6 +683,62 @@ function formatRelease(snapshot: RepoSnapshot, theme: Theme): string {
 
   const label = snapshot.activity.latestReleaseName || snapshot.activity.latestReleaseTag || "latest";
   return `${label} - ${formatDateWithAgeTone(snapshot.activity.latestReleaseAt, snapshot.activity.daysSinceLatestRelease, theme)}`;
+}
+
+function renderReleaseRows(snapshot: RepoSnapshot, theme: Theme): Array<[string, string]> {
+  const summary = snapshot.activity.releaseSummary;
+  const rows: Array<[string, string]> = [["Release paths", formatReleasePaths(snapshot, theme)]];
+  const sample = formatReleaseSample(summary);
+
+  if (sample) {
+    rows.push(["Sampled", theme.muted(sample)]);
+  }
+
+  return rows;
+}
+
+function formatReleasePaths(snapshot: RepoSnapshot, theme: Theme): string {
+  const tracks = snapshot.activity.releaseSummary.tracks;
+
+  if (tracks.length === 0) {
+    return theme.missing();
+  }
+
+  return tracks.map((track) => formatReleaseTrack(track, theme)).join("\n");
+}
+
+function formatReleasePathLabels(snapshot: RepoSnapshot, theme: Theme): string {
+  const tracks = snapshot.activity.releaseSummary.tracks;
+
+  return tracks.length > 0 ? theme.value(tracks.map((track) => track.kind).join(", ")) : theme.missing();
+}
+
+function formatReleaseTrack(track: ReleaseTrack, theme: Theme): string {
+  const latest = theme.value(track.latestName || track.latestTag);
+  const count = `${formatInteger(track.releaseCount)} ${track.releaseCount === 1 ? "release" : "releases"}`;
+  const detail = track.prerelease ? `${count}, ${theme.muted("updated")} ${formatRelativeDaysTone(track.daysSinceLatest, theme)}` : count;
+
+  return `${track.label}: ${latest} (${detail})`;
+}
+
+function formatReleaseSample(summary: ReleaseSummary): string | null {
+  const drafts =
+    summary.draftCount > 0 ? `${formatInteger(summary.draftCount)} ${summary.draftCount === 1 ? "draft" : "drafts"} excluded` : null;
+
+  if (!summary.truncated) {
+    return drafts;
+  }
+
+  const window = `newest ${formatInteger(summary.sampledCount)} of ${formatInteger(summary.totalCount)} releases`;
+
+  return drafts ? `${window}, ${drafts}` : window;
+}
+
+function formatReleaseCount(snapshot: RepoSnapshot, theme: Theme): string {
+  const summary = snapshot.activity.releaseSummary;
+  const total = formatInteger(summary.totalCount);
+
+  return summary.truncated ? `${theme.value(total)} ${theme.muted(`(${formatInteger(summary.sampledCount)} sampled)`)}` : theme.value(total);
 }
 
 function formatDocumentation(signal: DocumentationSignal, theme: Theme): string {

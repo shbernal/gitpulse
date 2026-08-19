@@ -45,6 +45,32 @@ export type ActivityMetrics = {
   daysSinceLatestRelease: number | null;
   releaseCount: number;
   totalCommitCount: number | null;
+  releaseSummary: ReleaseSummary;
+};
+
+export type ReleaseTrackKind = "stable" | "nightly" | "canary" | "dev" | "alpha" | "beta" | "rc" | "preview" | "prerelease";
+
+export type ReleaseTrack = {
+  kind: ReleaseTrackKind;
+  label: string;
+  latestName: string | null;
+  latestTag: string;
+  latestAt: string | null;
+  daysSinceLatest: number | null;
+  releaseCount: number;
+  stable: boolean;
+  prerelease: boolean;
+};
+
+export type ReleaseSummary = {
+  totalCount: number;
+  sampledCount: number;
+  sampleLimit: number;
+  truncated: boolean;
+  stableCount: number;
+  prereleaseCount: number;
+  draftCount: number;
+  tracks: ReleaseTrack[];
 };
 
 export type DocumentationSignal = {

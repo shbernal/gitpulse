@@ -49,7 +49,7 @@ Given `owner/repo`, Gitpulse should display the main repository facts and health
 - Stars, forks, watchers, open issues, open pull requests.
 - Primary language and language distribution.
 - License.
-- Latest stable release and release cadence.
+- Latest stable release, release paths, and release cadence.
 - Recent commit activity.
 - Contributor count and concentration.
 - Archived, disabled, fork, template, or mirror status.
@@ -217,8 +217,10 @@ These describe recent project movement:
 
 - Latest commit date on the default branch.
 - Commit count over recent windows when available.
-- Latest release date.
-- Release count.
+- Latest stable release date.
+- Release count, with the sampled window disclosed when it is smaller than the total.
+- Release paths such as nightly, beta, release candidate, preview, canary, dev, alpha, or other prerelease tracks, each with its own release count and recency.
+- Draft releases, reported as excluded rather than folded into a release path.
 - Recent issue activity.
 - Recent pull request activity.
 - Time since last meaningful repository event.

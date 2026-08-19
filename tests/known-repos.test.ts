@@ -548,6 +548,7 @@ function snapshot(fullName: string): RepoSnapshot {
       daysSinceLatestRelease: null,
       releaseCount: 0,
       totalCommitCount: 10,
+      releaseSummary: emptyReleaseSummary(),
     },
     documentation: {
       readme: { present: false, path: null },
@@ -569,6 +570,19 @@ function snapshot(fullName: string): RepoSnapshot {
       popularity: { score: 0, label: "weak", inputs: {} },
     },
     warnings: [],
+  };
+}
+
+function emptyReleaseSummary(): RepoSnapshot["activity"]["releaseSummary"] {
+  return {
+    totalCount: 0,
+    sampledCount: 0,
+    sampleLimit: 100,
+    truncated: false,
+    stableCount: 0,
+    prereleaseCount: 0,
+    draftCount: 0,
+    tracks: [],
   };
 }
 

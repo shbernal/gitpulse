@@ -106,6 +106,9 @@ export type GitHubRelease = {
   tag_name: string;
   published_at: string | null;
   created_at: string;
+  updated_at: string;
+  prerelease: boolean;
+  draft: boolean;
 };
 
 export type GitHubCommit = {
@@ -148,4 +151,6 @@ export type GitHubContentItem = {
 export type ReleaseOverview = {
   latest: GitHubRelease | null;
   count: number;
+  releases: GitHubRelease[];
+  sampleLimit: number;
 };
