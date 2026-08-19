@@ -12,7 +12,7 @@ Gitpulse is not a replacement for `gh`. It does not manage issues, pull requests
 ## Install
 
 ```bash
-npm install -g @shbernal/gitpulse
+pnpm i -g @shbernal/gitpulse
 gitpulse cli/cli
 ```
 
