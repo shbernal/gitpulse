@@ -1,4 +1,5 @@
 import { Command, InvalidArgumentError, Option } from "commander";
+import { version as packageVersion } from "../package.json";
 import { githubRepoUrl, githubUserUrl, openUrlInBrowser, type UrlOpener } from "./browser";
 import { renderBashCompletionScript } from "./completions";
 import { appendHistoryEvent, buildHistoryEvent, clearHistory, readHistoryEvents } from "./cache/history";
@@ -80,7 +81,7 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
     program
       .name("gitpulse")
       .description("Take the pulse of GitHub repositories from the terminal.")
-      .version("0.1.0"),
+      .version(packageVersion),
   )
     .argument("[repos...]", "repository references in owner/repo form or exact local shorthand")
     .option("--explain", "show composite score contribution breakdowns for a single repository")
