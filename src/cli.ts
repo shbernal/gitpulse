@@ -25,6 +25,7 @@ import {
 import { renderComparison, renderDocs, renderRepo, renderUserProfile } from "./render/table";
 import { THEME_NAMES, type ThemeName } from "./render/palettes";
 import { COLOR_MODES, shouldUseColor, type ColorMode, type RenderOptions } from "./render/terminal";
+import { formatInferenceFailure, inferRepositoryFromGitRemotes } from "./util/git-remotes";
 import {
   selectSearchRepository,
   selectStarredRepository,
@@ -83,13 +84,37 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
       .description("Take the pulse of GitHub repositories from the terminal.")
       .version(packageVersion),
   )
-    .argument("[owner/repo...]", "one repository to report on, or several to compare; exact local shorthand also works")
+    .argument(
+      "[owner/repo...]",
+      "one repository to report on, or several to compare; exact local shorthand works, and inside a Git checkout the argument may be omitted",
+    )
     .option("--explain", "show composite score contribution breakdowns for a single repository")
     .action(async (repos: string[] | undefined, options: CommandOptions) => {
       const values = repos ?? [];
 
       if (values.length === 0) {
-        program.help({ error: true });
+        const inferred = await inferRepositoryFromGitRemotes();
+
+        if (inferred.kind === "outside-checkout") {
+          program.help({ error: true });
+          return;
+        }
+
+        if (inferred.kind !== "inferred") {
+          console.error(`gitpulse: ${formatInferenceFailure(inferred)}`);
+          process.exitCode = 1;
+          return;
+        }
+
+        console.error(`gitpulse: inferred ${inferred.fullName} from git remote "${inferred.remote}".`);
+
+        if (inferred.upstreamFullName) {
+          console.error(
+            `gitpulse: upstream remote points at ${inferred.upstreamFullName}; pass it explicitly to report on it.`,
+          );
+        }
+
+        await runRepo(inferred.fullName, options);
         return;
       }
 

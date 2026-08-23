@@ -67,6 +67,39 @@ Given `owner/repo`, Gitpulse should display the main repository facts and health
 - Contributor count and concentration.
 - Archived, disabled, fork, template, or mirror status.
 
+### Local Checkout Inference
+
+Run inside a Git checkout with no positional argument, Gitpulse should run the
+normal single repository report for that checkout's GitHub repository:
+
+```bash
+cd ~/Work/yay
+gitpulse
+```
+
+The candidate comes from local Git remote configuration only, and remote
+precedence is fixed:
+
+1. A GitHub `origin` remote.
+2. Otherwise a GitHub `upstream` remote.
+3. Otherwise the only GitHub remote, counting remotes that point at the same
+   repository once.
+4. Otherwise an ambiguity error listing the GitHub remotes and asking for
+   `owner/name`.
+
+Remote names other than `origin` and `upstream` carry no preference, so a fork
+workflow that keeps the canonical project on `origin` and the user's fork on
+`fork` reports the canonical project. Inference should name the remote it used
+on the error stream, so JSON output stays clean, and should mention an
+`upstream` remote that `origin` outranked so the opposite fork convention stays
+visible instead of silent.
+
+Inference must not call GitHub. Fork parents are not resolved through the API,
+and no remote lookup rescues a checkout that local remotes leave ambiguous.
+
+Outside a Git checkout, bare `gitpulse` keeps printing help. Inside a checkout
+that cannot be resolved, it fails with the specific reason.
+
 ### Documentation Inspection
 
 Given `owner/repo`, Gitpulse should provide a focused documentation view:
@@ -340,7 +373,8 @@ once so Gitpulse can fetch and record it.
 
 The root command infers the report mode from positional repository arguments:
 one repository renders a single repository report, while two or more
-repositories render a comparison. Reserved command words such as `docs`,
+repositories render a comparison, and no arguments infer a single repository
+from the local Git remotes of the current checkout. Reserved command words such as `docs`,
 `web`, `starred`, `search`, `user`, `history`, `cache`, `config`, and
 `completions` remain command names rather than repository shorthand.
 

@@ -29,6 +29,20 @@ gitpulse Jguer/yay Morganamilo/paru
 gitpulse OJ/gobuster ffuf/ffuf
 ```
 
+Inside a Git checkout, the repository argument is optional:
+
+```bash
+cd ~/Work/yay
+gitpulse
+```
+
+The repository comes from your local Git remotes: `origin` first, then
+`upstream`, then the only GitHub remote if there is exactly one. Other remote
+names get no preference, so a checkout with the project on `origin` and your
+fork on `fork` reports the project. Gitpulse prints which remote it used on
+stderr, never calls GitHub to resolve fork parents, and asks for `owner/name`
+when the remotes are ambiguous.
+
 Documentation signals, kept out of the default report so it stays short:
 
 ```bash
