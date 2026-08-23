@@ -5,7 +5,7 @@
 - Key commands
   - `bun test`
   - `bun run typecheck`
-  - `./gitpulse owner/repo` (local wrapper, same entrypoint as the published CLI)
+  - `bun run dev -- owner/repo` (working-tree entrypoint, same as the published CLI)
   - `bun run visuals` after any change to human-readable output, then inspect the artifacts
 
 - Key documentation

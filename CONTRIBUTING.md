@@ -10,10 +10,19 @@ Gitpulse uses Bun for development. Install it, then:
 git clone https://github.com/shbernal/gitpulse.git
 cd gitpulse
 bun install
-./gitpulse cli/cli
+bun run dev -- cli/cli
 ```
 
-`./gitpulse` is a thin wrapper that runs `src/bin.ts` from the working tree. `bun run dev -- owner/repo` does the same thing.
+`bun run dev` runs `src/bin.ts` straight from the working tree. To get a `gitpulse` command on your `PATH` that always tracks the checkout, drop a wrapper in `~/.local/bin`:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec bun run /path/to/gitpulse/src/bin.ts "$@"
+```
+
+Invoking the entrypoint by absolute path keeps the caller's working directory, which zero-argument repository inference needs.
 
 Set `GITHUB_TOKEN` before working on anything that refreshes data. Unauthenticated rate limits run out fast when several endpoints are called per repository.
 
