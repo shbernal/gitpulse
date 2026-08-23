@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { GitHubClient } from "../src/github/client";
+import { GitHubClient, githubApiVersion } from "../src/github/client";
 
 describe("GitHubClient release overview", () => {
   test("uses the latest stable release instead of the newest prerelease", async () => {
@@ -92,3 +92,27 @@ function githubClient(repos: FakeReposApi): GitHubClient {
   };
   return client;
 }
+
+describe("GitHubClient request headers", () => {
+  test("pins the GitHub API version and media type on outgoing requests", async () => {
+    const originalFetch = globalThis.fetch;
+    let sent: Headers | undefined;
+
+    globalThis.fetch = (async (input: unknown, init?: RequestInit) => {
+      sent = new Headers(init?.headers);
+      return new Response(JSON.stringify({ full_name: "acme/widget" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }) as typeof fetch;
+
+    try {
+      await new GitHubClient("").getRepository({ owner: "acme", name: "widget" });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(sent?.get("x-github-api-version")).toBe(githubApiVersion);
+    expect(sent?.get("accept")).toBe("application/vnd.github+json");
+  });
+});

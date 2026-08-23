@@ -57,12 +57,12 @@ export class GitHubClient {
         warn: suppressGitHubApiVersionDeprecationWarnings,
       },
       userAgent: "gitpulse/0.1.0",
-      request: {
-        headers: {
-          accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": githubApiVersion,
-        },
-      },
+    });
+
+    // Octokit drops constructor-level request headers, so the API version is pinned per request.
+    this.octokit.hook.before("request", (options) => {
+      options.headers.accept = "application/vnd.github+json";
+      options.headers["x-github-api-version"] = githubApiVersion;
     });
   }
 
