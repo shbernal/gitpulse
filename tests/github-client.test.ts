@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { GitHubClient, githubApiVersion } from "../src/github/client";
+import { GitHubApiError, GitHubClient, githubApiVersion } from "../src/github/client";
 
 describe("GitHubClient release overview", () => {
   test("uses the latest stable release instead of the newest prerelease", async () => {
@@ -76,6 +76,97 @@ describe("GitHubClient release overview", () => {
     expect(overview.releases[0]?.tag_name).toBe("nightly");
   });
 });
+
+describe("GitHubClient star mutations", () => {
+  test("stars and unstars through the authenticated user endpoints", async () => {
+    const calls: string[] = [];
+    const client = starClient({
+      async starRepoForAuthenticatedUser(options) {
+        calls.push(`star ${options.owner}/${options.repo}`);
+      },
+      async unstarRepoForAuthenticatedUser(options) {
+        calls.push(`unstar ${options.owner}/${options.repo}`);
+      },
+    });
+
+    await client.starRepositoryForAuthenticatedUser({ owner: "acme", name: "tool" });
+    await client.unstarRepositoryForAuthenticatedUser({ owner: "acme", name: "tool" });
+
+    expect(calls).toEqual(["star acme/tool", "unstar acme/tool"]);
+  });
+
+  test("names the missing token scope when GitHub refuses the write", async () => {
+    const client = starClient({
+      async starRepoForAuthenticatedUser() {
+        throw {
+          status: 403,
+          message: "Resource not accessible by personal access token",
+          response: { headers: { "x-ratelimit-remaining": "4999" } },
+        };
+      },
+    });
+
+    const error = await captureError(() => client.starRepositoryForAuthenticatedUser({ owner: "acme", name: "tool" }));
+
+    expect(error).toBeInstanceOf(GitHubApiError);
+    expect((error as GitHubApiError).code).toBe("insufficient_scope");
+    expect(error?.message).toContain("public_repo");
+  });
+
+  test("separates an invisible repository from a plain not-found message", async () => {
+    const client = starClient({
+      async unstarRepoForAuthenticatedUser() {
+        throw { status: 404, message: "Not Found" };
+      },
+    });
+
+    const error = await captureError(() =>
+      client.unstarRepositoryForAuthenticatedUser({ owner: "acme", name: "ghost" }),
+    );
+
+    expect((error as GitHubApiError).code).toBe("not_found");
+    expect(error?.message).toBe("Could not unstar acme/ghost. The repository does not exist, or the token cannot see it.");
+  });
+
+  test("keeps a rate limit answer intact", async () => {
+    const client = starClient({
+      async starRepoForAuthenticatedUser() {
+        throw {
+          status: 403,
+          message: "API rate limit exceeded",
+          response: { headers: { "x-ratelimit-remaining": "0", "x-ratelimit-reset": "1780000000" } },
+        };
+      },
+    });
+
+    const error = await captureError(() => client.starRepositoryForAuthenticatedUser({ owner: "acme", name: "tool" }));
+
+    expect((error as GitHubApiError).code).toBe("rate_limited");
+  });
+});
+
+type FakeActivityApi = Partial<{
+  starRepoForAuthenticatedUser: (options: { owner: string; repo: string }) => Promise<void>;
+  unstarRepoForAuthenticatedUser: (options: { owner: string; repo: string }) => Promise<void>;
+}>;
+
+function starClient(activity: FakeActivityApi): GitHubClient {
+  const client = new GitHubClient("token");
+  (client as unknown as { octokit: { rest: { activity: FakeActivityApi } } }).octokit = {
+    rest: { activity },
+  };
+  return client;
+}
+
+async function captureError(fn: () => Promise<unknown>): Promise<Error | undefined> {
+  try {
+    await fn();
+  } catch (error) {
+    return error as Error;
+  }
+
+  return undefined;
+}
 
 type FakeReposApi = {
   getLatestRelease: (options: { owner: string; repo: string }) => Promise<{ data: unknown }>;

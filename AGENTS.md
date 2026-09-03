@@ -18,7 +18,8 @@
 - Hard contracts
   - Bare repository shorthand stays local-only and exact. The root command never searches GitHub for an unknown word, with or without `--lucky`. It fails and asks for `owner/name`. Remote discovery lives under `gitpulse search`. Zero-argument inference reads local Git remotes only and never resolves fork parents through the API. Push back on any proposal that erodes this.
   - Phase 1 stays deterministic and API-driven. No AI dependency, no subjective NLP.
-  - Reserved command words (`docs`, `web`, `starred`, `search`, `user`, `history`, `cache`, `config`, `completions`) are commands, never shorthand.
+  - Reserved command words (`docs`, `web`, `star`, `unstar`, `starred`, `search`, `user`, `history`, `cache`, `config`, `completions`) are commands, never shorthand.
+  - `gitpulse star` and `gitpulse unstar` are the only writes to GitHub. Keep the write surface at the caller's own star; issues, pull requests, releases and repository settings stay with `gh`.
   - Top-level `docs/*.md` describe the shipped implementation. Proposals and deferred ideas go under `docs/next-features/`.
   - No backwards compatibility. Prefer the cleaner command contract and delete the old one.
 

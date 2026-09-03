@@ -1,11 +1,11 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type {
   StarredRepositoryDirection,
   StarredRepositoryList,
   StarredRepositorySort,
 } from "../types";
-import { starredRepositoriesCachePath } from "./paths";
+import { starredRepositoriesCacheDir, starredRepositoriesCachePath } from "./paths";
 
 export const starredRepositoriesCacheSchemaVersion = 1 as const;
 
@@ -84,6 +84,12 @@ export async function writeCachedStarredRepositories(
   await rename(tempPath, filePath);
 
   return entry;
+}
+
+// Starring changes the list under every sort and direction at once, so a mutation drops all of
+// them rather than trying to patch one ordering.
+export async function clearCachedStarredRepositories(env: Env = process.env): Promise<void> {
+  await rm(starredRepositoriesCacheDir(env), { recursive: true, force: true });
 }
 
 function cacheKey(options: StarredRepositoriesCacheOptions): string {

@@ -286,6 +286,27 @@ export type StarredRepositoryResult =
       error: SnapshotError;
     };
 
+export type StarAction = "star" | "unstar";
+
+export type StarMutation = {
+  action: StarAction;
+  repository: string;
+  starred: boolean;
+  // False when GitHub already held the requested state, which makes both commands idempotent.
+  changed: boolean;
+  mutatedAt: string;
+};
+
+export type StarMutationResult =
+  | {
+      ok: true;
+      mutation: StarMutation;
+    }
+  | {
+      ok: false;
+      error: SnapshotError;
+    };
+
 export type SearchRepositoryResult =
   | {
       ok: true;

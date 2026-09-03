@@ -1,6 +1,10 @@
-# Starred Repository Picker
+# Stars
 
 ## Status
+
+This document covers every star surface: the `gitpulse starred` picker, the
+`Your star` row on the repository report, and the `gitpulse star` and
+`gitpulse unstar` mutations.
 
 `gitpulse starred` is an authenticated convenience command for selecting one
 of the current user's starred GitHub repositories and running the normal
@@ -116,6 +120,59 @@ omitted rather than rendered as "not starred". `--offline` with nothing cached,
 and a failed probe with nothing cached, render `unknown`. `--refresh` always
 probes.
 
+## Star and Unstar
+
+`gitpulse star` and `gitpulse unstar` are the only commands that write to GitHub.
+
+```bash
+gitpulse star owner/name
+gitpulse star                # inside a Git checkout, inferred from local Git remotes
+gitpulse unstar gp           # exact local shorthand
+gitpulse star owner/name --json
+```
+
+Targets resolve exactly as they do for the report commands: `owner/name`, exact local shorthand,
+or zero-argument inference from local Git remotes. Neither command searches GitHub for an unknown
+word. Neither records history or adds a repository to local shorthand either: starring is not a
+consultation, so it does not make a repository known.
+
+### Contract
+
+Each run probes `GET /user/starred/{owner}/{repo}` and then writes
+`PUT` or `DELETE /user/starred/{owner}/{repo}` only when the current state differs. The probe costs
+one request and makes both commands idempotent, so the output can separate a change from a no-op:
+
+| Command | State on GitHub | Output |
+| --- | --- | --- |
+| `star` | not starred | `Starred owner/name` |
+| `star` | starred | `owner/name was already starred` |
+| `unstar` | starred | `Unstarred owner/name` |
+| `unstar` | not starred | `owner/name was not starred` |
+
+`--json` emits the same outcome as `{ "command": "star", "result": { "ok": true, "mutation": {
+"action", "repository", "starred", "changed", "mutatedAt" } } }`, and carries failures as
+`result.error` rather than printing them to stderr.
+
+There are no cache flags. A mutation needs the network by definition, and `--offline` would have
+nothing to do.
+
+### Token Scope
+
+Every other command works with a read-only token. Starring does not: it needs the classic
+`public_repo` scope, or fine-grained `Starring` write access. GitHub reports the missing permission
+as a bare 403 that never names the scope, so the mutation path reports it as `insufficient_scope`
+and names it. A 404 here means the repository does not exist or the token cannot see it, which is
+not the same message as "not starred".
+
+### Cache Effects
+
+A successful mutation writes the new state into the viewer star store with the current timestamp,
+so the next `gitpulse owner/name` shows the change rather than a trusted stale positive.
+
+A real change also drops every cached starred list. Starring changes the list under all sorts and
+directions at once, and there is no honest way to patch one ordering, so the next `gitpulse starred`
+refetches. A no-op leaves those lists alone because they are still correct.
+
 ## Selector Behavior
 
 Interactive selection is intentionally a local terminal concern:
@@ -136,3 +193,5 @@ The selector receives only `owner/name` lines.
   report cache/history path.
 - Do not make stars a repository search feature. This command is for the
   authenticated user's own starred list.
+- Do not grow the write surface past the caller's own star. Issues, pull requests, releases and
+  repository settings stay with `gh`.

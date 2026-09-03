@@ -66,6 +66,14 @@ gitpulse starred
 gitpulse starred --list
 ```
 
+Keep a repository, or drop it, without leaving the terminal:
+
+```bash
+gitpulse star cli/cli
+gitpulse star                # the repository of the checkout you are in
+gitpulse unstar cli/cli
+```
+
 Look at the account behind a project:
 
 ```bash
@@ -89,7 +97,7 @@ gitpulse docs cli
 gitpulse cli gum
 ```
 
-This shorthand is local and exact. It resolves from your own cache and history, never from a GitHub search, and an unknown name is an error asking for `owner/name` rather than a guess. Prefix matching belongs to shell completion. Command words (`docs`, `web`, `starred`, `search`, `user`, `history`, `cache`, `config`, `completions`) are always commands.
+This shorthand is local and exact. It resolves from your own cache and history, never from a GitHub search, and an unknown name is an error asking for `owner/name` rather than a guess. Prefix matching belongs to shell completion. Command words (`docs`, `web`, `star`, `unstar`, `starred`, `search`, `user`, `history`, `cache`, `config`, `completions`) are always commands.
 
 ### Scripting
 
@@ -159,6 +167,8 @@ export GITHUB_TOKEN=ghp_...
 
 Private repositories need a token with access to them. `gitpulse starred` needs one too. The token is read from the environment, never passed as an argument.
 
+`gitpulse star` and `gitpulse unstar` are the only commands that write to GitHub, and they need more than a read-only token: the classic `public_repo` scope, or fine-grained `Starring` write access.
+
 ## Cache and config
 
 Gitpulse reads from cache first and refreshes from GitHub when the snapshot is missing or older than the freshness window.
@@ -210,7 +220,7 @@ Composites group evidence, they do not rank projects. Formulas and their caveats
 - [docs/COMPOSITE_METRICS.md](docs/COMPOSITE_METRICS.md): composite formulas and caveats
 - [docs/DOCS_COMMAND.md](docs/DOCS_COMMAND.md): `gitpulse docs` behavior
 - [docs/SEARCH.md](docs/SEARCH.md): repository search
-- [docs/STARRED.md](docs/STARRED.md): starred-repository picker
+- [docs/STARRED.md](docs/STARRED.md): starred-repository picker, star state, star and unstar
 - [docs/COMPLETIONS.md](docs/COMPLETIONS.md): completions and local shorthand
 - [docs/THEMES.md](docs/THEMES.md): terminal themes
 - [CONTRIBUTING.md](CONTRIBUTING.md): development setup and conventions

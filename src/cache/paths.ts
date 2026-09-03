@@ -27,11 +27,15 @@ export function userProfileCachePath(login: string, env: Env = process.env): str
   return path.join(gitpulseCacheDir(env), "snapshots", "github-users", `${safeSegment(login)}.json`);
 }
 
+export function starredRepositoriesCacheDir(env: Env = process.env): string {
+  return path.join(gitpulseCacheDir(env), "snapshots", "github-starred");
+}
+
 export function starredRepositoriesCachePath(
   options: { sort: StarredRepositorySort; direction: StarredRepositoryDirection },
   env: Env = process.env,
 ): string {
-  return path.join(gitpulseCacheDir(env), "snapshots", "github-starred", `self-${options.sort}-${options.direction}.json`);
+  return path.join(starredRepositoriesCacheDir(env), `self-${options.sort}-${options.direction}.json`);
 }
 
 export function viewerStarsCachePath(env: Env = process.env): string {

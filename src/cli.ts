@@ -9,17 +9,18 @@ import { clearCache } from "./cache/maintenance";
 import { type CacheMode } from "./cache/policy";
 import { resolveSearchRepositories } from "./cache/resolve-search";
 import { resolveSnapshot } from "./cache/resolve";
-import { resolveViewerStar } from "./cache/resolve-viewer-star";
+import { recordViewerStarMutation, resolveViewerStar } from "./cache/resolve-viewer-star";
 import { resolveStarredRepositories } from "./cache/resolve-starred";
 import { resolveUserProfileSnapshot } from "./cache/resolve-user";
 import { ConfigError, configPath, loadConfig, resetConfig } from "./config";
-import { GitHubClient } from "./github/client";
+import { GitHubApiError, GitHubClient } from "./github/client";
 import { renderHistory } from "./render/history";
 import {
   renderComparisonJson,
   renderDocsJson,
   renderRepoJson,
   renderSearchRepositoriesJson,
+  renderStarMutationJson,
   renderStarredRepositoriesJson,
   renderUserProfileJson,
 } from "./render/json";
@@ -27,6 +28,7 @@ import { renderComparison, renderDocs, renderRepo, renderUserProfile } from "./r
 import { THEME_NAMES, type ThemeName } from "./render/palettes";
 import { COLOR_MODES, shouldUseColor, type ColorMode, type RenderOptions } from "./render/terminal";
 import { formatInferenceFailure, inferRepositoryFromGitRemotes } from "./util/git-remotes";
+import { parseRepoRef } from "./util/repo-ref";
 import {
   selectSearchRepository,
   selectStarredRepository,
@@ -37,6 +39,8 @@ import type {
   SearchRepositoryOrder,
   SearchRepositorySort,
   SnapshotWithSource,
+  StarAction,
+  StarMutation,
   StarredRepositoryDirection,
   StarredRepositorySort,
   UserProfileWithSource,
@@ -57,6 +61,10 @@ type StarredCommandOptions = CommandOptions & {
   direction?: StarredRepositoryDirection;
   list?: boolean;
   sort?: StarredRepositorySort;
+};
+
+type StarCommandOptions = {
+  json?: boolean;
 };
 
 type SearchCommandOptions = CommandOptions & {
@@ -155,6 +163,30 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
     .action(async (_options: StarredCommandOptions, command: Command) => {
       const options = command.optsWithGlobals<StarredCommandOptions>();
       await runStarred(options, starredSelector);
+    });
+
+  program
+    .command("star")
+    .description("Star a repository as the authenticated user")
+    .argument(
+      "[repo]",
+      "repository reference in owner/repo form or exact local shorthand; omitted inside a Git checkout",
+    )
+    .option("--json", "emit JSON output")
+    .action(async (repo: string | undefined, _options: StarCommandOptions, command: Command) => {
+      await runStarMutation("star", repo, command.optsWithGlobals<StarCommandOptions>());
+    });
+
+  program
+    .command("unstar")
+    .description("Remove your star from a repository")
+    .argument(
+      "[repo]",
+      "repository reference in owner/repo form or exact local shorthand; omitted inside a Git checkout",
+    )
+    .option("--json", "emit JSON output")
+    .action(async (repo: string | undefined, _options: StarCommandOptions, command: Command) => {
+      await runStarMutation("unstar", repo, command.optsWithGlobals<StarCommandOptions>());
     });
 
   addSearchOptions(
@@ -660,6 +692,124 @@ async function runStarred(options: StarredCommandOptions, selector: StarredRepos
   }
 
   await runRepo(selected, options);
+}
+
+/**
+ * The only command that writes to GitHub. It probes first so the report distinguishes a real change
+ * from a no-op, then hands the outcome to the local star caches, which the probe alone cannot fix.
+ */
+async function runStarMutation(
+  action: StarAction,
+  repo: string | undefined,
+  options: StarCommandOptions,
+): Promise<void> {
+  const json = Boolean(options.json);
+  const fail = (message: string, code = "star_error"): void => {
+    if (json) {
+      console.log(renderStarMutationJson(action, { ok: false, error: { message, code } }));
+    } else {
+      console.error(`gitpulse: ${message}`);
+    }
+
+    process.exitCode = 1;
+  };
+
+  let cacheEnabled: boolean;
+
+  try {
+    cacheEnabled = (await loadConfig()).cache.enabled;
+  } catch (error) {
+    fail(error instanceof ConfigError ? error.message : errorMessage(error), "config_error");
+    return;
+  }
+
+  const target = await resolveStarTarget(action, repo, json);
+
+  if (!target.ok) {
+    fail(target.message, target.code);
+    return;
+  }
+
+  const client = new GitHubClient();
+
+  if (!client.authenticated) {
+    fail(`gitpulse ${action} needs a GitHub token. Set GITHUB_TOKEN.`, "unauthenticated");
+    return;
+  }
+
+  const desired = action === "star";
+  const now = new Date();
+
+  try {
+    const ref = parseRepoRef(target.fullName);
+    const changed = (await client.isRepositoryStarredByAuthenticatedUser(ref)) !== desired;
+
+    if (changed) {
+      if (desired) {
+        await client.starRepositoryForAuthenticatedUser(ref);
+      } else {
+        await client.unstarRepositoryForAuthenticatedUser(ref);
+      }
+    }
+
+    await recordViewerStarMutation(ref, desired, { cacheEnabled, changed, now });
+
+    const mutation: StarMutation = {
+      action,
+      repository: target.fullName,
+      starred: desired,
+      changed,
+      mutatedAt: now.toISOString(),
+    };
+
+    if (json) {
+      console.log(renderStarMutationJson(action, { ok: true, mutation }));
+    } else {
+      console.log(formatStarMutation(mutation));
+    }
+  } catch (error) {
+    fail(errorMessage(error), error instanceof GitHubApiError ? error.code : "unknown");
+  }
+}
+
+function formatStarMutation(mutation: StarMutation): string {
+  if (!mutation.changed) {
+    return mutation.starred
+      ? `${mutation.repository} was already starred`
+      : `${mutation.repository} was not starred`;
+  }
+
+  return mutation.starred ? `Starred ${mutation.repository}` : `Unstarred ${mutation.repository}`;
+}
+
+async function resolveStarTarget(
+  action: StarAction,
+  repo: string | undefined,
+  json: boolean,
+): Promise<{ ok: true; fullName: string } | { ok: false; message: string; code: string }> {
+  if (repo) {
+    const resolved = await resolveRepositoryInputs([repo]);
+
+    return resolved.ok
+      ? { ok: true, fullName: resolved.values[0] }
+      : { ok: false, message: resolved.message, code: "unknown_repository" };
+  }
+
+  const inferred = await inferRepositoryFromGitRemotes();
+
+  if (inferred.kind === "outside-checkout") {
+    return { ok: false, message: `gitpulse ${action} needs owner/name outside a Git checkout.`, code: "no_target" };
+  }
+
+  if (inferred.kind !== "inferred") {
+    return { ok: false, message: formatInferenceFailure(inferred), code: "no_target" };
+  }
+
+  if (!json) {
+    console.error(`gitpulse: inferred ${inferred.fullName} from git remote "${inferred.remote}".`);
+  }
+
+  return { ok: true, fullName: inferred.fullName };
 }
 
 async function runSearch(

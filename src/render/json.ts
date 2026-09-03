@@ -4,6 +4,8 @@ import type {
   SearchRepositoryResult,
   SnapshotResult,
   SnapshotSource,
+  StarAction,
+  StarMutationResult,
   StarredRepositoryResult,
   UserProfileResult,
   ViewerStar,
@@ -75,6 +77,18 @@ export function renderStarredRepositoriesJson(result: StarredRepositoryResult, s
       schemaVersion,
       command: "starred",
       ...(source ? { source } : {}),
+      result,
+    },
+    null,
+    2,
+  );
+}
+
+export function renderStarMutationJson(action: StarAction, result: StarMutationResult): string {
+  return JSON.stringify(
+    {
+      schemaVersion,
+      command: action,
       result,
     },
     null,

@@ -168,6 +168,22 @@ apart from the snapshot under its own short freshness window, and it stays
 tri-state so an unauthenticated or offline run reports "unknown" instead of
 asserting "not starred". See [STARRED.md](STARRED.md).
 
+### Star and Unstar
+
+A caller who reads a report and wants to keep the repository should not have to
+leave the terminal for it:
+
+```bash
+gitpulse star owner/name
+gitpulse unstar owner/name
+```
+
+These are the only commands that write to GitHub, and the write surface stops at
+the caller's own star. They target a repository the same way the report commands
+do, including zero-argument inference inside a checkout, and they never search
+GitHub for an unknown word. Both are idempotent and report whether the run
+changed anything. See [STARRED.md](STARRED.md).
+
 ### Repository Search
 
 Given a search query, Gitpulse should make it easy to discover a GitHub
@@ -382,8 +398,9 @@ The root command infers the report mode from positional repository arguments:
 one repository renders a single repository report, while two or more
 repositories render a comparison, and no arguments infer a single repository
 from the local Git remotes of the current checkout. Reserved command words such as `docs`,
-`web`, `starred`, `search`, `user`, `history`, `cache`, `config`, and
-`completions` remain command names rather than repository shorthand.
+`web`, `star`, `unstar`, `starred`, `search`, `user`, `history`, `cache`,
+`config`, and `completions` remain command names rather than repository
+shorthand.
 
 Comparison output should emphasize the scoreboard and grouped side-by-side metrics, without prescribing a choice.
 

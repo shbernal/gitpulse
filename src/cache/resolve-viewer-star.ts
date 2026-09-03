@@ -1,6 +1,7 @@
 import type { GitHubClient } from "../github/client";
 import type { RepoRef, ViewerStar, ViewerStarSource } from "../types";
 import { cacheAgeHours, isFreshCache, type CacheMode } from "./policy";
+import { clearCachedStarredRepositories } from "./starred-store";
 import {
   lookupViewerStar,
   readCachedViewerStars,
@@ -58,6 +59,43 @@ export async function resolveViewerStar(
     return known({ starred, checkedAt: now.toISOString() }, "api", now);
   } catch {
     return cached ? known(cached, "cache", now) : { known: false, reason: "error" };
+  }
+}
+
+export type ViewerStarMutationOptions = {
+  cacheEnabled: boolean;
+  // A no-op mutation leaves the starred lists correct, so only a real change invalidates them.
+  changed: boolean;
+  now?: Date;
+  env?: Env;
+};
+
+/**
+ * Applies a star mutation the caller already performed to local state: the per-repository entry the
+ * report reads, and the starred lists, which every sort and direction of now disagree with GitHub.
+ */
+export async function recordViewerStarMutation(
+  ref: RepoRef,
+  starred: boolean,
+  options: ViewerStarMutationOptions,
+): Promise<void> {
+  if (!options.cacheEnabled) {
+    return;
+  }
+
+  const now = options.now ?? new Date();
+
+  await tryWriteCache(ref, starred, now, options.env);
+
+  if (!options.changed) {
+    return;
+  }
+
+  try {
+    await clearCachedStarredRepositories(options.env ?? process.env);
+  } catch {
+    // A stale starred list is a worse answer than a missing one, but neither is worth failing a
+    // mutation that already succeeded on GitHub.
   }
 }
 

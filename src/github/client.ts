@@ -181,6 +181,28 @@ export class GitHubClient {
     }
   }
 
+  async starRepositoryForAuthenticatedUser(ref: RepoRef): Promise<void> {
+    try {
+      await this.octokit.rest.activity.starRepoForAuthenticatedUser({
+        owner: ref.owner,
+        repo: ref.name,
+      });
+    } catch (error) {
+      throw normalizeStarMutationError(error, `star ${formatRepoRef(ref)}`);
+    }
+  }
+
+  async unstarRepositoryForAuthenticatedUser(ref: RepoRef): Promise<void> {
+    try {
+      await this.octokit.rest.activity.unstarRepoForAuthenticatedUser({
+        owner: ref.owner,
+        repo: ref.name,
+      });
+    } catch (error) {
+      throw normalizeStarMutationError(error, `unstar ${formatRepoRef(ref)}`);
+    }
+  }
+
   async searchRepositories(options: {
     query: string;
     sort: SearchRepositorySort;
@@ -444,6 +466,35 @@ function normalizeGitHubError(error: unknown, fallbackMessage: string): GitHubAp
     status,
     code: "github_error",
   });
+}
+
+/**
+ * Starring is the only write in Gitpulse, so it is the only place a read-only token fails. GitHub
+ * reports the missing permission as a bare 403, and hides an inaccessible repository behind the
+ * same 404 as a missing one; neither message says what to fix.
+ */
+function normalizeStarMutationError(error: unknown, action: string): GitHubApiError {
+  const normalized = normalizeGitHubError(error, `Could not ${action}.`);
+
+  if (normalized.code === "rate_limited" || normalized.code === "unauthorized") {
+    return normalized;
+  }
+
+  if (normalized.status === 403) {
+    return new GitHubApiError(
+      `Could not ${action}. The token needs the classic "public_repo" scope or fine-grained "Starring" write access.`,
+      { status: normalized.status, code: "insufficient_scope" },
+    );
+  }
+
+  if (normalized.status === 404) {
+    return new GitHubApiError(`Could not ${action}. The repository does not exist, or the token cannot see it.`, {
+      status: normalized.status,
+      code: "not_found",
+    });
+  }
+
+  return normalized;
 }
 
 function isNotFound(error: unknown): boolean {

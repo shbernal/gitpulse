@@ -5,9 +5,9 @@ import path from "node:path";
 import { main } from "../src/cli";
 import { resolveStarredRepositories } from "../src/cache/resolve-starred";
 import { writeCachedSnapshot } from "../src/cache/store";
-import { writeCachedStarredRepositories } from "../src/cache/starred-store";
+import { readCachedStarredRepositories, writeCachedStarredRepositories } from "../src/cache/starred-store";
 import { collectStarredRepositories } from "../src/metrics/starred";
-import { resolveViewerStar } from "../src/cache/resolve-viewer-star";
+import { recordViewerStarMutation, resolveViewerStar } from "../src/cache/resolve-viewer-star";
 import { readCachedViewerStars, syncViewerStarsFromList, writeViewerStarProbe } from "../src/cache/viewer-stars-store";
 import type { GitHubClient } from "../src/github/client";
 import type { RepoSnapshot, StarredRepositoryList, StarredRepositorySummary } from "../src/types";
@@ -315,6 +315,121 @@ describe("viewer star resolution", () => {
     });
   });
 });
+
+describe("star mutation", () => {
+  test("a real change records the new state and drops every cached starred list", async () => {
+    await withTempEnv(async (env) => {
+      await writeCachedStarredRepositories(
+        { sort: "created", direction: "desc" },
+        starredList([starredRepository("acme/tool")]),
+        new Date("2026-05-15T00:00:00.000Z"),
+        env,
+      );
+
+      await recordViewerStarMutation({ owner: "acme", name: "widget" }, true, {
+        cacheEnabled: true,
+        changed: true,
+        now: new Date("2026-05-16T00:00:00.000Z"),
+        env,
+      });
+
+      const cache = await readCachedViewerStars(env);
+
+      expect(cache?.entries["acme/widget"]).toEqual({ starred: true, checkedAt: "2026-05-16T00:00:00.000Z" });
+      expect(await readCachedStarredRepositories({ sort: "created", direction: "desc" }, env)).toBeNull();
+    });
+  });
+
+  test("a no-op mutation refreshes the star entry and keeps the cached starred list", async () => {
+    await withTempEnv(async (env) => {
+      await writeCachedStarredRepositories(
+        { sort: "created", direction: "desc" },
+        starredList([starredRepository("acme/tool")]),
+        new Date("2026-05-15T00:00:00.000Z"),
+        env,
+      );
+
+      await recordViewerStarMutation({ owner: "acme", name: "tool" }, true, {
+        cacheEnabled: true,
+        changed: false,
+        now: new Date("2026-05-16T00:00:00.000Z"),
+        env,
+      });
+
+      const cache = await readCachedViewerStars(env);
+      const list = await readCachedStarredRepositories({ sort: "created", direction: "desc" }, env);
+
+      expect(cache?.entries["acme/tool"]).toEqual({ starred: true, checkedAt: "2026-05-16T00:00:00.000Z" });
+      expect(list?.list.repositories[0]?.fullName).toBe("acme/tool");
+    });
+  });
+
+  test("an unstar leaves a fresh negative behind so the report stops claiming a star", async () => {
+    await withTempEnv(async (env) => {
+      await syncViewerStarsFromList(["acme/tool"], new Date("2026-05-15T00:00:00.000Z"), env);
+
+      await recordViewerStarMutation({ owner: "acme", name: "tool" }, false, {
+        cacheEnabled: true,
+        changed: true,
+        now: new Date("2026-05-16T00:00:00.000Z"),
+        env,
+      });
+
+      const viewerStar = await resolveViewerStar(refusingStarClient(), { owner: "acme", name: "tool" }, {
+        cacheEnabled: true,
+        freshnessHours: 24,
+        mode: "default",
+        now: new Date("2026-05-16T01:00:00.000Z"),
+        env,
+      });
+
+      expect(viewerStar).toMatchObject({ known: true, starred: false, source: "cache" });
+    });
+  });
+
+  test("refuses to star without a token", async () => {
+    await withTempEnv(async (env) => {
+      const output = await withoutGitHubToken(() =>
+        withProcessEnv(env, () => captureStdout(() => main(["node", "gitpulse", "star", "acme/tool", "--json"]))),
+      );
+      const parsed = JSON.parse(output);
+
+      expect(parsed.command).toBe("star");
+      expect(parsed.result.ok).toBe(false);
+      expect(parsed.result.error.code).toBe("unauthenticated");
+      expect(process.exitCode).toBe(1);
+    });
+  });
+
+  test("refuses to unstar an unknown shorthand instead of guessing", async () => {
+    await withTempEnv(async (env) => {
+      const output = await withoutGitHubToken(() =>
+        withProcessEnv(env, () => captureStdout(() => main(["node", "gitpulse", "unstar", "nope", "--json"]))),
+      );
+      const parsed = JSON.parse(output);
+
+      expect(parsed.command).toBe("unstar");
+      expect(parsed.result.error.code).toBe("unknown_repository");
+      expect(process.exitCode).toBe(1);
+    });
+  });
+});
+
+async function withoutGitHubToken<T>(fn: () => Promise<T>): Promise<T> {
+  const previous = process.env.GITHUB_TOKEN;
+
+  delete process.env.GITHUB_TOKEN;
+
+  try {
+    return await fn();
+  } finally {
+    if (previous === undefined) {
+      delete process.env.GITHUB_TOKEN;
+    } else {
+      process.env.GITHUB_TOKEN = previous;
+    }
+  }
+}
 
 async function withTempEnv<T>(fn: (env: Env) => Promise<T>): Promise<T> {
   const root = await mkdtemp(path.join(tmpdir(), "gitpulse-starred-test-"));
