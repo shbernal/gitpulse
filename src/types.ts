@@ -334,3 +334,20 @@ export type SearchRepositoriesWithSource = {
   result: SearchRepositoryResult;
   source: SnapshotSource;
 };
+
+export type ViewerStarSource = "api" | "cache";
+
+export type ViewerStarUnknownReason = "unauthenticated" | "offline" | "error";
+
+export type ViewerStar =
+  | {
+      known: true;
+      starred: boolean;
+      checkedAt: string;
+      ageHours: number;
+      source: ViewerStarSource;
+    }
+  | {
+      known: false;
+      reason: ViewerStarUnknownReason;
+    };

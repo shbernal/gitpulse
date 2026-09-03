@@ -6,16 +6,22 @@ import type {
   SnapshotSource,
   StarredRepositoryResult,
   UserProfileResult,
+  ViewerStar,
 } from "../types";
 
-const schemaVersion = 5;
+const schemaVersion = 6;
 
-export function renderRepoJson(result: SnapshotResult, source?: SnapshotSource, options: { explainScores?: boolean } = {}): string {
+export function renderRepoJson(
+  result: SnapshotResult,
+  source?: SnapshotSource,
+  options: { explainScores?: boolean; viewerStar?: ViewerStar } = {},
+): string {
   return JSON.stringify(
     {
       schemaVersion,
       command: "repo",
       ...(source ? { source } : {}),
+      ...(options.viewerStar ? { viewerStar: options.viewerStar } : {}),
       result,
       ...(options.explainScores && result.ok ? { analysis: buildCompositeMetricsAnalysisFromSnapshot(result.snapshot) } : {}),
     },

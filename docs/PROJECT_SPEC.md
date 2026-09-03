@@ -161,6 +161,13 @@ The command should not add every starred repository to local shorthand. Only
 the repository the user selects and inspects should flow through the normal
 snapshot cache and history path.
 
+The star relationship itself is also a signal on the normal repository report:
+`gitpulse owner/name` tells an authenticated caller whether they starred the
+repository. Because it is viewer-relative and user-controlled, it is cached
+apart from the snapshot under its own short freshness window, and it stays
+tri-state so an unauthenticated or offline run reports "unknown" instead of
+asserting "not starred". See [STARRED.md](STARRED.md).
+
 ### Repository Search
 
 Given a search query, Gitpulse should make it easy to discover a GitHub

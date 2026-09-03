@@ -9,6 +9,7 @@ import { clearCache } from "./cache/maintenance";
 import { type CacheMode } from "./cache/policy";
 import { resolveSearchRepositories } from "./cache/resolve-search";
 import { resolveSnapshot } from "./cache/resolve";
+import { resolveViewerStar } from "./cache/resolve-viewer-star";
 import { resolveStarredRepositories } from "./cache/resolve-starred";
 import { resolveUserProfileSnapshot } from "./cache/resolve-user";
 import { ConfigError, configPath, loadConfig, resetConfig } from "./config";
@@ -382,13 +383,29 @@ async function runRepo(repo: string, options: CommandOptions): Promise<void> {
     now,
   });
   const result = snapshot.result;
+  // Star state is resolved against the snapshot's own ref so it tracks the repository the API
+  // actually returned, and stays outside the snapshot cache entry.
+  const viewerStar = result.ok
+    ? await resolveViewerStar(client, result.snapshot.ref, {
+        cacheEnabled: runtime.value.cache.cacheEnabled,
+        freshnessHours: runtime.value.starredFreshnessHours,
+        mode: runtime.value.cache.mode,
+        now,
+      })
+    : undefined;
 
   await recordHistory("repo", [repo], [snapshot], now);
 
   if (runtime.value.json) {
-    console.log(renderRepoJson(result, snapshot.source, { explainScores: runtime.value.explain }));
+    console.log(renderRepoJson(result, snapshot.source, { explainScores: runtime.value.explain, viewerStar }));
   } else if (result.ok) {
-    console.log(renderRepo(result.snapshot, { ...runtime.value.renderOptions, explainScores: runtime.value.explain }, snapshot.source));
+    console.log(
+      renderRepo(
+        result.snapshot,
+        { ...runtime.value.renderOptions, explainScores: runtime.value.explain, viewerStar },
+        snapshot.source,
+      ),
+    );
   } else {
     console.error(`gitpulse: ${result.error.message}`);
   }
@@ -838,6 +855,7 @@ type RuntimeOptions = {
     staleIfError: boolean;
     mode: CacheMode;
   };
+  starredFreshnessHours: number;
   contributorFetchLimit: number;
   explain: boolean;
   json: boolean;
@@ -886,6 +904,7 @@ async function loadRuntimeOptions(options: CommandOptions): Promise<RuntimeOptio
           staleIfError: config.cache.staleIfError,
           mode,
         },
+        starredFreshnessHours: config.cache.starredFreshnessHours,
         contributorFetchLimit: options.contributorFetchLimit ?? config.contributors.fetchLimit,
         explain: Boolean(options.explain),
         json: Boolean(options.json),

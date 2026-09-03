@@ -72,17 +72,31 @@ export function visualOutputCases(): VisualOutputCase[] {
 
   return [
     {
-      ansi: renderRepo(strongRepo, { color: true }, { kind: "api" }),
+      ansi: renderRepo(
+        strongRepo,
+        {
+          color: true,
+          viewerStar: { known: true, starred: true, checkedAt: "2026-05-16T00:00:00.000Z", ageHours: 0, source: "api" },
+        },
+        { kind: "api" },
+      ),
       columns: visualOutputColumns,
       id: "repo-strong",
-      notes: ["Single repository report with strong activity and popularity scores."],
+      notes: ["Single repository report with strong activity and popularity scores, starred by the caller."],
       title: "Single repository report",
     },
     {
-      ansi: renderRepo(warningRepo, { color: true }, { kind: "stale-cache", cachedAt: "2026-05-01T00:00:00.000Z", ageHours: 600 }),
+      ansi: renderRepo(
+        warningRepo,
+        {
+          color: true,
+          viewerStar: { known: true, starred: false, checkedAt: "2026-05-01T00:00:00.000Z", ageHours: 600, source: "cache" },
+        },
+        { kind: "stale-cache", cachedAt: "2026-05-01T00:00:00.000Z", ageHours: 600 },
+      ),
       columns: visualOutputColumns,
       id: "repo-warning",
-      notes: ["Archived repository with weak scores, missing data, stale cache, and warnings."],
+      notes: ["Archived repository with weak scores, missing data, stale cache, warnings, and a cached non-star."],
       title: "Warning-heavy repository report",
     },
     {

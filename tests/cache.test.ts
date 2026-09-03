@@ -32,6 +32,7 @@ describe("config parsing", () => {
       cache: {
         enabled: true,
         maxCacheHours: 168,
+        starredFreshnessHours: 24,
         staleIfError: true,
       },
       contributors: {

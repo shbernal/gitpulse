@@ -42,6 +42,7 @@ The local config file can set defaults:
   "cache": {
     "enabled": true,
     "maxCacheHours": 168,
+    "starredFreshnessHours": 24,
     "staleIfError": true
   },
   "contributors": {

@@ -8,6 +8,7 @@ import type {
   SnapshotSource,
   UserProfileSnapshot,
   UserRepositorySummary,
+  ViewerStar,
 } from "../types";
 import {
   buildCompositeMetricsAnalysisFromSnapshot,
@@ -34,6 +35,7 @@ type ThemeTone = Parameters<Theme["tone"]>[1];
 type SnapshotSuccess = Extract<SnapshotResult, { ok: true }>;
 type RepoRenderOptions = RenderOptions & {
   explainScores?: boolean;
+  viewerStar?: ViewerStar;
 };
 
 const DESCRIPTION_MAX_LENGTH = 240;
@@ -48,6 +50,7 @@ export function renderRepo(snapshot: RepoSnapshot, options: RepoRenderOptions = 
       [
         ["Topics", formatTopics(snapshot, theme)],
         ...renderRepositoryStateRows(snapshot, theme),
+        ...renderViewerStarRows(options.viewerStar, theme),
       ],
       theme,
       "",
@@ -804,6 +807,25 @@ function formatState(snapshot: RepoSnapshot, theme: Theme): string {
   ].filter((state): state is string => Boolean(state));
 
   return states.length > 0 ? states.join(", ") : theme.tone("active", "good");
+}
+
+function renderViewerStarRows(viewerStar: ViewerStar | undefined, theme: Theme): Array<[string, string]> {
+  // An unauthenticated run has no viewer to have an opinion, so the row is omitted rather than denied.
+  if (!viewerStar || (!viewerStar.known && viewerStar.reason === "unauthenticated")) {
+    return [];
+  }
+
+  return [["Your star", formatViewerStar(viewerStar, theme)]];
+}
+
+function formatViewerStar(viewerStar: ViewerStar, theme: Theme): string {
+  if (!viewerStar.known) {
+    return theme.muted(viewerStar.reason === "offline" ? "unknown (offline)" : "unknown (check failed)");
+  }
+
+  const age = viewerStar.source === "cache" ? ` ${theme.muted(`(as of ${formatCacheAge(viewerStar.ageHours)})`)}` : "";
+
+  return viewerStar.starred ? `${theme.tone("starred by you", "good")}${age}` : `${theme.muted("not starred")}${age}`;
 }
 
 function renderRepositoryStateRows(snapshot: RepoSnapshot, theme: Theme): Array<[string, string]> {

@@ -7,6 +7,8 @@ import { resolveStarredRepositories } from "../src/cache/resolve-starred";
 import { writeCachedSnapshot } from "../src/cache/store";
 import { writeCachedStarredRepositories } from "../src/cache/starred-store";
 import { collectStarredRepositories } from "../src/metrics/starred";
+import { resolveViewerStar } from "../src/cache/resolve-viewer-star";
+import { readCachedViewerStars, syncViewerStarsFromList, writeViewerStarProbe } from "../src/cache/viewer-stars-store";
 import type { GitHubClient } from "../src/github/client";
 import type { RepoSnapshot, StarredRepositoryList, StarredRepositorySummary } from "../src/types";
 
@@ -183,6 +185,137 @@ describe("starred CLI", () => {
   });
 });
 
+describe("viewer star resolution", () => {
+  test("trusts a cached star past the freshness window without calling the API", async () => {
+    await withTempEnv(async (env) => {
+      await writeViewerStarProbe({ owner: "acme", name: "tool" }, true, new Date("2026-05-01T00:00:00.000Z"), env);
+
+      const viewerStar = await resolveViewerStar(refusingStarClient(), { owner: "acme", name: "tool" }, {
+        cacheEnabled: true,
+        freshnessHours: 24,
+        mode: "default",
+        now: new Date("2026-05-16T00:00:00.000Z"),
+        env,
+      });
+
+      expect(viewerStar).toMatchObject({ known: true, starred: true, source: "cache" });
+    });
+  });
+
+  test("confirms a stale cached non-star with a single probe", async () => {
+    await withTempEnv(async (env) => {
+      await writeViewerStarProbe({ owner: "acme", name: "tool" }, false, new Date("2026-05-01T00:00:00.000Z"), env);
+
+      const viewerStar = await resolveViewerStar(starProbeClient(true), { owner: "acme", name: "tool" }, {
+        cacheEnabled: true,
+        freshnessHours: 24,
+        mode: "default",
+        now: new Date("2026-05-16T00:00:00.000Z"),
+        env,
+      });
+
+      expect(viewerStar).toMatchObject({ known: true, starred: true, source: "api" });
+      expect((await readCachedViewerStars(env))?.entries["acme/tool"].starred).toBe(true);
+    });
+  });
+
+  test("uses a fresh cached non-star without probing", async () => {
+    await withTempEnv(async (env) => {
+      await writeViewerStarProbe({ owner: "acme", name: "tool" }, false, new Date("2026-05-16T00:00:00.000Z"), env);
+
+      const viewerStar = await resolveViewerStar(refusingStarClient(), { owner: "acme", name: "tool" }, {
+        cacheEnabled: true,
+        freshnessHours: 24,
+        mode: "default",
+        now: new Date("2026-05-16T06:00:00.000Z"),
+        env,
+      });
+
+      expect(viewerStar).toMatchObject({ known: true, starred: false, source: "cache" });
+    });
+  });
+
+  test("answers a repository missing from a synced starred list without probing", async () => {
+    await withTempEnv(async (env) => {
+      await syncViewerStarsFromList(["acme/tool"], new Date("2026-05-16T00:00:00.000Z"), env);
+
+      const viewerStar = await resolveViewerStar(refusingStarClient(), { owner: "other", name: "repo" }, {
+        cacheEnabled: true,
+        freshnessHours: 24,
+        mode: "default",
+        now: new Date("2026-05-16T06:00:00.000Z"),
+        env,
+      });
+
+      expect(viewerStar).toMatchObject({ known: true, starred: false, source: "cache" });
+    });
+  });
+
+  test("reports unknown rather than guessing when offline with no cached answer", async () => {
+    await withTempEnv(async (env) => {
+      const viewerStar = await resolveViewerStar(refusingStarClient(), { owner: "acme", name: "tool" }, {
+        cacheEnabled: true,
+        freshnessHours: 24,
+        mode: "offline",
+        now: new Date("2026-05-16T00:00:00.000Z"),
+        env,
+      });
+
+      expect(viewerStar).toEqual({ known: false, reason: "offline" });
+    });
+  });
+
+  test("reports unknown without an API call when unauthenticated", async () => {
+    await withTempEnv(async (env) => {
+      const viewerStar = await resolveViewerStar(refusingStarClient({ authenticated: false }), { owner: "acme", name: "tool" }, {
+        cacheEnabled: true,
+        freshnessHours: 24,
+        mode: "default",
+        now: new Date("2026-05-16T00:00:00.000Z"),
+        env,
+      });
+
+      expect(viewerStar).toEqual({ known: false, reason: "unauthenticated" });
+    });
+  });
+
+  test("falls back to the cached answer when the probe fails", async () => {
+    await withTempEnv(async (env) => {
+      await writeViewerStarProbe({ owner: "acme", name: "tool" }, false, new Date("2026-05-01T00:00:00.000Z"), env);
+
+      const viewerStar = await resolveViewerStar(refusingStarClient(), { owner: "acme", name: "tool" }, {
+        cacheEnabled: true,
+        freshnessHours: 24,
+        mode: "default",
+        now: new Date("2026-05-16T00:00:00.000Z"),
+        env,
+      });
+
+      expect(viewerStar).toMatchObject({ known: true, starred: false, source: "cache" });
+    });
+  });
+
+  test("seeds the viewer star store from a fetched starred list", async () => {
+    await withTempEnv(async (env) => {
+      await resolveStarredRepositories(starredClient(), {
+        cacheEnabled: true,
+        maxCacheHours: 168,
+        staleIfError: true,
+        mode: "refresh",
+        sort: "created",
+        direction: "desc",
+        now: new Date("2026-05-16T00:00:00.000Z"),
+        env,
+      });
+
+      const cache = await readCachedViewerStars(env);
+
+      expect(cache?.listSyncedAt).toBe("2026-05-16T00:00:00.000Z");
+      expect(cache?.entries["acme/tool"]).toMatchObject({ starred: true });
+    });
+  });
+});
+
 async function withTempEnv<T>(fn: (env: Env) => Promise<T>): Promise<T> {
   const root = await mkdtemp(path.join(tmpdir(), "gitpulse-starred-test-"));
 
@@ -264,6 +397,24 @@ function starredClient(overrides: Partial<GitHubClient> = {}): GitHubClient {
       ];
     },
     ...overrides,
+  } as unknown as GitHubClient;
+}
+
+function starProbeClient(starred: boolean): GitHubClient {
+  return {
+    authenticated: true,
+    async isRepositoryStarredByAuthenticatedUser() {
+      return starred;
+    },
+  } as unknown as GitHubClient;
+}
+
+function refusingStarClient(overrides: { authenticated?: boolean } = {}): GitHubClient {
+  return {
+    authenticated: overrides.authenticated ?? true,
+    async isRepositoryStarredByAuthenticatedUser() {
+      throw new Error("probe should not have been reached");
+    },
   } as unknown as GitHubClient;
 }
 

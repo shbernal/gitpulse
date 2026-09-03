@@ -34,6 +34,10 @@ export function starredRepositoriesCachePath(
   return path.join(gitpulseCacheDir(env), "snapshots", "github-starred", `self-${options.sort}-${options.direction}.json`);
 }
 
+export function viewerStarsCachePath(env: Env = process.env): string {
+  return path.join(gitpulseCacheDir(env), "snapshots", "github-viewer-stars", "self.json");
+}
+
 export function searchRepositoriesCachePath(
   options: { query: string; sort: SearchRepositorySort; order: SearchRepositoryOrder; limit: number },
   env: Env = process.env,

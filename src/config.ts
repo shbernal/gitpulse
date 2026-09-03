@@ -10,6 +10,7 @@ export type GitpulseConfig = {
   cache: {
     enabled: boolean;
     maxCacheHours: number;
+    starredFreshnessHours: number;
     staleIfError: boolean;
   };
   contributors: {
@@ -25,6 +26,8 @@ export const defaultConfig: GitpulseConfig = {
   cache: {
     enabled: true,
     maxCacheHours: 168,
+    // Star state is user-controlled and noticed immediately, so it expires far sooner than a snapshot.
+    starredFreshnessHours: 24,
     staleIfError: true,
   },
   contributors: {
@@ -109,6 +112,14 @@ export function parseConfig(value: unknown): GitpulseConfig {
       }
 
       config.cache.maxCacheHours = value.cache.maxCacheHours;
+    }
+
+    if (value.cache.starredFreshnessHours !== undefined) {
+      if (!isNonNegativeNumber(value.cache.starredFreshnessHours)) {
+        throw new ConfigError("Config field cache.starredFreshnessHours must be a non-negative number.");
+      }
+
+      config.cache.starredFreshnessHours = value.cache.starredFreshnessHours;
     }
 
     if (value.cache.staleIfError !== undefined) {

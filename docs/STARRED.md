@@ -66,11 +66,55 @@ Starred repository lists use the existing cache policy:
 - `--offline` reads only the starred-list cache, then the selected repository
   report follows normal offline repository snapshot behavior.
 - `--max-cache-hours` controls starred-list freshness.
-- `gitpulse cache clear` removes starred-list cache entries because they live
-  under the normal Gitpulse cache root.
+- `gitpulse cache clear` removes starred-list and viewer star cache entries
+  because they live under the normal Gitpulse cache root.
 
 Cache entries are keyed by sort and direction so `created desc` and
 `updated desc` can preserve their own ordering.
+
+## Viewer Star State on the Repository Report
+
+`gitpulse owner/name` shows a `Your star` row telling the caller whether they
+starred the repository. It is a viewer-relative fact, so it is resolved beside
+the snapshot rather than stored inside it, and it never inherits the snapshot
+cache lifetime.
+
+State lives in its own store, one entry per repository:
+
+```text
+${XDG_CACHE_HOME:-~/.cache}/gitpulse/snapshots/github-viewer-stars/self.json
+```
+
+Two writers fill it. A successful `gitpulse starred` list fetch replaces the
+whole store with that list's positives and records `listSyncedAt`; any
+repository missing from a synced list was not starred at that moment, so the
+negative case is cached too. A single-repository probe,
+`GET /user/starred/{owner}/{repo}`, writes one entry.
+
+### Freshness Rule
+
+The two cached answers do not carry equal risk, so they do not share a rule.
+
+| Cached state | Fresh | Stale |
+| --- | --- | --- |
+| starred | trusted | trusted, rendered with its age |
+| not starred | trusted | confirmed with one probe |
+| absent | — | probe |
+
+A cached "starred" stays true until the user unstars, which is rare. A cached
+"not starred" is wrong the moment the user stars the repository, which is
+exactly when they look, so it expires after `cache.starredFreshnessHours`
+(default 24, separate from the 168-hour snapshot default).
+
+The probe is one request and only fires on the ambiguous branch, so a starred
+repository costs nothing after the first answer.
+
+### Unknown Is a Real State
+
+`Your star` is tri-state. An unauthenticated run has no viewer, so the row is
+omitted rather than rendered as "not starred". `--offline` with nothing cached,
+and a failed probe with nothing cached, render `unknown`. `--refresh` always
+probes.
 
 ## Selector Behavior
 

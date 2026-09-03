@@ -109,6 +109,28 @@ describe("terminal rendering", () => {
     expect(section(output, "Repo", "Pulse")).toContain("Topics  cli, github");
   });
 
+  test("renders viewer star state in the top repo block", () => {
+    const starred = renderRepo(snapshot("acme/tool"), {
+      color: false,
+      viewerStar: { known: true, starred: true, checkedAt: "2026-05-16T00:00:00.000Z", ageHours: 0, source: "api" },
+    });
+    const cachedMiss = renderRepo(snapshot("acme/tool"), {
+      color: false,
+      viewerStar: { known: true, starred: false, checkedAt: "2026-05-13T00:00:00.000Z", ageHours: 72.4, source: "cache" },
+    });
+
+    expect(section(starred, "Repo", "Pulse")).toContain("Your star  starred by you");
+    expect(section(cachedMiss, "Repo", "Pulse")).toContain("Your star  not starred (as of 3d ago)");
+  });
+
+  test("omits the viewer star row when there is no authenticated viewer", () => {
+    const output = renderRepo(snapshot("acme/tool"), { color: false, viewerStar: { known: false, reason: "unauthenticated" } });
+    const offline = renderRepo(snapshot("acme/tool"), { color: false, viewerStar: { known: false, reason: "offline" } });
+
+    expect(output).not.toContain("Your star");
+    expect(section(offline, "Repo", "Pulse")).toContain("Your star  unknown (offline)");
+  });
+
   test("renders cache source metadata when provided", () => {
     const output = renderRepo(snapshot("acme/tool"), { color: false }, { kind: "cache", cachedAt: "2026-05-13T00:00:00.000Z", ageHours: 72.4 });
 
@@ -283,7 +305,7 @@ describe("JSON rendering", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
     const parsed = JSON.parse(renderRepoJson(result, { kind: "api" }));
 
-    expect(parsed.schemaVersion).toBe(5);
+    expect(parsed.schemaVersion).toBe(6);
     expect(parsed.command).toBe("repo");
     expect(parsed.source.kind).toBe("api");
     expect(parsed.result.ok).toBe(true);
@@ -298,7 +320,7 @@ describe("JSON rendering", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
     const parsed = JSON.parse(renderRepoJson(result, { kind: "api" }, { explainScores: true }));
 
-    expect(parsed.schemaVersion).toBe(5);
+    expect(parsed.schemaVersion).toBe(6);
     expect(parsed.command).toBe("repo");
     expect(parsed.analysis.activityFreshness.contributions[0]).toMatchObject({
       id: "commitOrPushFreshness",
@@ -323,7 +345,7 @@ describe("JSON rendering", () => {
     ];
     const parsed = JSON.parse(renderComparisonJson(results, [{ kind: "cache", cachedAt: "2026-05-16T00:00:00.000Z", ageHours: 1 }]));
 
-    expect(parsed.schemaVersion).toBe(5);
+    expect(parsed.schemaVersion).toBe(6);
     expect(parsed.command).toBe("compare");
     expect(parsed.results).toHaveLength(2);
     expect(parsed.results[0].source.kind).toBe("cache");
@@ -334,7 +356,7 @@ describe("JSON rendering", () => {
     const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
     const parsed = JSON.parse(renderDocsJson(result, { kind: "api" }));
 
-    expect(parsed.schemaVersion).toBe(5);
+    expect(parsed.schemaVersion).toBe(6);
     expect(parsed.command).toBe("docs");
     expect(parsed.source.kind).toBe("api");
     expect(parsed.result.ok).toBe(true);
@@ -347,7 +369,7 @@ describe("JSON rendering", () => {
     const result: UserProfileResult = { ok: true, snapshot: userSnapshot("octocat") };
     const parsed = JSON.parse(renderUserProfileJson(result, { kind: "api" }));
 
-    expect(parsed.schemaVersion).toBe(5);
+    expect(parsed.schemaVersion).toBe(6);
     expect(parsed.command).toBe("user");
     expect(parsed.source.kind).toBe("api");
     expect(parsed.result.ok).toBe(true);

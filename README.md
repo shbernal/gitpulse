@@ -105,12 +105,19 @@ gitpulse user octocat --json
 
 ```json
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "command": "repo",
   "source": {
     "kind": "cache",
     "cachedAt": "2026-05-16T12:00:00.000Z",
     "ageHours": 4
+  },
+  "viewerStar": {
+    "known": true,
+    "starred": true,
+    "checkedAt": "2026-05-16T12:00:00.000Z",
+    "ageHours": 4,
+    "source": "cache"
   },
   "result": {
     "ok": true
@@ -131,6 +138,8 @@ Bash completion covers commands, flags, `--color` and `--theme` values, and repo
 ## Reading the output
 
 A repository report opens with the repository and its URL, then composite signals, then grouped metric sections. `--explain` breaks down how each composite score was reached.
+
+When `GITHUB_TOKEN` is set, the top block also carries a `Your star` row saying whether you starred the repository. It is cached separately from the snapshot on a shorter window, and stays honest: an unauthenticated run omits the row, and an offline run with nothing cached says `unknown` rather than `not starred`.
 
 Activity freshness is drawn as a score bar. The latest release field reports the latest stable release, so drafts and prereleases never inflate it. Separately, the Activity section lists release paths found in a bounded sample of releases, so a project pushing nightly, beta, or release-candidate builds shows that movement with its own counts and recency. Drafts are excluded and disclosed rather than folded in, and a `Sampled` line appears when the sample is narrower than the full release history.
 
@@ -176,6 +185,7 @@ Defaults:
   "cache": {
     "enabled": true,
     "maxCacheHours": 168,
+    "starredFreshnessHours": 24,
     "staleIfError": true
   },
   "contributors": {

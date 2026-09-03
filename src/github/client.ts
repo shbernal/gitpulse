@@ -46,8 +46,10 @@ export class GitHubApiError extends Error {
 
 export class GitHubClient {
   private readonly octokit: Octokit;
+  readonly authenticated: boolean;
 
   constructor(token = process.env.GITHUB_TOKEN) {
+    this.authenticated = Boolean(token);
     this.octokit = new Octokit({
       auth: token || undefined,
       log: {
@@ -158,6 +160,24 @@ export class GitHubClient {
       return repositories as GitHubStarredRepository[];
     } catch (error) {
       throw normalizeGitHubError(error, "Could not fetch starred repositories.");
+    }
+  }
+
+  async isRepositoryStarredByAuthenticatedUser(ref: RepoRef): Promise<boolean> {
+    try {
+      await this.octokit.rest.activity.checkRepoIsStarredByAuthenticatedUser({
+        owner: ref.owner,
+        repo: ref.name,
+      });
+
+      return true;
+    } catch (error) {
+      // GitHub answers this endpoint with 404 for "not starred" as well as for a missing repository.
+      if ((error as { status?: number }).status === 404) {
+        return false;
+      }
+
+      throw normalizeGitHubError(error, `Could not check whether you starred ${formatRepoRef(ref)}.`);
     }
   }
 
