@@ -89,6 +89,23 @@ export type GitHubSearchRepository = {
   score?: number;
 };
 
+export type GitHubForkRepository = {
+  full_name: string;
+  name: string;
+  description: string | null;
+  html_url: string;
+  created_at: string | null;
+  pushed_at: string | null;
+  updated_at: string | null;
+  language: string | null;
+  stargazers_count?: number;
+  forks_count?: number;
+  open_issues_count?: number;
+  archived?: boolean;
+  fork: boolean;
+  owner: { login: string };
+};
+
 export type SearchRepositoryOverview = {
   repositories: GitHubSearchRepository[];
   totalCount: number;

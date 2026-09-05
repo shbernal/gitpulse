@@ -1,6 +1,7 @@
-import { renderComparison, renderDocs, renderRepo, renderUserProfile } from "../src/render/table";
+import { renderComparison, renderDocs, renderForks, renderRepo, renderUserProfile } from "../src/render/table";
 import { THEME_NAMES, type ThemeName } from "../src/render/palettes";
-import type { RepoSnapshot, UserProfileSnapshot } from "../src/types";
+import type { ForkList, RepoSnapshot, UserProfileSnapshot } from "../src/types";
+import { daysSince } from "../src/util/dates";
 
 export const visualOutputColumns = 100;
 
@@ -69,6 +70,7 @@ export function visualOutputCases(): VisualOutputCase[] {
     watchers: 88,
   });
   const user = userSnapshot("octocat");
+  const forks = forkList("acme/pulsekit");
 
   return [
     {
@@ -148,6 +150,13 @@ export function visualOutputCases(): VisualOutputCase[] {
       id: "user",
       notes: ["GitHub user profile and repository footprint report."],
       title: "User profile report",
+    },
+    {
+      ansi: renderForks(forks, { color: true }),
+      columns: visualOutputColumns,
+      id: "forks",
+      notes: ["Most starred forks of a repository, with untouched and archived forks marked."],
+      title: "Fork listing",
     },
     {
       allowOverflow: true,
@@ -475,5 +484,35 @@ function userRepository(
     stars,
     updatedAt: "2026-05-15T00:00:00Z",
     url: `https://github.com/${login}/${name}`,
+  };
+}
+
+function forkList(repository: string): ForkList {
+  const forks: Array<[string, number, number, string | null, string | null, string | null, boolean]> = [
+    ["vendorly/pulsekit", 1240, 96, "TypeScript", "2024-02-11T00:00:00Z", "2026-05-04T00:00:00Z", false],
+    ["nightshift/pulsekit", 380, 21, "TypeScript", "2023-11-02T00:00:00Z", "2026-03-18T00:00:00Z", false],
+    ["archivist/pulsekit", 96, 4, "TypeScript", "2022-06-30T00:00:00Z", "2023-01-09T00:00:00Z", true],
+    ["driveby/pulsekit", 12, 0, null, "2025-08-14T00:00:00Z", "2025-08-12T00:00:00Z", false],
+  ];
+
+  return {
+    fetchedAt: "2026-05-16T00:00:00.000Z",
+    repository,
+    limit: 10,
+    forks: forks.map(([fullName, stars, forkCount, primaryLanguage, createdAt, pushedAt, archived]) => ({
+      fullName,
+      owner: fullName.split("/")[0],
+      description: null,
+      url: `https://github.com/${fullName}`,
+      primaryLanguage,
+      stars,
+      forks: forkCount,
+      openIssues: 0,
+      archived,
+      createdAt,
+      pushedAt,
+      daysSinceLastPush: daysSince(pushedAt, new Date("2026-05-16T00:00:00.000Z")),
+      pushedSinceFork: Boolean(pushedAt && createdAt && pushedAt > createdAt),
+    })),
   };
 }

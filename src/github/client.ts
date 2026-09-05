@@ -13,6 +13,7 @@ import type {
   GitHubCommit,
   GitHubContentItem,
   GitHubContributor,
+  GitHubForkRepository,
   GitHubRelease,
   GitHubRepository,
   GitHubSearchRepository,
@@ -223,6 +224,22 @@ export class GitHubClient {
       };
     } catch (error) {
       throw normalizeGitHubError(error, `Could not search repositories for "${options.query}".`);
+    }
+  }
+
+  // GitHub only sorts forks by creation date or stars, so "most starred" is the one useful ranking it can answer.
+  async getMostStarredForks(ref: RepoRef, limit: number): Promise<GitHubForkRepository[]> {
+    try {
+      const response = await this.octokit.rest.repos.listForks({
+        owner: ref.owner,
+        repo: ref.name,
+        sort: "stargazers",
+        per_page: Math.min(limit, githubPageSizeLimit),
+      });
+
+      return response.data.slice(0, limit) as GitHubForkRepository[];
+    } catch (error) {
+      throw normalizeGitHubError(error, `Could not fetch forks for ${formatRepoRef(ref)}.`);
     }
   }
 

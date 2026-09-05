@@ -1,6 +1,8 @@
 import type {
   CompositeMetric,
   DocumentationSignal,
+  ForkList,
+  ForkSummary,
   RepoSnapshot,
   ReleaseSummary,
   ReleaseTrack,
@@ -216,6 +218,21 @@ export function renderUserProfile(snapshot: UserProfileSnapshot, options: Render
   return output.join("\n").trimEnd();
 }
 
+export function renderForks(list: ForkList, options: RenderOptions = {}): string {
+  const theme = createTheme(options);
+  const output = [
+    theme.repo(`gitpulse forks ${list.repository}`),
+    "",
+    theme.section(`Most starred forks (top ${list.limit})`),
+    renderForkTable(list.forks, theme),
+    "",
+  ];
+
+  output.push(...renderDataProvenance(theme, { fetchedAt: list.fetchedAt, warnings: [] }));
+
+  return output.join("\n").trimEnd();
+}
+
 export function renderComparison(results: SnapshotResult[], options: RenderOptions = {}, sources: SnapshotSource[] = []): string {
   const theme = createTheme(options);
   const snapshots = results.filter((result): result is SnapshotSuccess => result.ok);
@@ -364,6 +381,33 @@ function renderUserRepositoryTable(repositories: UserRepositorySummary[], theme:
     ]),
     theme,
   );
+}
+
+function renderForkTable(forks: ForkSummary[], theme: Theme): string {
+  if (forks.length === 0) {
+    return `  ${theme.missing()}`;
+  }
+
+  return renderTable(
+    ["Fork", "Stars", "Forks", "Language", "Last push", "State"],
+    forks.map((fork) => [
+      theme.repo(fork.fullName),
+      theme.value(formatCompactNumber(fork.stars)),
+      theme.value(formatCompactNumber(fork.forks)),
+      formatPrimaryLanguage(fork.primaryLanguage, theme),
+      formatDateWithAgeTone(fork.pushedAt, fork.daysSinceLastPush, theme),
+      formatForkState(fork, theme),
+    ]),
+    theme,
+  );
+}
+
+function formatForkState(fork: ForkSummary, theme: Theme): string {
+  if (fork.archived) {
+    return theme.tone("archived", "bad");
+  }
+
+  return fork.pushedSinceFork ? theme.tone("active", "good") : theme.tone("untouched", "muted");
 }
 
 function formatRepositoryTitle(snapshot: RepoSnapshot, theme: Theme): string {

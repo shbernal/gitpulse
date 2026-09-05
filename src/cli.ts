@@ -14,17 +14,19 @@ import { resolveStarredRepositories } from "./cache/resolve-starred";
 import { resolveUserProfileSnapshot } from "./cache/resolve-user";
 import { ConfigError, configPath, loadConfig, resetConfig } from "./config";
 import { GitHubApiError, GitHubClient } from "./github/client";
+import { collectMostStarredForks } from "./metrics/forks";
 import { renderHistory } from "./render/history";
 import {
   renderComparisonJson,
   renderDocsJson,
+  renderForksJson,
   renderRepoJson,
   renderSearchRepositoriesJson,
   renderStarMutationJson,
   renderStarredRepositoriesJson,
   renderUserProfileJson,
 } from "./render/json";
-import { renderComparison, renderDocs, renderRepo, renderUserProfile } from "./render/table";
+import { renderComparison, renderDocs, renderForks, renderRepo, renderUserProfile } from "./render/table";
 import { THEME_NAMES, type ThemeName } from "./render/palettes";
 import { COLOR_MODES, shouldUseColor, type ColorMode, type RenderOptions } from "./render/terminal";
 import { formatInferenceFailure, inferRepositoryFromGitRemotes } from "./util/git-remotes";
@@ -65,6 +67,13 @@ type StarredCommandOptions = CommandOptions & {
 
 type StarCommandOptions = {
   json?: boolean;
+};
+
+type ForksCommandOptions = {
+  color?: ColorMode;
+  json?: boolean;
+  limit?: number;
+  theme?: ThemeName;
 };
 
 type SearchCommandOptions = CommandOptions & {
@@ -187,6 +196,21 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
     .option("--json", "emit JSON output")
     .action(async (repo: string | undefined, _options: StarCommandOptions, command: Command) => {
       await runStarMutation("unstar", repo, command.optsWithGlobals<StarCommandOptions>());
+    });
+
+  program
+    .command("forks")
+    .description("Show the most starred forks of a repository")
+    .argument(
+      "[repo]",
+      "repository reference in owner/repo form or exact local shorthand; omitted inside a Git checkout",
+    )
+    .option("--json", "emit JSON output")
+    .addOption(colorOption())
+    .addOption(themeOption())
+    .addOption(forksLimitOption())
+    .action(async (repo: string | undefined, _options: ForksCommandOptions, command: Command) => {
+      await runForks(repo, command.optsWithGlobals<ForksCommandOptions>());
     });
 
   addSearchOptions(
@@ -356,8 +380,14 @@ function searchOrderOption(): Option {
 
 function searchLimitOption(): Option {
   return new Option("--limit <count>", "maximum repository search results to fetch")
-    .argParser(parseSearchLimit)
+    .argParser(parsePageLimit)
     .default(20);
+}
+
+function forksLimitOption(): Option {
+  return new Option("--limit <count>", "forks to show, up to one API page")
+    .argParser(parsePageLimit)
+    .default(10);
 }
 
 function parseMaxCacheHours(value: string): number {
@@ -380,7 +410,7 @@ function parsePositiveInteger(value: string): number {
   return count;
 }
 
-function parseSearchLimit(value: string): number {
+function parsePageLimit(value: string): number {
   const count = parsePositiveInteger(value);
 
   if (count > 100) {
@@ -723,7 +753,7 @@ async function runStarMutation(
     return;
   }
 
-  const target = await resolveStarTarget(action, repo, json);
+  const target = await resolveCommandTarget(action, repo, json);
 
   if (!target.ok) {
     fail(target.message, target.code);
@@ -782,8 +812,8 @@ function formatStarMutation(mutation: StarMutation): string {
   return mutation.starred ? `Starred ${mutation.repository}` : `Unstarred ${mutation.repository}`;
 }
 
-async function resolveStarTarget(
-  action: StarAction,
+async function resolveCommandTarget(
+  command: string,
   repo: string | undefined,
   json: boolean,
 ): Promise<{ ok: true; fullName: string } | { ok: false; message: string; code: string }> {
@@ -798,7 +828,7 @@ async function resolveStarTarget(
   const inferred = await inferRepositoryFromGitRemotes();
 
   if (inferred.kind === "outside-checkout") {
-    return { ok: false, message: `gitpulse ${action} needs owner/name outside a Git checkout.`, code: "no_target" };
+    return { ok: false, message: `gitpulse ${command} needs owner/name outside a Git checkout.`, code: "no_target" };
   }
 
   if (inferred.kind !== "inferred") {
@@ -810,6 +840,47 @@ async function resolveStarTarget(
   }
 
   return { ok: true, fullName: inferred.fullName };
+}
+
+async function runForks(repo: string | undefined, options: ForksCommandOptions): Promise<void> {
+  const json = Boolean(options.json);
+  const renderOptions = await loadRenderOptions(options);
+
+  if (!renderOptions.ok) {
+    console.error(`gitpulse: ${renderOptions.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const target = await resolveCommandTarget("forks", repo, json);
+
+  if (!target.ok) {
+    console.error(`gitpulse: ${target.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const result = await collectMostStarredForks(new GitHubClient(), parseRepoRef(target.fullName), {
+    limit: options.limit ?? 10,
+  });
+
+  if (!result.ok) {
+    if (json) {
+      console.log(renderForksJson(result));
+    } else {
+      console.error(`gitpulse: ${result.error.message}`);
+    }
+
+    process.exitCode = 1;
+    return;
+  }
+
+  if (json) {
+    console.log(renderForksJson(result));
+    return;
+  }
+
+  console.log(renderForks(result.list, renderOptions.value));
 }
 
 async function runSearch(

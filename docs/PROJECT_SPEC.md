@@ -208,6 +208,25 @@ Search result caches are separate from repository snapshots. Only the selected
 or lucky repository should flow through the normal repository snapshot cache and
 history path.
 
+### Fork Listing
+
+Fork counts say how many copies exist but not whether any of them matter.
+`gitpulse forks` lists the most starred forks of a repository so a reader can
+see whether downstream work gathered its own audience:
+
+```bash
+gitpulse forks owner/name
+gitpulse forks --limit 25
+```
+
+The command is one API request against the fork list endpoint, sorted by stars.
+GitHub can only sort forks by creation date or stars, so activity ranking is out
+of reach without paginating the whole list, and Gitpulse does not attempt it.
+
+Ahead/behind counts stay out of scope: they cost one comparison request per fork
+and only cover the fork default branch. Listing forks does not relax the rule
+that repository inference never resolves fork parents through the API.
+
 ### Evaluation Lenses
 
 Gitpulse should organize raw datapoints into a few practical lenses. These lenses guide output structure and metric design:

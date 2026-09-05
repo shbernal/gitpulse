@@ -1,6 +1,7 @@
 import { buildComparisonSummary } from "../metrics/compare";
 import { buildCompositeMetricsAnalysisFromSnapshot } from "../metrics/composite";
 import type {
+  ForkResult,
   SearchRepositoryResult,
   SnapshotResult,
   SnapshotSource,
@@ -102,6 +103,18 @@ export function renderSearchRepositoriesJson(result: SearchRepositoryResult, sou
       schemaVersion,
       command: "search",
       ...(source ? { source } : {}),
+      result,
+    },
+    null,
+    2,
+  );
+}
+
+export function renderForksJson(result: ForkResult): string {
+  return JSON.stringify(
+    {
+      schemaVersion,
+      command: "forks",
       result,
     },
     null,

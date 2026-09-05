@@ -246,6 +246,40 @@ export type UserProfileSnapshot = {
   warnings: string[];
 };
 
+export type ForkSummary = {
+  fullName: string;
+  owner: string;
+  description: string | null;
+  url: string;
+  primaryLanguage: string | null;
+  stars: number;
+  forks: number;
+  openIssues: number;
+  archived: boolean;
+  createdAt: string | null;
+  pushedAt: string | null;
+  daysSinceLastPush: number | null;
+  // GitHub carries the parent push date over to a new fork, so an untouched fork never pushes past its own creation.
+  pushedSinceFork: boolean;
+};
+
+export type ForkList = {
+  fetchedAt: string;
+  repository: string;
+  limit: number;
+  forks: ForkSummary[];
+};
+
+export type ForkResult =
+  | {
+      ok: true;
+      list: ForkList;
+    }
+  | {
+      ok: false;
+      error: SnapshotError;
+    };
+
 export type SnapshotError = {
   message: string;
   status?: number;

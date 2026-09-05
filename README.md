@@ -74,6 +74,14 @@ gitpulse star                # the repository of the checkout you are in
 gitpulse unstar cli/cli
 ```
 
+See which forks of a project attracted an audience of their own:
+
+```bash
+gitpulse forks tj/commander.js
+gitpulse forks                      # the repository of the checkout you are in
+gitpulse forks cli/cli --limit 25
+```
+
 Look at the account behind a project:
 
 ```bash

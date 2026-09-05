@@ -15,6 +15,7 @@ describe("visual output harness", () => {
       "repo-release-paths",
       "docs",
       "user",
+      "forks",
       "repo-long-content",
       "theme-tokyo-night",
       "theme-catppuccin-mocha",

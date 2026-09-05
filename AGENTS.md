@@ -12,13 +12,13 @@
   - [CONTRIBUTING.md](CONTRIBUTING.md): workflow, layout, conventions
   - [docs/PROJECT_SPEC.md](docs/PROJECT_SPEC.md): scope, phases, signals, non-goals
   - [docs/COMPOSITE_METRICS.md](docs/COMPOSITE_METRICS.md): composite formulas and caveats
-  - [docs/COMPLETIONS.md](docs/COMPLETIONS.md), [docs/SEARCH.md](docs/SEARCH.md), [docs/STARRED.md](docs/STARRED.md), [docs/DOCS_COMMAND.md](docs/DOCS_COMMAND.md): per-command contracts
+  - [docs/COMPLETIONS.md](docs/COMPLETIONS.md), [docs/SEARCH.md](docs/SEARCH.md), [docs/STARRED.md](docs/STARRED.md), [docs/DOCS_COMMAND.md](docs/DOCS_COMMAND.md), [docs/FORKS.md](docs/FORKS.md): per-command contracts
   - [docs/THEMES.md](docs/THEMES.md), [docs/VISUAL_OUTPUT.md](docs/VISUAL_OUTPUT.md): terminal output
 
 - Hard contracts
   - Bare repository shorthand stays local-only and exact. The root command never searches GitHub for an unknown word, with or without `--lucky`. It fails and asks for `owner/name`. Remote discovery lives under `gitpulse search`. Zero-argument inference reads local Git remotes only and never resolves fork parents through the API. Push back on any proposal that erodes this.
   - Phase 1 stays deterministic and API-driven. No AI dependency, no subjective NLP.
-  - Reserved command words (`docs`, `web`, `star`, `unstar`, `starred`, `search`, `user`, `history`, `cache`, `config`, `completions`) are commands, never shorthand.
+  - Reserved command words (`docs`, `web`, `star`, `unstar`, `starred`, `search`, `user`, `forks`, `history`, `cache`, `config`, `completions`) are commands, never shorthand.
   - `gitpulse star` and `gitpulse unstar` are the only writes to GitHub. Keep the write surface at the caller's own star; issues, pull requests, releases and repository settings stay with `gh`.
   - Top-level `docs/*.md` describe the shipped implementation. Proposals and deferred ideas go under `docs/next-features/`.
   - No backwards compatibility. Prefer the cleaner command contract and delete the old one.

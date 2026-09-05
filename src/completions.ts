@@ -3,12 +3,13 @@ export function renderBashCompletionScript(commandName = "gitpulse"): string {
 _gitpulse()
 {
   local cur prev cmd
-  local top_commands="docs web star unstar starred search user history cache config completions"
+  local top_commands="docs web star unstar starred search user forks history cache config completions"
   local theme_values="tokyo-night catppuccin-mocha nord gruvbox-dark dracula"
   local shared_flags="--json --color --theme --refresh --offline --max-cache-hours --contributor-fetch-limit"
   local repo_flags="$shared_flags --explain"
   local starred_flags="--json --color --theme --refresh --offline --max-cache-hours --list --sort --direction"
   local star_flags="--json"
+  local forks_flags="--json --color --theme --limit"
   local search_flags="--json --color --theme --refresh --offline --max-cache-hours --list --lucky --sort --order --limit"
   local user_flags="--json --color --theme --refresh --offline --max-cache-hours"
 
@@ -52,6 +53,8 @@ _gitpulse()
       COMPREPLY=( $(compgen -W "$user_flags" -- "$cur") )
     elif [[ "$cmd" == "star" || "$cmd" == "unstar" ]]; then
       COMPREPLY=( $(compgen -W "$star_flags" -- "$cur") )
+    elif [[ "$cmd" == "forks" ]]; then
+      COMPREPLY=( $(compgen -W "$forks_flags" -- "$cur") )
     elif [[ "$cmd" == "starred" ]]; then
       COMPREPLY=( $(compgen -W "$starred_flags" -- "$cur") )
     elif [[ "$cmd" == "search" ]]; then
@@ -71,7 +74,7 @@ _gitpulse()
   fi
 
   case "$cmd" in
-    docs|web|star|unstar)
+    docs|web|star|unstar|forks)
       _gitpulse_complete_repos "$cur"
       ;;
     user)
