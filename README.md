@@ -16,7 +16,7 @@ pnpm i -g @shbernal/gitpulse
 gitpulse cli/cli
 ```
 
-Node 20 or newer. No GitHub token needed for occasional checks on public repositories.
+Node 24 or newer. No GitHub token needed for occasional checks on public repositories.
 
 ## Usage
 

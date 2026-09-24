@@ -13,7 +13,7 @@
   "author": "shbernal",
   "license": "MIT",
   "type": "module",
-  "packageManager": "bun@1.3.13",
+  "packageManager": "bun@1.4.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/shbernal/gitpulse"
@@ -27,7 +27,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "scripts": {
     "dev": "bun run src/bin.ts",
