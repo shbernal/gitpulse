@@ -1,7 +1,6 @@
-import { GitHubApiError, GitHubClient } from "../github/client";
+import type { GitHubClient } from "../github/client";
 import type { GitHubUser, GitHubUserRepository, UserRepositoryOverview } from "../github/types";
 import type {
-  SnapshotError,
   UserLanguageFootprint,
   UserProfileFacts,
   UserProfileResult,
@@ -11,6 +10,7 @@ import type {
 } from "../types";
 import { daysSince } from "../util/dates";
 import { parseGitHubLogin } from "../util/github-login";
+import { toSnapshotError } from "./errors";
 
 type OptionalData<T> = {
   value: T | null;
@@ -68,7 +68,7 @@ export async function collectUserProfileSnapshot(
       ok: false,
       login,
       input,
-      error: errorToSnapshotError(error),
+      error: toSnapshotError(error),
     };
   }
 }
@@ -213,7 +213,7 @@ async function optional<T>(fn: () => Promise<T>, label: string): Promise<Optiona
       warning: null,
     };
   } catch (error) {
-    const snapshotError = errorToSnapshotError(error);
+    const snapshotError = toSnapshotError(error);
     return {
       value: null,
       warning: `Could not fetch ${label}: ${snapshotError.message}`,
@@ -249,28 +249,6 @@ function emptyToNull(value: string | null): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function errorToSnapshotError(error: unknown): SnapshotError {
-  if (error instanceof GitHubApiError) {
-    return {
-      message: error.rateLimitReset ? `${error.message} Resets at ${error.rateLimitReset}.` : error.message,
-      status: error.status,
-      code: error.code,
-    };
-  }
-
-  if (error instanceof Error) {
-    return {
-      message: error.message,
-      code: error.name,
-    };
-  }
-
-  return {
-    message: "Unknown error.",
-    code: "unknown",
-  };
-}
-
 export function createUserProfileFailure(input: string, error: unknown): UserProfileResult {
   let login: string | null = null;
 
@@ -284,6 +262,6 @@ export function createUserProfileFailure(input: string, error: unknown): UserPro
     ok: false,
     login,
     input,
-    error: errorToSnapshotError(error),
+    error: toSnapshotError(error),
   };
 }

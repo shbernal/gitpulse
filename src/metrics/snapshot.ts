@@ -1,4 +1,4 @@
-import { GitHubApiError, GitHubClient } from "../github/client";
+import type { GitHubClient } from "../github/client";
 import type {
   CommitOverview,
   ContributorOverview,
@@ -17,12 +17,12 @@ import type {
   ReleaseSummary,
   ReleaseTrack,
   ReleaseTrackKind,
-  SnapshotError,
   SnapshotResult,
 } from "../types";
 import { daysSince } from "../util/dates";
 import { formatRepoRef, parseRepoRef } from "../util/repo-ref";
 import { buildCompositeMetrics } from "./composite";
+import { toSnapshotError } from "./errors";
 
 type OptionalData<T> = {
   value: T | null;
@@ -58,7 +58,7 @@ export async function collectSnapshot(
       ok: false,
       ref: null,
       input,
-      error: errorToSnapshotError(error),
+      error: toSnapshotError(error),
     };
   }
 
@@ -108,7 +108,7 @@ export async function collectSnapshot(
       ok: false,
       ref,
       input,
-      error: errorToSnapshotError(error),
+      error: toSnapshotError(error),
     };
   }
 }
@@ -380,7 +380,7 @@ async function optional<T>(fn: () => Promise<T>, label: string): Promise<Optiona
       warning: null,
     };
   } catch (error) {
-    const snapshotError = errorToSnapshotError(error);
+    const snapshotError = toSnapshotError(error);
     return {
       value: null,
       warning: `Could not fetch ${label}: ${snapshotError.message}`,
@@ -470,28 +470,6 @@ function normalizeLicense(repository: GitHubRepository): string | null {
   return repository.license.key ?? repository.license.name;
 }
 
-function errorToSnapshotError(error: unknown): SnapshotError {
-  if (error instanceof GitHubApiError) {
-    return {
-      message: error.rateLimitReset ? `${error.message} Resets at ${error.rateLimitReset}.` : error.message,
-      status: error.status,
-      code: error.code,
-    };
-  }
-
-  if (error instanceof Error) {
-    return {
-      message: error.message,
-      code: error.name,
-    };
-  }
-
-  return {
-    message: "Unknown error.",
-    code: "unknown",
-  };
-}
-
 export function createSnapshotFailure(input: string, error: unknown): SnapshotResult {
   let ref: RepoRef | null = null;
 
@@ -505,7 +483,7 @@ export function createSnapshotFailure(input: string, error: unknown): SnapshotRe
     ok: false,
     ref,
     input,
-    error: errorToSnapshotError(error),
+    error: toSnapshotError(error),
   };
 }
 
