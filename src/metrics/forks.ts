@@ -1,8 +1,9 @@
-import { GitHubApiError, type GitHubClient } from "../github/client";
+import type { GitHubClient } from "../github/client";
 import type { GitHubForkRepository } from "../github/types";
-import type { ForkList, ForkResult, ForkSummary, RepoRef, SnapshotError } from "../types";
+import type { ForkList, ForkResult, ForkSummary, RepoRef } from "../types";
 import { daysSince } from "../util/dates";
 import { formatRepoRef } from "../util/repo-ref";
+import { toSnapshotError } from "./errors";
 
 export async function collectMostStarredForks(
   client: GitHubClient,
@@ -21,7 +22,7 @@ export async function collectMostStarredForks(
 
     return { ok: true, list };
   } catch (error) {
-    return { ok: false, error: errorToSnapshotError(error) };
+    return { ok: false, error: toSnapshotError(error) };
   }
 }
 
@@ -49,16 +50,4 @@ function hasPushedSinceFork(fork: GitHubForkRepository): boolean {
   }
 
   return new Date(fork.pushed_at).getTime() > new Date(fork.created_at).getTime();
-}
-
-function errorToSnapshotError(error: unknown): SnapshotError {
-  if (error instanceof GitHubApiError) {
-    return { message: error.message, status: error.status, code: error.code };
-  }
-
-  if (error instanceof Error) {
-    return { message: error.message, code: error.name };
-  }
-
-  return { message: "Unknown error." };
 }

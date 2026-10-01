@@ -1,13 +1,13 @@
-import { GitHubApiError, type GitHubClient } from "../github/client";
+import type { GitHubClient } from "../github/client";
 import type { GitHubStarredRepository } from "../github/types";
 import type {
-  SnapshotError,
   StarredRepositoryDirection,
   StarredRepositoryList,
   StarredRepositoryResult,
   StarredRepositorySort,
   StarredRepositorySummary,
 } from "../types";
+import { toSnapshotError } from "./errors";
 
 export type StarredCollectionOptions = {
   sort: StarredRepositorySort;
@@ -32,7 +32,7 @@ export async function collectStarredRepositories(
   } catch (error) {
     return {
       ok: false,
-      error: errorToSnapshotError(error),
+      error: toSnapshotError(error),
     };
   }
 }
@@ -50,27 +50,5 @@ function normalizeStarredRepository(repository: GitHubStarredRepository): Starre
     fork: repository.fork,
     pushedAt: repository.pushed_at,
     updatedAt: repository.updated_at,
-  };
-}
-
-function errorToSnapshotError(error: unknown): SnapshotError {
-  if (error instanceof GitHubApiError) {
-    return {
-      message: error.message,
-      status: error.status,
-      code: error.code,
-    };
-  }
-
-  if (error instanceof Error) {
-    return {
-      message: error.message,
-      code: error.name,
-    };
-  }
-
-  return {
-    message: "Unknown error.",
-    code: "unknown",
   };
 }

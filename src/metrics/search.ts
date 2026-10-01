@@ -1,4 +1,4 @@
-import { GitHubApiError, type GitHubClient } from "../github/client";
+import type { GitHubClient } from "../github/client";
 import type { GitHubSearchRepository } from "../github/types";
 import type {
   SearchRepositoryList,
@@ -6,8 +6,8 @@ import type {
   SearchRepositoryResult,
   SearchRepositorySort,
   SearchRepositorySummary,
-  SnapshotError,
 } from "../types";
+import { toSnapshotError } from "./errors";
 
 export type SearchRepositoryCollectionOptions = {
   query: string;
@@ -38,7 +38,7 @@ export async function collectSearchRepositories(
   } catch (error) {
     return {
       ok: false,
-      error: errorToSnapshotError(error),
+      error: toSnapshotError(error),
     };
   }
 }
@@ -57,27 +57,5 @@ function normalizeSearchRepository(repository: GitHubSearchRepository): SearchRe
     pushedAt: repository.pushed_at,
     updatedAt: repository.updated_at,
     score: typeof repository.score === "number" ? repository.score : null,
-  };
-}
-
-function errorToSnapshotError(error: unknown): SnapshotError {
-  if (error instanceof GitHubApiError) {
-    return {
-      message: error.message,
-      status: error.status,
-      code: error.code,
-    };
-  }
-
-  if (error instanceof Error) {
-    return {
-      message: error.message,
-      code: error.name,
-    };
-  }
-
-  return {
-    message: "Unknown error.",
-    code: "unknown",
   };
 }

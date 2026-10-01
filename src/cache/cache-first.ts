@@ -1,5 +1,6 @@
 import type { SnapshotError, SnapshotSource } from "../types";
 import { cacheAgeHours, cacheSource, isFreshCache, type CacheMode } from "./policy";
+import { toSnapshotError } from "../metrics/errors";
 
 export type CachePolicyOptions = {
   cacheEnabled: boolean;
@@ -41,7 +42,7 @@ export async function resolveCacheFirst<V, R>(
       cached = await source.read();
     } catch (error) {
       if (offline) {
-        const cause = errorToSnapshotError(error);
+        const cause = toSnapshotError(error);
         return {
           result: source.fail({ ...cause, message: `Could not read ${source.label}: ${cause.message}` }),
           source: { kind: "none" },
@@ -95,10 +96,4 @@ export async function resolveCacheFirst<V, R>(
   }
 
   return { result: source.fail(fetched.error), source: { kind: "api" } };
-}
-
-function errorToSnapshotError(error: unknown): SnapshotError {
-  return error instanceof Error
-    ? { message: error.message, code: error.name }
-    : { message: "Unknown error.", code: "unknown" };
 }

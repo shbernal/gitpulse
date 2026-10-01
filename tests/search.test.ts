@@ -7,7 +7,7 @@ import { resolveSearchRepositories } from "../src/cache/resolve-search";
 import { writeCachedSearchRepositories } from "../src/cache/search-store";
 import { writeCachedSnapshot } from "../src/cache/store";
 import { collectSearchRepositories } from "../src/metrics/search";
-import type { GitHubClient } from "../src/github/client";
+import { GitHubApiError, type GitHubClient } from "../src/github/client";
 import type { RepoSnapshot, SearchRepositoryList, SearchRepositorySummary } from "../src/types";
 
 type Env = Record<string, string | undefined>;
@@ -49,6 +49,31 @@ describe("repository search collection", () => {
           score: 1.5,
         },
       ],
+    });
+  });
+
+  test("carries a rate limit's code and reset time into the failure", async () => {
+    const result = await collectSearchRepositories(
+      searchClient({
+        async searchRepositories() {
+          throw new GitHubApiError("GitHub API rate limit exceeded.", {
+            status: 403,
+            code: "rate_limited",
+            rateLimitReset: "2026-05-16T01:00:00.000Z",
+          });
+        },
+      }),
+      new Date("2026-05-16T00:00:00.000Z"),
+      { query: "terminal ui", sort: "stars", order: "desc", limit: 20 },
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        message: "GitHub API rate limit exceeded. Resets at 2026-05-16T01:00:00.000Z.",
+        status: 403,
+        code: "rate_limited",
+      },
     });
   });
 });

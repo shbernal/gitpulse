@@ -295,3 +295,129 @@ describe("GitHubClient rate limits", () => {
     }
   });
 });
+
+type FakeReply = { status?: number; body: unknown; lastPage?: number; nextPage?: number };
+
+/** Answers every GitHub request through `route` and records the URLs the client asked for. */
+async function withFakeGitHub<T>(route: (url: URL) => FakeReply, fn: (client: GitHubClient) => Promise<T>) {
+  const originalFetch = globalThis.fetch;
+  const urls: URL[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    urls.push(url);
+    const reply = route(url);
+    const pageLink = (page: number, rel: string) => {
+      const target = new URL(url);
+      target.searchParams.set("page", String(page));
+      return `<${target}>; rel="${rel}"`;
+    };
+    const link = [
+      reply.nextPage ? pageLink(reply.nextPage, "next") : null,
+      reply.lastPage ? pageLink(reply.lastPage, "last") : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    return new Response(JSON.stringify(reply.body), {
+      status: reply.status ?? 200,
+      headers: { "content-type": "application/json", ...(link ? { link } : {}) },
+    });
+  }) as unknown as typeof fetch;
+
+  try {
+    return { value: await fn(new GitHubClient("")), urls };
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
+function people(count: number, offset = 0) {
+  return Array.from({ length: count }, (_, index) => ({ login: `user${offset + index}`, contributions: 100 - index }));
+}
+
+describe("GitHubClient contributors", () => {
+  test("stops at the fetch limit and reads the total from a one-per-page probe", async () => {
+    const { value, urls } = await withFakeGitHub(
+      (url) => {
+        const perPage = Number(url.searchParams.get("per_page"));
+        const page = Number(url.searchParams.get("page") ?? "1");
+        return perPage === 1
+          ? { body: people(1), nextPage: 2, lastPage: 250 }
+          : { body: people(perPage, (page - 1) * perPage), nextPage: page + 1, lastPage: 3 };
+      },
+      (client) => client.getContributors({ owner: "acme", name: "tool" }, 150),
+    );
+
+    expect(value.contributors).toHaveLength(150);
+    expect(value.totalCount).toBe(250);
+    expect(value.truncated).toBe(true);
+    expect(urls.map((url) => url.searchParams.get("page"))).toEqual(["1", "2", null]);
+  });
+
+  test("counts every contributor when all pages fit under the limit", async () => {
+    const { value, urls } = await withFakeGitHub(
+      (url) =>
+        url.searchParams.get("page") === "1"
+          ? { body: people(100), nextPage: 2, lastPage: 2 }
+          : { body: people(30, 100) },
+      (client) => client.getContributors({ owner: "acme", name: "tool" }, 500),
+    );
+
+    expect(value.totalCount).toBe(130);
+    expect(value.truncated).toBe(false);
+    expect(urls).toHaveLength(2);
+  });
+
+  test("takes the exact total from the first page when fetching one contributor", async () => {
+    const { value, urls } = await withFakeGitHub(
+      () => ({ body: people(1), nextPage: 2, lastPage: 42 }),
+      (client) => client.getContributors({ owner: "acme", name: "tool" }, 1),
+    );
+
+    expect(value.totalCount).toBe(42);
+    expect(value.truncated).toBe(true);
+    expect(urls).toHaveLength(1);
+  });
+
+  test("leaves the total unknown when the count probe fails", async () => {
+    const { value } = await withFakeGitHub(
+      (url) =>
+        url.searchParams.get("per_page") === "1"
+          ? { status: 422, body: { message: "Unprocessable" } }
+          : { body: people(2), nextPage: 2, lastPage: 9 },
+      (client) => client.getContributors({ owner: "acme", name: "tool" }, 2),
+    );
+
+    expect(value.totalCount).toBeNull();
+    expect(value.truncated).toBe(true);
+  });
+});
+
+function userRepos(count: number) {
+  return Array.from({ length: count }, (_, index) => ({ name: `r${index}` }));
+}
+
+describe("GitHubClient account repositories", () => {
+  test("stops paging at the fetch limit and reports truncation", async () => {
+    const { value, urls } = await withFakeGitHub(
+      (url) => ({ body: userRepos(Number(url.searchParams.get("per_page"))), nextPage: 2, lastPage: 4 }),
+      (client) => client.getUserRepositories("octocat", "User", 100),
+    );
+
+    expect(value.repositories).toHaveLength(100);
+    expect(value.truncated).toBe(true);
+    expect(urls).toHaveLength(1);
+    expect(urls[0].pathname).toBe("/users/octocat/repos");
+  });
+
+  test("lists an organization through the org endpoint", async () => {
+    const { value, urls } = await withFakeGitHub(
+      () => ({ body: userRepos(3) }),
+      (client) => client.getUserRepositories("acme", "Organization", 100),
+    );
+
+    expect(value.truncated).toBe(false);
+    expect(urls[0].pathname).toBe("/orgs/acme/repos");
+    expect(urls[0].searchParams.get("type")).toBe("public");
+  });
+});
