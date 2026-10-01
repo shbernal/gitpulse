@@ -12,6 +12,8 @@ import { writeCachedSnapshot } from "../src/cache/store";
 import { writeCachedUserProfileSnapshot } from "../src/cache/user-store";
 import { configPath, defaultConfig, parseConfig, resetConfig } from "../src/config";
 import type { GitHubClient } from "../src/github/client";
+import { THEME_NAMES } from "../src/render/palettes";
+import { COLOR_MODES } from "../src/render/terminal";
 import type { RepoSnapshot, UserProfileSnapshot } from "../src/types";
 
 type Env = Record<string, string | undefined>;
@@ -59,8 +61,12 @@ describe("config parsing", () => {
       color: "always",
       theme: "nord",
     });
-    expect(() => parseConfig({ output: { color: "sometimes" } })).toThrow("output.color");
-    expect(() => parseConfig({ output: { theme: "neon" } })).toThrow("output.theme");
+    expect(() => parseConfig({ output: { color: "sometimes" } })).toThrow(
+      `Config field output.color must be one of: ${COLOR_MODES.join(", ")}.`,
+    );
+    expect(() => parseConfig({ output: { theme: "neon" } })).toThrow(
+      `Config field output.theme must be one of: ${THEME_NAMES.join(", ")}.`,
+    );
   });
 });
 
