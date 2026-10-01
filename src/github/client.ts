@@ -350,6 +350,7 @@ export class GitHubClient {
         });
         const pageContributors = response.data as GitHubContributor[];
 
+        // Only a one-per-page request turns the last-page number into an exact count for free.
         if (page === 1 && perPage === 1) {
           exactTotalCount = countFromLinkHeader(response.headers.link, pageContributors.length);
         }

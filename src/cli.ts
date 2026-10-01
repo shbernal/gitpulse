@@ -12,7 +12,7 @@ import { resolveSnapshot } from "./cache/resolve";
 import { recordViewerStarMutation, resolveViewerStar } from "./cache/resolve-viewer-star";
 import { resolveStarredRepositories } from "./cache/resolve-starred";
 import { resolveUserProfileSnapshot } from "./cache/resolve-user";
-import { ConfigError, configPath, loadConfig, resetConfig } from "./config";
+import { ConfigError, configPath, loadConfig, maxContributorFetchLimit, resetConfig } from "./config";
 import { GitHubApiError, GitHubClient } from "./github/client";
 import { collectMostStarredForks } from "./metrics/forks";
 import { renderHistory } from "./render/history";
@@ -357,7 +357,7 @@ function contributorFetchLimitOption(): Option {
   return new Option(
     "--contributor-fetch-limit <count>",
     "override how many contributors are fetched for concentration metrics",
-  ).argParser(parsePositiveInteger);
+  ).argParser((value) => parseBoundedInteger(value, maxContributorFetchLimit));
 }
 
 function starredSortOption(): Option {
@@ -402,21 +402,15 @@ function parseMaxCacheHours(value: string): number {
   return hours;
 }
 
-function parsePositiveInteger(value: string): number {
-  const count = Number(value);
-
-  if (!Number.isInteger(count) || count <= 0) {
-    throw new InvalidArgumentError("Expected a positive integer.");
-  }
-
-  return count;
+function parsePageLimit(value: string): number {
+  return parseBoundedInteger(value, 100);
 }
 
-function parsePageLimit(value: string): number {
-  const count = parsePositiveInteger(value);
+function parseBoundedInteger(value: string, max: number): number {
+  const count = Number(value);
 
-  if (count > 100) {
-    throw new InvalidArgumentError("Expected an integer between 1 and 100.");
+  if (!Number.isInteger(count) || count <= 0 || count > max) {
+    throw new InvalidArgumentError(`Expected an integer between 1 and ${max}.`);
   }
 
   return count;
