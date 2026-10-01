@@ -181,6 +181,9 @@ Interactive selection is intentionally a local terminal concern:
 - Fall back to `gum filter` when available.
 - If neither selector exists, fail with a clear message and suggest
   `gitpulse starred --list`.
+- Selectors are found by a `PATH` lookup, not by running them.
+- Exit 1 (nothing chosen) and 130 (Ctrl-C) cancel quietly with exit code 130;
+  any other selector exit fails the command with the selector's name and code.
 
 The selector receives only `owner/name` lines.
 

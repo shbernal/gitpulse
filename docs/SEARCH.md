@@ -75,9 +75,13 @@ Interactive selection is intentionally a local terminal concern:
 - Fall back to `gum filter` when available.
 - If neither selector exists, fail with a clear message and suggest
   `gitpulse search <query> --list` or `gitpulse search <query> --lucky`.
+- Selectors are found by a `PATH` lookup, not by running them.
+- Exit 1 (nothing chosen) and 130 (Ctrl-C) cancel quietly with exit code 130;
+  any other selector exit fails the command with the selector's name and code.
 
-Search selector rows include repository name, star count, primary language,
-recent push/update date, and description. The selected `owner/name` flows into
+Search selector rows are aligned columns of repository name, star count, primary
+language, recent push/update date, and description, with the description
+collapsed to a single line. The selected `owner/name` flows into
 the same report path used by `gitpulse owner/name`.
 
 ## Root Command Boundary
