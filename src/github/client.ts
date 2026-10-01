@@ -1,4 +1,5 @@
 import { Octokit } from "octokit";
+import { version as packageVersion } from "../../package.json";
 import type {
   RepoRef,
   SearchRepositoryOrder,
@@ -61,7 +62,7 @@ export class GitHubClient {
         info: console.info,
         warn: suppressGitHubApiVersionDeprecationWarnings,
       },
-      userAgent: "gitpulse/0.1.0",
+      userAgent: `gitpulse/${packageVersion}`,
       // The bundled retry plugin retries 5xx responses; rate limits belong to the throttle handlers,
       // whose defaults would sleep until the limit resets, which can be an hour. Only short pauses
       // are waited out, once.

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { version as packageVersion } from "../package.json";
 import { GitHubApiError, GitHubClient, githubApiVersion } from "../src/github/client";
 import { collectSnapshot } from "../src/metrics/snapshot";
 import { renderRepoJson } from "../src/render/json";
@@ -209,6 +210,7 @@ describe("GitHubClient request headers", () => {
 
     expect(sent?.get("x-github-api-version")).toBe(githubApiVersion);
     expect(sent?.get("accept")).toBe("application/vnd.github+json");
+    expect(sent?.get("user-agent")).toStartWith(`gitpulse/${packageVersion} `);
   });
 });
 
