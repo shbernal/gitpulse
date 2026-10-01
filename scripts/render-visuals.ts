@@ -67,11 +67,15 @@ async function main(): Promise<void> {
     });
   }
 
-  await writeFile(join(outputDir, "manifest.json"), `${JSON.stringify({ generatedAt: new Date().toISOString(), cases: manifest }, null, 2)}\n`);
+  await writeFile(
+    join(outputDir, "manifest.json"),
+    `${JSON.stringify({ generatedAt: new Date().toISOString(), cases: manifest }, null, 2)}\n`,
+  );
 
   console.log(`Generated ${manifest.length} visual output cases in ${outputDir}`);
   for (const entry of manifest) {
-    const overflow = entry.maxVisibleLineLength > entry.columns ? `, overflow ${entry.maxVisibleLineLength}/${entry.columns}` : "";
+    const overflow =
+      entry.maxVisibleLineLength > entry.columns ? `, overflow ${entry.maxVisibleLineLength}/${entry.columns}` : "";
     const png = entry.files.png ? ", png" : "";
     console.log(`- ${entry.id}: svg${png}${overflow}`);
   }

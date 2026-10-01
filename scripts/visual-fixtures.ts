@@ -92,7 +92,13 @@ export function visualOutputCases(): VisualOutputCase[] {
         warningRepo,
         {
           color: true,
-          viewerStar: { known: true, starred: false, checkedAt: "2026-05-01T00:00:00.000Z", ageHours: 600, source: "cache" },
+          viewerStar: {
+            known: true,
+            starred: false,
+            checkedAt: "2026-05-01T00:00:00.000Z",
+            ageHours: 600,
+            source: "cache",
+          },
         },
         { kind: "stale-cache", cachedAt: "2026-05-01T00:00:00.000Z", ageHours: 600 },
       ),
@@ -260,12 +266,14 @@ function repoSnapshot(fullName: string, options: RepoSnapshotOptions = {}): Repo
       latestReleaseTag: options.latestReleaseTag === undefined ? "v1.0.0" : options.latestReleaseTag,
       releaseCount: options.releaseCount ?? 14,
       totalCommitCount: options.totalCommitCount ?? 1240,
-      releaseSummary: options.releaseSummary ?? releaseSummary(options.releaseCount ?? 14, options.latestReleaseAt === null),
+      releaseSummary:
+        options.releaseSummary ?? releaseSummary(options.releaseCount ?? 14, options.latestReleaseAt === null),
     },
     contributors: {
       fetchLimit: 100,
       fetchedCount: totalContributors ?? 0,
-      topContributor: options.topContributor === null ? null : { login: options.topContributor ?? "octo", contributions: 228 },
+      topContributor:
+        options.topContributor === null ? null : { login: options.topContributor ?? "octo", contributions: 228 },
       topContributorShare,
       totalCount: totalContributors,
       truncated: false,

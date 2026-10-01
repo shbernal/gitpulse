@@ -1,10 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type {
-  SearchRepositoryList,
-  SearchRepositoryOrder,
-  SearchRepositorySort,
-} from "../types";
+import type { SearchRepositoryList, SearchRepositoryOrder, SearchRepositorySort } from "../types";
 import { searchRepositoriesCachePath } from "./paths";
 
 export const searchRepositoriesCacheSchemaVersion = 1 as const;

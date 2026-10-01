@@ -26,7 +26,9 @@ export function renderRepoJson(
       ...(source ? { source } : {}),
       ...(options.viewerStar ? { viewerStar: options.viewerStar } : {}),
       result,
-      ...(options.explainScores && result.ok ? { analysis: buildCompositeMetricsAnalysisFromSnapshot(result.snapshot) } : {}),
+      ...(options.explainScores && result.ok
+        ? { analysis: buildCompositeMetricsAnalysisFromSnapshot(result.snapshot) }
+        : {}),
     },
     null,
     2,

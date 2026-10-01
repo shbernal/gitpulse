@@ -100,7 +100,9 @@ describe("repository selector", () => {
   test("reports a selector failure instead of a cancellation", async () => {
     const selector = await fakeSelector("fzf", { code: 2 });
 
-    await expect(selectStarredRepository([starred("acme/one")], selector.env)).rejects.toThrow("fzf failed with exit code 2.");
+    await expect(selectStarredRepository([starred("acme/one")], selector.env)).rejects.toThrow(
+      "fzf failed with exit code 2.",
+    );
   });
 
   test("asks for fzf or gum when neither is on PATH", async () => {

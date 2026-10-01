@@ -22,13 +22,13 @@ It should not use documentation presence as an input.
 
 Candidate signal groups:
 
-| Signal group | Example inputs |
-| --- | --- |
+| Signal group         | Example inputs                                                                                     |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
 | Dependency freshness | Manifest files, lockfiles, registry latest versions, registry deprecation flags, major-version lag |
-| Runtime support | Declared Node/Python/Go/Rust/etc. versions, EOL runtime versions, package-manager pins |
-| Tooling currency | Deprecated linters/build tools, current CI action majors, supported package managers |
-| Update automation | Dependabot config, Renovate config, scheduled update workflows |
-| File upkeep recency | Recent changes to manifests, lockfiles, workflow files, release automation files |
+| Runtime support      | Declared Node/Python/Go/Rust/etc. versions, EOL runtime versions, package-manager pins             |
+| Tooling currency     | Deprecated linters/build tools, current CI action majors, supported package managers               |
+| Update automation    | Dependabot config, Renovate config, scheduled update workflows                                     |
+| File upkeep recency  | Recent changes to manifests, lockfiles, workflow files, release automation files                   |
 
 Any `deprecated` or `unsupported` classification must be source-backed. Good
 sources include registry metadata, official runtime EOL schedules, or a curated

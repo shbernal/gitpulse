@@ -9,9 +9,7 @@ import {
 } from "../src/util/git-remotes";
 
 function remoteOutput(remotes: Array<[string, string]>): string {
-  return remotes
-    .flatMap(([name, url]) => [`${name}\t${url} (fetch)`, `${name}\t${url} (push)`])
-    .join("\n");
+  return remotes.flatMap(([name, url]) => [`${name}\t${url} (fetch)`, `${name}\t${url} (push)`]).join("\n");
 }
 
 function fakeGit(result: { ok: boolean; stdout: string }): GitRunner {
@@ -124,13 +122,13 @@ describe("remote precedence", () => {
 
 describe("inference failures", () => {
   test("reports a missing checkout separately from a missing GitHub remote", async () => {
-    await expect(
-      inferRepositoryFromGitRemotes({ run: fakeGit({ ok: false, stdout: "" }) }),
-    ).resolves.toEqual({ kind: "outside-checkout" });
+    await expect(inferRepositoryFromGitRemotes({ run: fakeGit({ ok: false, stdout: "" }) })).resolves.toEqual({
+      kind: "outside-checkout",
+    });
 
-    await expect(
-      inferRepositoryFromGitRemotes({ run: fakeGit({ ok: true, stdout: "" }) }),
-    ).resolves.toEqual({ kind: "no-github-remote" });
+    await expect(inferRepositoryFromGitRemotes({ run: fakeGit({ ok: true, stdout: "" }) })).resolves.toEqual({
+      kind: "no-github-remote",
+    });
   });
 
   test("infers from git output end to end", async () => {

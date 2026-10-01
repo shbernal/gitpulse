@@ -12,12 +12,12 @@ The current implementation computes two composite metrics:
 Activity freshness is rounded, clamped to `0-100`, and labeled with score
 bands:
 
-| Score range | Label |
-| --- | --- |
-| `75-100` | `strong` |
-| `50-74` | `moderate` |
-| `25-49` | `limited` |
-| `0-24` | `weak` |
+| Score range | Label      |
+| ----------- | ---------- |
+| `75-100`    | `strong`   |
+| `50-74`     | `moderate` |
+| `25-49`     | `limited`  |
+| `0-24`      | `weak`     |
 
 Popularity Score is an open-ended logarithmic index over weighted adoption
 signals. It is not clamped to `0-100`, and each `+1.0` increase means roughly
@@ -66,30 +66,30 @@ the available date is used. If both are missing, this component contributes `0`.
 Commit or push freshness contributes up to `55` points:
 
 | Days since latest commit or push | Points |
-| --- | ---: |
-| `<= 30` | `55` |
-| `<= 90` | `45` |
-| `<= 180` | `35` |
-| `<= 365` | `20` |
-| `<= 730` | `10` |
-| `> 730` or missing | `0` |
+| -------------------------------- | -----: |
+| `<= 30`                          |   `55` |
+| `<= 90`                          |   `45` |
+| `<= 180`                         |   `35` |
+| `<= 365`                         |   `20` |
+| `<= 730`                         |   `10` |
+| `> 730` or missing               |    `0` |
 
 Stable release freshness contributes up to `25` points:
 
 | Days since latest stable release | Points |
-| --- | ---: |
-| `<= 90` | `25` |
-| `<= 365` | `20` |
-| `<= 730` | `10` |
-| `> 730` or missing | `0` |
+| -------------------------------- | -----: |
+| `<= 90`                          |   `25` |
+| `<= 365`                         |   `20` |
+| `<= 730`                         |   `10` |
+| `> 730` or missing               |    `0` |
 
 Additional activity inputs:
 
-| Signal | Points |
-| --- | ---: |
-| Has at least one fetched release | `+10` |
-| Repository is not archived | `+10` |
-| Repository is archived | `-30` |
+| Signal                           | Points |
+| -------------------------------- | -----: |
+| Has at least one fetched release |  `+10` |
+| Repository is not archived       |  `+10` |
+| Repository is archived           |  `-30` |
 
 Current caveat: this score is relatively forgiving to projects with older
 commits if they still have release history and are not archived. A repository
@@ -110,11 +110,11 @@ popularityUnits = stars + (8 * forks) + (5 * watchers)
 popularityScore = log10(popularityUnits + 1)
 ```
 
-| Signal | Unit weight |
-| --- | ---: |
-| Star | `1` |
-| Fork | `8` |
-| Watcher | `5` |
+| Signal  | Unit weight |
+| ------- | ----------: |
+| Star    |         `1` |
+| Fork    |         `8` |
+| Watcher |         `5` |
 
 Watchers are sourced from GitHub REST `subscribers_count`, not the legacy
 `watchers_count` field that mirrors stars.
@@ -128,13 +128,13 @@ Popularity Score  5.42 (263.4k PU)
 
 Approximate scale:
 
-| Score | Approximate PU |
-| ---: | ---: |
-| `3.00` | `1k` |
-| `4.00` | `10k` |
-| `5.00` | `100k` |
-| `6.00` | `1m` |
-| `7.00` | `10m` |
+|  Score | Approximate PU |
+| -----: | -------------: |
+| `3.00` |           `1k` |
+| `4.00` |          `10k` |
+| `5.00` |         `100k` |
+| `6.00` |           `1m` |
+| `7.00` |          `10m` |
 
 Contributors are intentionally not part of Popularity Score. Contributor count
 is a community and maintenance-surface signal, while Popularity Score is limited

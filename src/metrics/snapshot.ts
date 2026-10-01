@@ -134,9 +134,7 @@ function buildSnapshot(input: {
   const daysSinceLatestRelease = daysSince(latestReleaseAt, input.now);
   const warnings = [...input.warnings];
   const openIssues =
-    input.openPullRequests === null
-      ? null
-      : Math.max(0, input.repository.open_issues_count - input.openPullRequests);
+    input.openPullRequests === null ? null : Math.max(0, input.repository.open_issues_count - input.openPullRequests);
 
   if (input.openPullRequests === null) {
     warnings.push("Open issue count includes pull requests because pull request count could not be fetched.");
@@ -155,7 +153,9 @@ function buildSnapshot(input: {
   }
 
   if (input.contributors.truncated) {
-    warnings.push(`Contributor concentration metrics are based on the first ${input.contributors.fetchLimit} contributors.`);
+    warnings.push(
+      `Contributor concentration metrics are based on the first ${input.contributors.fetchLimit} contributors.`,
+    );
   }
 
   if (input.contributors.totalCount === null && input.contributors.truncated) {
@@ -262,7 +262,12 @@ function groupPrereleaseTracks(releases: GitHubRelease[], now: Date): ReleaseTra
     .sort((a, b) => releaseTrackSortKey(a) - releaseTrackSortKey(b));
 }
 
-function buildReleaseTrack(kind: ReleaseTrackKind, label: string, releases: GitHubRelease[], now: Date): ReleaseTrack | null {
+function buildReleaseTrack(
+  kind: ReleaseTrackKind,
+  label: string,
+  releases: GitHubRelease[],
+  now: Date,
+): ReleaseTrack | null {
   const latest = latestReleaseByDate(releases);
 
   if (!latest) {
@@ -289,7 +294,10 @@ function latestReleaseByDate(releases: GitHubRelease[]): GitHubRelease | null {
     return null;
   }
 
-  return releases.reduce((latest, release) => (releaseTimestamp(release) > releaseTimestamp(latest) ? release : latest), releases[0]);
+  return releases.reduce(
+    (latest, release) => (releaseTimestamp(release) > releaseTimestamp(latest) ? release : latest),
+    releases[0],
+  );
 }
 
 function releaseTimestamp(release: GitHubRelease): number {
@@ -381,7 +389,10 @@ async function optional<T>(fn: () => Promise<T>, label: string): Promise<Optiona
 }
 
 async function detectDocumentation(client: GitHubClient, ref: RepoRef): Promise<DocumentationSignals> {
-  const [rootFiles, githubFiles] = await Promise.all([client.listDirectory(ref, ""), client.listDirectory(ref, ".github")]);
+  const [rootFiles, githubFiles] = await Promise.all([
+    client.listDirectory(ref, ""),
+    client.listDirectory(ref, ".github"),
+  ]);
   const files = [...rootFiles, ...githubFiles];
 
   return {
@@ -462,9 +473,7 @@ function normalizeLicense(repository: GitHubRepository): string | null {
 function errorToSnapshotError(error: unknown): SnapshotError {
   if (error instanceof GitHubApiError) {
     return {
-      message: error.rateLimitReset
-        ? `${error.message} Resets at ${error.rateLimitReset}.`
-        : error.message,
+      message: error.rateLimitReset ? `${error.message} Resets at ${error.rateLimitReset}.` : error.message,
       status: error.status,
       code: error.code,
     };

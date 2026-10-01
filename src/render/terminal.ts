@@ -119,7 +119,9 @@ export function createTheme(options: RenderOptions = {}) {
     },
     languageBadge(value: string): string {
       const languageColor = getLanguageColor(value);
-      return languageColor ? paintBlock(colors.bold(`[${value}]`), languageColor) : applyBadgeTone(`[${value}]`, "info");
+      return languageColor
+        ? paintBlock(colors.bold(`[${value}]`), languageColor)
+        : applyBadgeTone(`[${value}]`, "info");
     },
     repo(value: string): string {
       return colors.bold(paintForeground(value, palette.repo));

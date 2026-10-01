@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { buildCompositeMetrics, buildCompositeMetricsAnalysis, type CompositeMetricsInput } from "../src/metrics/composite";
+import {
+  buildCompositeMetrics,
+  buildCompositeMetricsAnalysis,
+  type CompositeMetricsInput,
+} from "../src/metrics/composite";
 
 describe("composite metrics", () => {
   test("explains activity freshness bucket contributions", () => {

@@ -20,13 +20,7 @@ export function parseRepoRef(input: string): RepoRef {
 
   const [owner, name] = parts;
 
-  if (
-    !owner ||
-    !name ||
-    !ownerPattern.test(owner) ||
-    !repoPattern.test(name) ||
-    name.length > 100
-  ) {
+  if (!owner || !name || !ownerPattern.test(owner) || !repoPattern.test(name) || name.length > 100) {
     throw new RepoRefError(input);
   }
 

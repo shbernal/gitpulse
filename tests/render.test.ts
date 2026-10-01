@@ -116,7 +116,13 @@ describe("terminal rendering", () => {
     });
     const cachedMiss = renderRepo(snapshot("acme/tool"), {
       color: false,
-      viewerStar: { known: true, starred: false, checkedAt: "2026-05-13T00:00:00.000Z", ageHours: 72.4, source: "cache" },
+      viewerStar: {
+        known: true,
+        starred: false,
+        checkedAt: "2026-05-13T00:00:00.000Z",
+        ageHours: 72.4,
+        source: "cache",
+      },
     });
 
     expect(section(starred, "Repo", "Pulse")).toContain("Your star  starred by you");
@@ -124,15 +130,25 @@ describe("terminal rendering", () => {
   });
 
   test("omits the viewer star row when there is no authenticated viewer", () => {
-    const output = renderRepo(snapshot("acme/tool"), { color: false, viewerStar: { known: false, reason: "unauthenticated" } });
-    const offline = renderRepo(snapshot("acme/tool"), { color: false, viewerStar: { known: false, reason: "offline" } });
+    const output = renderRepo(snapshot("acme/tool"), {
+      color: false,
+      viewerStar: { known: false, reason: "unauthenticated" },
+    });
+    const offline = renderRepo(snapshot("acme/tool"), {
+      color: false,
+      viewerStar: { known: false, reason: "offline" },
+    });
 
     expect(output).not.toContain("Your star");
     expect(section(offline, "Repo", "Pulse")).toContain("Your star  unknown (offline)");
   });
 
   test("renders cache source metadata when provided", () => {
-    const output = renderRepo(snapshot("acme/tool"), { color: false }, { kind: "cache", cachedAt: "2026-05-13T00:00:00.000Z", ageHours: 72.4 });
+    const output = renderRepo(
+      snapshot("acme/tool"),
+      { color: false },
+      { kind: "cache", cachedAt: "2026-05-13T00:00:00.000Z", ageHours: 72.4 },
+    );
 
     expect(output).toContain("data source: cache, fetched 3d ago");
     expect(output).not.toContain("3.0d ago");
@@ -207,7 +223,11 @@ describe("terminal rendering", () => {
     const wide = lines.find((line) => line.startsWith("日本語"))!;
     const narrow = lines.find((line) => line.startsWith("two"))!;
 
-    for (const [heading, cell] of [["Activity", "82/100"], ["Forks", "12"], ["State", "active"]]) {
+    for (const [heading, cell] of [
+      ["Activity", "82/100"],
+      ["Forks", "12"],
+      ["State", "active"],
+    ]) {
       expect(columnStart(wide, cell)).toBe(columnStart(header, heading));
     }
     expect(columnStart(narrow, "12")).toBe(columnStart(header, "Forks"));
@@ -234,10 +254,7 @@ describe("terminal rendering", () => {
         { ok: true, snapshot: snapshot("acme/two") },
       ],
       { color: false },
-      [
-        { kind: "api" },
-        { kind: "stale-cache", cachedAt: "2026-05-01T00:00:00.000Z", ageHours: 360 },
-      ],
+      [{ kind: "api" }, { kind: "stale-cache", cachedAt: "2026-05-01T00:00:00.000Z", ageHours: 360 }],
     );
 
     expect(output).toContain("data sources: api; stale cache, fetched 15d ago");
@@ -320,7 +337,9 @@ describe("terminal rendering", () => {
       { ok: true, snapshot: snapshot("acme/two", { stars: 20, commitDays: 400 }) },
     ];
 
-    expect(stripVTControlCharacters(renderComparison(results, { color: true }))).toBe(renderComparison(results, { color: false }));
+    expect(stripVTControlCharacters(renderComparison(results, { color: true }))).toBe(
+      renderComparison(results, { color: false }),
+    );
   });
 
   test("resolves terminal color mode from flags and environment", () => {
@@ -374,7 +393,9 @@ describe("JSON rendering", () => {
       { ok: true, snapshot: snapshot("acme/one") },
       { ok: false, ref: null, input: "bad", error: { message: "Invalid repository reference." } },
     ];
-    const parsed = JSON.parse(renderComparisonJson(results, [{ kind: "cache", cachedAt: "2026-05-16T00:00:00.000Z", ageHours: 1 }]));
+    const parsed = JSON.parse(
+      renderComparisonJson(results, [{ kind: "cache", cachedAt: "2026-05-16T00:00:00.000Z", ageHours: 1 }]),
+    );
 
     expect(parsed.schemaVersion).toBe(6);
     expect(parsed.command).toBe("compare");

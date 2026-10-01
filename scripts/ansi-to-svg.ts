@@ -101,8 +101,7 @@ export function ansiToSvg(input: string, options: AnsiToSvgOptions = {}): string
   const lineHeight = options.lineHeight ?? 21;
   const paddingX = options.paddingX ?? 18;
   const paddingY = options.paddingY ?? 18;
-  const fontFamily =
-    options.fontFamily ?? "JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, monospace";
+  const fontFamily = options.fontFamily ?? "JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, monospace";
   const normalized = input.replace(/\r\n?/g, "\n").replace(/\n$/, "");
   const lines = normalized.length > 0 ? normalized.split("\n") : [""];
   const parsedLines = lines.map((line) => parseAnsiLine(line, defaultLineStyle));
@@ -281,11 +280,7 @@ function effectiveStyle(style: AnsiStyle, defaultBackground = fallbackBackground
 }
 
 function escapeXml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
 
 function formatNumber(value: number): string {

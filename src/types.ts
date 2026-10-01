@@ -48,7 +48,16 @@ export type ActivityMetrics = {
   releaseSummary: ReleaseSummary;
 };
 
-export type ReleaseTrackKind = "stable" | "nightly" | "canary" | "dev" | "alpha" | "beta" | "rc" | "preview" | "prerelease";
+export type ReleaseTrackKind =
+  | "stable"
+  | "nightly"
+  | "canary"
+  | "dev"
+  | "alpha"
+  | "beta"
+  | "rc"
+  | "preview"
+  | "prerelease";
 
 export type ReleaseTrack = {
   kind: ReleaseTrackKind;

@@ -99,11 +99,11 @@ negative case is cached too. A single-repository probe,
 
 The two cached answers do not carry equal risk, so they do not share a rule.
 
-| Cached state | Fresh | Stale |
-| --- | --- | --- |
-| starred | trusted | trusted, rendered with its age |
-| not starred | trusted | confirmed with one probe |
-| absent | — | probe |
+| Cached state | Fresh   | Stale                          |
+| ------------ | ------- | ------------------------------ |
+| starred      | trusted | trusted, rendered with its age |
+| not starred  | trusted | confirmed with one probe       |
+| absent       | —       | probe                          |
 
 A cached "starred" stays true until the user unstars, which is rare. A cached
 "not starred" is wrong the moment the user stars the repository, which is
@@ -142,12 +142,12 @@ Each run probes `GET /user/starred/{owner}/{repo}` and then writes
 `PUT` or `DELETE /user/starred/{owner}/{repo}` only when the current state differs. The probe costs
 one request and makes both commands idempotent, so the output can separate a change from a no-op:
 
-| Command | State on GitHub | Output |
-| --- | --- | --- |
-| `star` | not starred | `Starred owner/name` |
-| `star` | starred | `owner/name was already starred` |
-| `unstar` | starred | `Unstarred owner/name` |
-| `unstar` | not starred | `owner/name was not starred` |
+| Command  | State on GitHub | Output                           |
+| -------- | --------------- | -------------------------------- |
+| `star`   | not starred     | `Starred owner/name`             |
+| `star`   | starred         | `owner/name was already starred` |
+| `unstar` | starred         | `Unstarred owner/name`           |
+| `unstar` | not starred     | `owner/name was not starred`     |
 
 `--json` emits the same outcome as `{ "command": "star", "result": { "ok": true, "mutation": {
 "action", "repository", "starred", "changed", "mutatedAt" } } }`, and carries failures as

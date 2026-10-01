@@ -1,10 +1,6 @@
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type {
-  StarredRepositoryDirection,
-  StarredRepositoryList,
-  StarredRepositorySort,
-} from "../types";
+import type { StarredRepositoryDirection, StarredRepositoryList, StarredRepositorySort } from "../types";
 import { starredRepositoriesCacheDir, starredRepositoriesCachePath } from "./paths";
 
 export const starredRepositoriesCacheSchemaVersion = 1 as const;

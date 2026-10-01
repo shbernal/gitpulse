@@ -20,7 +20,13 @@ export function gitpulseStateDir(env: Env = process.env): string {
 }
 
 export function snapshotCachePath(ref: RepoRef, env: Env = process.env): string {
-  return path.join(gitpulseCacheDir(env), "snapshots", "github", safeSegment(ref.owner), `${safeSegment(ref.name)}.json`);
+  return path.join(
+    gitpulseCacheDir(env),
+    "snapshots",
+    "github",
+    safeSegment(ref.owner),
+    `${safeSegment(ref.name)}.json`,
+  );
 }
 
 export function userProfileCachePath(login: string, env: Env = process.env): string {
@@ -68,10 +74,7 @@ function xdgDir(variable: "XDG_CACHE_HOME" | "XDG_STATE_HOME", fallback: string,
 }
 
 function safeSegment(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/%/g, "%25")
-    .replace(/\./g, "%2e");
+  return value.toLowerCase().replace(/%/g, "%25").replace(/\./g, "%2e");
 }
 
 function safeSearchLabel(value: string): string {

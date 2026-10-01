@@ -191,7 +191,9 @@ describe("search CLI", () => {
       await writeCachedSnapshot({ owner: "acme", name: "tool" }, snapshot("acme/tool"), new Date(), env);
 
       const output = await withProcessEnv(env, () =>
-        captureStdout(() => main(["node", "gitpulse", "search", "terminal", "ui", "--lucky", "--offline", "--color", "never"])),
+        captureStdout(() =>
+          main(["node", "gitpulse", "search", "terminal", "ui", "--lucky", "--offline", "--color", "never"]),
+        ),
       );
 
       expect(output).toContain("acme/tool\nhttps://github.com/acme/tool");
@@ -200,7 +202,12 @@ describe("search CLI", () => {
 
   test("renders the selected repository JSON with --lucky --json", async () => {
     await withTempEnv(async (env) => {
-      await writeCachedSearchRepositories(searchOptions(), searchList([searchRepository("acme/tool")]), new Date(), env);
+      await writeCachedSearchRepositories(
+        searchOptions(),
+        searchList([searchRepository("acme/tool")]),
+        new Date(),
+        env,
+      );
       await writeCachedSnapshot({ owner: "acme", name: "tool" }, snapshot("acme/tool"), new Date(), env);
 
       const output = await withProcessEnv(env, () =>
@@ -214,7 +221,9 @@ describe("search CLI", () => {
   });
 
   test("rejects combining --list and --lucky", async () => {
-    const error = await captureStderr(() => main(["node", "gitpulse", "search", "terminal", "ui", "--list", "--lucky"]));
+    const error = await captureStderr(() =>
+      main(["node", "gitpulse", "search", "terminal", "ui", "--list", "--lucky"]),
+    );
 
     expect(error).toBe("gitpulse: --list and --lucky cannot be used together.");
     expect(process.exitCode).toBe(1);
@@ -229,7 +238,9 @@ describe("search CLI", () => {
         env,
       );
 
-      const error = await withProcessEnv(env, () => captureStderr(() => main(["node", "gitpulse", "missing", "--offline"])));
+      const error = await withProcessEnv(env, () =>
+        captureStderr(() => main(["node", "gitpulse", "missing", "--offline"])),
+      );
 
       expect(error).toContain('Unknown repository shorthand "missing"');
       expect(error).toContain("Use owner/name once to fetch and record it.");

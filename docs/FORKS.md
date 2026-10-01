@@ -41,14 +41,14 @@ starred forks in the whole list.
 
 Every column comes from the fork list payload. No per-fork request is made.
 
-| Column | Source |
-| --- | --- |
-| Fork | `full_name` |
-| Stars | `stargazers_count` |
-| Forks | `forks_count` |
-| Language | `language` |
-| Last push | `pushed_at` |
-| State | derived, see below |
+| Column    | Source             |
+| --------- | ------------------ |
+| Fork      | `full_name`        |
+| Stars     | `stargazers_count` |
+| Forks     | `forks_count`      |
+| Language  | `language`         |
+| Last push | `pushed_at`        |
+| State     | derived, see below |
 
 `State` is `archived` when the fork is archived, otherwise `active` or
 `untouched`. GitHub copies the parent's `pushed_at` onto a new fork, so a fork

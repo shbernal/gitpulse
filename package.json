@@ -4,16 +4,14 @@
   "description": "CLI to take the pulse of development projects.",
   "keywords": [
     "cli",
-    "github",
-    "terminal",
-    "repository-analysis",
     "developer-tools",
-    "project-health"
+    "github",
+    "project-health",
+    "repository-analysis",
+    "terminal"
   ],
-  "author": "shbernal",
   "license": "MIT",
-  "type": "module",
-  "packageManager": "bun@1.4.2",
+  "author": "shbernal",
   "repository": {
     "type": "git",
     "url": "https://github.com/shbernal/gitpulse"
@@ -26,13 +24,12 @@
     "README.md",
     "LICENSE"
   ],
-  "engines": {
-    "node": ">=24"
-  },
+  "type": "module",
   "scripts": {
     "dev": "bun run src/bin.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
+    "format": "oxfmt",
     "visuals": "bun run scripts/render-visuals.ts",
     "build": "bun build src/bin.ts --target node --outfile dist/cli.js && chmod +x dist/cli.js",
     "build:bin": "bun build src/bin.ts --compile --outfile dist/gitpulse",
@@ -45,6 +42,11 @@
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
+    "oxfmt": "^0.71.0",
     "typescript": "^7.0.2"
-  }
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "bun@1.4.2"
 }

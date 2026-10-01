@@ -45,7 +45,11 @@ export async function resolveViewerStar(
     return cached ? known(cached, "cache", now) : { known: false, reason: "offline" };
   }
 
-  if (cached && options.mode !== "refresh" && (cached.starred || isFreshCache(cached.checkedAt, options.freshnessHours, now))) {
+  if (
+    cached &&
+    options.mode !== "refresh" &&
+    (cached.starred || isFreshCache(cached.checkedAt, options.freshnessHours, now))
+  ) {
     return known(cached, "cache", now);
   }
 

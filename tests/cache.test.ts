@@ -165,7 +165,9 @@ describe("snapshot cache resolution", () => {
 
       expect(resolved.result.ok).toBe(true);
       expect(resolved.source.kind).toBe("stale-cache");
-      expect(resolved.source.kind === "stale-cache" ? resolved.source.refreshError?.message : null).toContain("api down");
+      expect(resolved.source.kind === "stale-cache" ? resolved.source.refreshError?.message : null).toContain(
+        "api down",
+      );
     });
   });
 
@@ -185,7 +187,9 @@ describe("snapshot cache resolution", () => {
 
       expect(resolved.result.ok).toBe(true);
       expect(resolved.source.kind).toBe("stale-cache");
-      expect(resolved.source.kind === "stale-cache" ? resolved.source.refreshError?.message : null).toContain("api down");
+      expect(resolved.source.kind === "stale-cache" ? resolved.source.refreshError?.message : null).toContain(
+        "api down",
+      );
     });
   });
 
@@ -209,7 +213,12 @@ describe("snapshot cache resolution", () => {
 describe("user profile cache resolution", () => {
   test("uses a fresh cached user profile without calling the API", async () => {
     await withTempEnv(async (env) => {
-      await writeCachedUserProfileSnapshot("octocat", userSnapshot("octocat"), new Date("2026-05-16T00:00:00.000Z"), env);
+      await writeCachedUserProfileSnapshot(
+        "octocat",
+        userSnapshot("octocat"),
+        new Date("2026-05-16T00:00:00.000Z"),
+        env,
+      );
 
       const resolved = await resolveUserProfileSnapshot(failingClient(), "octocat", {
         cacheEnabled: true,
