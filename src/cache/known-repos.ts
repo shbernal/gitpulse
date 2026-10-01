@@ -135,23 +135,23 @@ async function mergeCacheRepos(repos: Map<string, MutableKnownRepo>, env: Env): 
   const root = path.join(gitpulseCacheDir(env), "snapshots", "github");
   const files = await listJsonFiles(root);
 
-  for (const filePath of files) {
-    try {
-      const raw = await readFile(filePath, "utf8");
-      const parsed = JSON.parse(raw) as unknown;
-      const cached = cachedRepoMetadata(parsed);
-
-      if (!cached) {
-        continue;
+  const cached = await Promise.all(
+    files.map(async (filePath) => {
+      try {
+        return cachedRepoMetadata(JSON.parse(await readFile(filePath, "utf8")) as unknown);
+      } catch {
+        return null;
       }
+    }),
+  );
 
-      mergeRepo(repos, cached.fullName, {
+  for (const repo of cached) {
+    if (repo) {
+      mergeRepo(repos, repo.fullName, {
         source: "cache",
-        cachedAt: cached.cachedAt,
+        cachedAt: repo.cachedAt,
         preferCanonical: true,
       });
-    } catch {
-      continue;
     }
   }
 }
