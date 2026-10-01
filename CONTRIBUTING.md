@@ -36,7 +36,7 @@ bun run build:bin     # standalone executable at dist/gitpulse
 bun run visuals       # render human-readable output to artifacts/
 ```
 
-Run `bun test` and `bun run typecheck` before committing.
+Run `bun test` and `bun run typecheck` before committing. CI runs the same gate plus `bun run build` on every push to `master` and every pull request.
 
 ## Layout
 
