@@ -212,7 +212,7 @@ Defaults:
 }
 ```
 
-Manage them with `gitpulse cache clear`, `gitpulse history`, `gitpulse history clear`, `gitpulse config path`, and `gitpulse config reset`. Clearing the cache and history also clears every shorthand and completion candidate, since both are derived from them.
+Manage them with `gitpulse cache clear`, `gitpulse history`, `gitpulse history clear`, `gitpulse config path`, and `gitpulse config reset`. Clearing the cache and history also clears every shorthand and completion candidate, since both are derived from them. History keeps the most recent 1,000 runs; older ones drop off as new ones are recorded.
 
 ## What Gitpulse measures
 

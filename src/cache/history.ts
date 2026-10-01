@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile, rm } from "node:fs/promises";
+import { appendFile, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { SnapshotSource, SnapshotWithSource, UserProfileWithSource } from "../types";
 import { historyPath } from "./paths";
@@ -22,22 +22,37 @@ export type HistoryEvent = {
   ok: boolean;
 };
 
+/**
+ * History keeps the most recent events only. Shorthand and completion re-read it on every call, so
+ * an unbounded file would slow every TAB press.
+ */
+export const historyEventLimit = 1000;
+
 export async function appendHistoryEvent(event: HistoryEvent, env: Env = process.env): Promise<void> {
   const filePath = historyPath(env);
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await appendFile(filePath, `${JSON.stringify(event)}\n`, "utf8");
+  const line = JSON.stringify(event);
+  const lines = await readHistoryLines(filePath);
+
+  if (lines.length < historyEventLimit) {
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await appendFile(filePath, `${line}\n`, "utf8");
+    return;
+  }
+
+  const temporaryPath = `${filePath}.${process.pid}.tmp`;
+  await writeFile(temporaryPath, `${[...lines.slice(-(historyEventLimit - 1)), line].join("\n")}\n`, "utf8");
+  await rename(temporaryPath, filePath);
 }
 
 export async function readHistoryEvents(env: Env = process.env): Promise<HistoryEvent[]> {
-  const filePath = historyPath(env);
+  const lines = await readHistoryLines(historyPath(env));
+  return lines.map((line) => safeParseHistoryEvent(line)).filter((event): event is HistoryEvent => Boolean(event));
+}
 
+async function readHistoryLines(filePath: string): Promise<string[]> {
   try {
     const raw = await readFile(filePath, "utf8");
-    return raw
-      .split("\n")
-      .filter((line) => line.trim().length > 0)
-      .map((line) => safeParseHistoryEvent(line))
-      .filter((event): event is HistoryEvent => Boolean(event));
+    return raw.split("\n").filter((line) => line.trim().length > 0);
   } catch (error) {
     if (isNotFound(error)) {
       return [];
