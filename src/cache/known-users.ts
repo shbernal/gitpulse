@@ -33,7 +33,7 @@ export async function readKnownUsers(env: Env = process.env): Promise<KnownUser[
       cachedAt: user.cachedAt,
       sources: sortSources([...user.sources]),
     }))
-    .sort(compareKnownUsers);
+    .toSorted(compareKnownUsers);
 }
 
 export function completeKnownUsers(current: string, knownUsers: KnownUser[]): string[] {
@@ -42,7 +42,7 @@ export function completeKnownUsers(current: string, knownUsers: KnownUser[]): st
 
   return knownUsers
     .filter((user) => normalized.length === 0 || user.login.toLowerCase().startsWith(normalized))
-    .sort(compareKnownUsers)
+    .toSorted(compareKnownUsers)
     .flatMap((user) => {
       const key = user.login.toLowerCase();
 
@@ -226,7 +226,7 @@ function sortSources(sources: KnownUserSource[]): KnownUserSource[] {
     cache: 1,
   };
 
-  return sources.sort((left, right) => order[left] - order[right]);
+  return sources.toSorted((left, right) => order[left] - order[right]);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

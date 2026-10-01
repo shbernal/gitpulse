@@ -29,6 +29,7 @@
     "dev": "bun run src/bin.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
+    "lint": "oxlint src scripts tests",
     "format": "oxfmt",
     "visuals": "bun run scripts/render-visuals.ts",
     "build": "bun build src/bin.ts --target node --outfile dist/cli.js && chmod +x dist/cli.js",
@@ -42,7 +43,9 @@
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
+    "lefthook": "^2.1.15",
     "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0",
     "typescript": "^7.0.2"
   },
   "engines": {

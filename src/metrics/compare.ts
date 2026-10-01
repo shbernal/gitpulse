@@ -72,7 +72,7 @@ function minByNullable<T>(items: T[], selector: (item: T) => number | null): T |
 }
 
 function isDistinctMax<T>(items: T[], selector: (item: T) => number): boolean {
-  const values = items.map(selector).sort((a, b) => b - a);
+  const values = items.map(selector).toSorted((a, b) => b - a);
   return values.length > 1 && values[0] > values[1];
 }
 
@@ -80,7 +80,7 @@ function isDistinctMinNullable<T>(items: T[], selector: (item: T) => number | nu
   const values = items
     .map(selector)
     .filter((value): value is number => value !== null)
-    .sort((a, b) => a - b);
+    .toSorted((a, b) => a - b);
 
   return values.length > 1 && values[0] < values[1];
 }

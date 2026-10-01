@@ -218,7 +218,6 @@ describe("terminal rendering", () => {
       { color: false },
     );
     const lines = section(output, "Scoreboard", "Compared Repos").split("\n");
-    const columnStart = (line: string, cell: string) => visibleLength(line.slice(0, line.indexOf(cell)));
     const header = lines.find((line) => line.startsWith("Repository"))!;
     const wide = lines.find((line) => line.startsWith("日本語"))!;
     const narrow = lines.find((line) => line.startsWith("two"))!;
@@ -674,4 +673,8 @@ function userSnapshot(login: string): UserProfileSnapshot {
     },
     warnings: ["Repository footprint is based on the first 1 repositories sorted by recent updates."],
   };
+}
+
+function columnStart(line: string, cell: string): number {
+  return visibleLength(line.slice(0, line.indexOf(cell)));
 }

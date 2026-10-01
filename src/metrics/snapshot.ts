@@ -259,7 +259,7 @@ function groupPrereleaseTracks(releases: GitHubRelease[], now: Date): ReleaseTra
   return [...groups.entries()]
     .map(([kind, group]) => buildReleaseTrack(kind, releaseTrackLabel(kind), group, now))
     .filter((track): track is ReleaseTrack => track !== null)
-    .sort((a, b) => releaseTrackSortKey(a) - releaseTrackSortKey(b));
+    .toSorted((a, b) => releaseTrackSortKey(a) - releaseTrackSortKey(b));
 }
 
 function buildReleaseTrack(
@@ -424,7 +424,7 @@ function emptyDocumentation(): DocumentationSignals {
 }
 
 function buildLanguageBreakdown(languages: Record<string, number>): LanguageBreakdown[] {
-  const entries = Object.entries(languages).sort((a, b) => b[1] - a[1]);
+  const entries = Object.entries(languages).toSorted((a, b) => b[1] - a[1]);
   const total = entries.reduce((sum, [, bytes]) => sum + bytes, 0);
 
   if (total === 0) {
@@ -439,7 +439,7 @@ function buildLanguageBreakdown(languages: Record<string, number>): LanguageBrea
 }
 
 function buildContributorSignals(overview: ContributorOverview): ContributorSignals {
-  const sorted = [...overview.contributors].sort((a, b) => b.contributions - a.contributions);
+  const sorted = overview.contributors.toSorted((a, b) => b.contributions - a.contributions);
   const top = sorted[0];
   const total = sorted.reduce((sum, contributor) => sum + contributor.contributions, 0);
 

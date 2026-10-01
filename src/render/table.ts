@@ -17,15 +17,10 @@ import {
   type CompositeContribution,
   type CompositeMetricAnalysis,
 } from "../metrics/composite";
-import { formatDate, formatDateWithAge, formatMonthYear, formatRelativeDays } from "../util/dates";
+import { formatDateWithAge, formatMonthYear, formatRelativeDays } from "../util/dates";
 import { formatBool, formatCompactNumber, formatInteger, formatPercent, formatSizeKb, truncate } from "../util/format";
 import { formatComparisonRepoLabels, formatRepoRef } from "../util/repo-ref";
 import { createTheme, padVisibleEnd, scoreTone, type RenderOptions, visibleLength } from "./terminal";
-
-type Section = {
-  title: string;
-  rows: Array<[string, string]>;
-};
 
 type Field = {
   label: string;
@@ -374,7 +369,7 @@ function renderFieldGrid(fields: Field[], theme: Theme, columns = 2, prefix = " 
   for (let index = 0; index < cells.length; index += columns) {
     const rowCells = cells
       .slice(index, index + columns)
-      .map((cell, cellIndex, row) => (cellIndex === row.length - 1 ? cell : padVisibleEnd(cell, cellWidth)));
+      .map((cell, cellIndex, slice) => (cellIndex === slice.length - 1 ? cell : padVisibleEnd(cell, cellWidth)));
     lines.push(`${prefix}${rowCells.join("    ").trimEnd()}`);
   }
 
@@ -586,7 +581,7 @@ function countLabel(label: string, count: number, total: number): string {
 }
 
 function formatCacheAgeRange(ageHours: number[]): string {
-  const sorted = [...ageHours].sort((a, b) => a - b);
+  const sorted = ageHours.toSorted((a, b) => a - b);
   const first = sorted[0];
   const last = sorted[sorted.length - 1];
 

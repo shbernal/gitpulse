@@ -35,7 +35,7 @@ function latestHistoryRows(events: HistoryEvent[]): Array<{
     { repository: string; timestamp: string; command: string; source: string; ok: boolean }
   >();
 
-  for (const event of [...events].reverse()) {
+  for (const event of events.toReversed()) {
     for (const entry of event.entries) {
       const repository = entry.repository ?? entry.user ?? entry.input;
 

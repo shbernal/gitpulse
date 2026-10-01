@@ -90,6 +90,7 @@ const backgroundPalette: Record<number, string | null> = {
   107: "#ffffff",
 };
 
+// oxlint-disable-next-line no-control-regex
 const sgrPattern = /\x1b\[([0-9;]*)m/g;
 
 export function ansiToSvg(input: string, options: AnsiToSvgOptions = {}): string {
