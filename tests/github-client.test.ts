@@ -193,7 +193,7 @@ describe("GitHubClient request headers", () => {
     const originalFetch = globalThis.fetch;
     let sent: Headers | undefined;
 
-    globalThis.fetch = (async (input: unknown, init?: RequestInit) => {
+    globalThis.fetch = (async (_input: unknown, init?: RequestInit) => {
       sent = new Headers(init?.headers);
       return new Response(JSON.stringify({ full_name: "acme/widget" }), {
         status: 200,
@@ -212,26 +212,26 @@ describe("GitHubClient request headers", () => {
   });
 });
 
-describe("GitHubClient rate limits", () => {
-  async function failureFor(status: number, headers: Record<string, string>, message = "Rate limited") {
-    const originalFetch = globalThis.fetch;
-    let requests = 0;
-    globalThis.fetch = (async () => {
-      requests += 1;
-      return new Response(JSON.stringify({ message }), {
-        status,
-        headers: { "content-type": "application/json", ...headers },
-      });
-    }) as unknown as typeof fetch;
+async function failureFor(status: number, headers: Record<string, string>, message = "Rate limited") {
+  const originalFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = (async () => {
+    requests += 1;
+    return new Response(JSON.stringify({ message }), {
+      status,
+      headers: { "content-type": "application/json", ...headers },
+    });
+  }) as unknown as typeof fetch;
 
-    try {
-      const error = await captureError(() => new GitHubClient("").getRepository({ owner: "acme", name: "widget" }));
-      return { error: error as GitHubApiError, requests };
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
+  try {
+    const error = await captureError(() => new GitHubClient("").getRepository({ owner: "acme", name: "widget" }));
+    return { error: error as GitHubApiError, requests };
+  } finally {
+    globalThis.fetch = originalFetch;
   }
+}
 
+describe("GitHubClient rate limits", () => {
   test("reads a 429 with retry-after as a rate limit and does not wait it out", async () => {
     const before = Date.now();
     const { error, requests } = await failureFor(429, { "retry-after": "60" });

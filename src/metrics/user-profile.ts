@@ -153,7 +153,7 @@ function buildRepositoryFootprint(
     .filter(
       (repository) => repository.daysSinceLastPush !== null && repository.daysSinceLastPush <= recentPushWindowDays,
     )
-    .sort(compareRecentRepositories);
+    .toSorted(compareRecentRepositories);
 
   return {
     publicRepoCount,
@@ -167,7 +167,7 @@ function buildRepositoryFootprint(
     archivedCount: repositories.filter((repository) => repository.archived).length,
     forkCount: repositories.filter((repository) => repository.fork).length,
     primaryLanguages: buildLanguageFootprint(repositories),
-    topRepositories: [...repositories].sort(compareTopRepositories).slice(0, displayedTopRepositoryLimit),
+    topRepositories: repositories.toSorted(compareTopRepositories).slice(0, displayedTopRepositoryLimit),
     recentlyPushedRepositories: recentlyPushed.slice(0, displayedRecentRepositoryLimit),
   };
 }
@@ -189,7 +189,7 @@ function buildLanguageFootprint(repositories: UserRepositorySummary[]): UserLang
       repositoryCount,
       percent: repositories.length > 0 ? Math.round((repositoryCount / repositories.length) * 1000) / 10 : 0,
     }))
-    .sort((left, right) => right.repositoryCount - left.repositoryCount || left.name.localeCompare(right.name))
+    .toSorted((left, right) => right.repositoryCount - left.repositoryCount || left.name.localeCompare(right.name))
     .slice(0, displayedLanguageLimit);
 }
 

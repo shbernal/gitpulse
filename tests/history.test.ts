@@ -49,20 +49,14 @@ describe("history storage", () => {
   test("keeps only the most recent events, in order", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "gitpulse-history-test-"));
     const env = { XDG_STATE_HOME: root };
-    const event = (index: number): HistoryEvent => ({
-      timestamp: new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
-      command: "repo",
-      entries: [{ input: `acme/r${index}`, repository: `acme/r${index}`, source: "api", ok: true }],
-      ok: true,
-    });
 
     try {
       await mkdir(path.join(root, "gitpulse"), { recursive: true });
-      const seeded = Array.from({ length: historyEventLimit + 5 }, (_, index) => JSON.stringify(event(index)));
+      const seeded = Array.from({ length: historyEventLimit + 5 }, (_, index) => JSON.stringify(historyEvent(index)));
       await writeFile(path.join(root, "gitpulse", "history.jsonl"), `${seeded.join("\n")}\n`);
 
-      await appendHistoryEvent(event(historyEventLimit + 5), env);
-      await appendHistoryEvent(event(historyEventLimit + 6), env);
+      await appendHistoryEvent(historyEvent(historyEventLimit + 5), env);
+      await appendHistoryEvent(historyEvent(historyEventLimit + 6), env);
       const events = await readHistoryEvents(env);
       const raw = await readFile(path.join(root, "gitpulse", "history.jsonl"), "utf8");
 
@@ -75,3 +69,12 @@ describe("history storage", () => {
     }
   });
 });
+
+function historyEvent(index: number): HistoryEvent {
+  return {
+    timestamp: new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
+    command: "repo",
+    entries: [{ input: `acme/r${index}`, repository: `acme/r${index}`, source: "api", ok: true }],
+    ok: true,
+  };
+}

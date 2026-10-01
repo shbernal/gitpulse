@@ -1,0 +1,16 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format
+      glob: "*.{ts,json,md,yml}"
+      run: bunx oxfmt --no-error-on-unmatched-pattern {staged_files}
+      stage_fixed: true
+    - name: lint
+      run: bun run lint
+    - name: typecheck
+      run: bun run typecheck
+
+pre-push:
+  jobs:
+    - name: test
+      run: bun test

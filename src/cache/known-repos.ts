@@ -53,7 +53,7 @@ export async function readKnownRepos(env: Env = process.env): Promise<KnownRepo[
       cachedAt: repo.cachedAt,
       sources: sortSources([...repo.sources]),
     }))
-    .sort(compareKnownRepos);
+    .toSorted(compareKnownRepos);
 }
 
 export function resolveKnownRepoShorthand(input: string, knownRepos: KnownRepo[]): string {
@@ -74,7 +74,7 @@ export function resolveKnownRepoShorthand(input: string, knownRepos: KnownRepo[]
     throw new RepositoryShorthandError(
       "ambiguous",
       input,
-      matches.map((repo) => repo.fullName).sort((left, right) => left.localeCompare(right)),
+      matches.map((repo) => repo.fullName).toSorted((left, right) => left.localeCompare(right)),
     );
   }
 
@@ -89,7 +89,7 @@ export function completeKnownRepos(current: string, knownRepos: KnownRepo[]): st
   return knownRepos
     .map((repo) => ({ repo, quality: matchQuality(repo, normalized, hasSlash) }))
     .filter((match): match is { repo: KnownRepo; quality: number } => match.quality !== null)
-    .sort((left, right) => {
+    .toSorted((left, right) => {
       if (left.quality !== right.quality) {
         return left.quality - right.quality;
       }
@@ -323,7 +323,7 @@ function sortSources(sources: KnownRepoSource[]): KnownRepoSource[] {
     cache: 1,
   };
 
-  return sources.sort((left, right) => order[left] - order[right]);
+  return sources.toSorted((left, right) => order[left] - order[right]);
 }
 
 function shorthandErrorMessage(kind: ShorthandErrorKind, input: string, candidates: string[]): string {

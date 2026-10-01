@@ -154,7 +154,7 @@ function prune(entries: Record<string, ViewerStarEntry>): Record<string, ViewerS
   }
 
   const kept = keys
-    .sort((left, right) => entries[right].checkedAt.localeCompare(entries[left].checkedAt))
+    .toSorted((left, right) => entries[right].checkedAt.localeCompare(entries[left].checkedAt))
     .slice(0, maxProbeEntries);
 
   return Object.fromEntries(kept.map((key) => [key, entries[key]]));
