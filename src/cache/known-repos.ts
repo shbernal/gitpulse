@@ -6,7 +6,7 @@ import { gitpulseCacheDir } from "./paths";
 
 type Env = Record<string, string | undefined>;
 
-export type KnownRepoSource = "history" | "cache";
+type KnownRepoSource = "history" | "cache";
 
 export type KnownRepo = {
   fullName: string;

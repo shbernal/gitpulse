@@ -3,7 +3,7 @@ import { THEME_NAMES, type ThemeName } from "../src/render/palettes";
 import type { ForkList, RepoSnapshot, UserProfileSnapshot } from "../src/types";
 import { daysSince } from "../src/util/dates";
 
-export const visualOutputColumns = 100;
+const visualOutputColumns = 100;
 
 export type VisualOutputCase = {
   allowOverflow?: boolean;

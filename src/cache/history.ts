@@ -7,7 +7,7 @@ type Env = Record<string, string | undefined>;
 
 export type HistoryCommand = "repo" | "compare" | "docs" | "user";
 
-export type HistoryEntry = {
+type HistoryEntry = {
   input: string;
   repository: string | null;
   user?: string | null;

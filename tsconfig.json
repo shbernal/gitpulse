@@ -10,7 +10,7 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["bun-types"],
+    "types": ["bun"],
     "noEmit": true
   },
   "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts"]

@@ -12,7 +12,10 @@ export function toSnapshotError(error: unknown): SnapshotError {
   }
 
   if (error instanceof Error) {
-    return { message: error.message, code: error.name };
+    return {
+      message: error.message,
+      code: "code" in error && typeof error.code === "string" ? error.code : error.name,
+    };
   }
 
   return { message: "Unknown error.", code: "unknown" };

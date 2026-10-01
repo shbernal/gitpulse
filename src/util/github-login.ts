@@ -1,6 +1,8 @@
 const githubLoginPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
 
-export class GitHubLoginError extends Error {
+class GitHubLoginError extends Error {
+  readonly code = "invalid_input";
+
   constructor(input: string) {
     super(`Invalid GitHub login "${input}".`);
     this.name = "GitHubLoginError";

@@ -20,7 +20,7 @@ import type {
   SnapshotResult,
 } from "../types";
 import { daysSince } from "../util/dates";
-import { formatRepoRef, parseRepoRef } from "../util/repo-ref";
+import { parseRepoRef } from "../util/repo-ref";
 import { buildCompositeMetrics } from "./composite";
 import { toSnapshotError } from "./errors";
 
@@ -485,8 +485,4 @@ export function createSnapshotFailure(input: string, error: unknown): SnapshotRe
     input,
     error: toSnapshotError(error),
   };
-}
-
-export function snapshotName(snapshot: RepoSnapshot): string {
-  return formatRepoRef(snapshot.ref);
 }

@@ -10,7 +10,7 @@ export type CachePolicyOptions = {
   now?: Date;
 };
 
-export type FetchOutcome<V> = { ok: true; value: V } | { ok: false; error: SnapshotError };
+type FetchOutcome<V> = { ok: true; value: V } | { ok: false; error: SnapshotError };
 
 /** How one kind of cached GitHub data is read, written, fetched, and wrapped into its result type. */
 export type CacheFirstSource<V, R> = {

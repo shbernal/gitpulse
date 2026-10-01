@@ -32,13 +32,14 @@ Set `GITHUB_TOKEN` before working on anything that refreshes data. Unauthenticat
 bun test
 bun run typecheck
 bun run lint          # oxlint
+bun run knip          # unused files, exports and dependencies
 bun run format        # oxfmt, in place
 bun run build         # src/bin.ts -> dist/cli.js, the published entrypoint
 bun run build:bin     # standalone executable at dist/gitpulse
 bun run visuals       # render human-readable output to artifacts/
 ```
 
-`bun install` sets up lefthook: pre-commit formats staged files and runs lint and typecheck, pre-push runs `bun test`. CI runs lint, a format check, typecheck, tests and `bun run build` on every push to `master` and every pull request.
+`bun install` sets up lefthook: pre-commit formats staged files and runs lint and typecheck, pre-push runs `bun test`. CI runs lint, knip, a format check, typecheck, tests and `bun run build` on every push to `master` and every pull request.
 
 ## Layout
 

@@ -157,7 +157,7 @@ export type ContributorOverview = {
   truncated: boolean;
 };
 
-export type GitHubContentItemType = "dir" | "file" | "submodule" | "symlink";
+type GitHubContentItemType = "dir" | "file" | "submodule" | "symlink";
 
 export type GitHubContentItem = {
   type: GitHubContentItemType;

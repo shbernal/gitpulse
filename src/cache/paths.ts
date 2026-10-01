@@ -15,7 +15,7 @@ export function gitpulseCacheDir(env: Env = process.env): string {
   return path.join(xdgDir("XDG_CACHE_HOME", ".cache", env), "gitpulse");
 }
 
-export function gitpulseStateDir(env: Env = process.env): string {
+function gitpulseStateDir(env: Env = process.env): string {
   return path.join(xdgDir("XDG_STATE_HOME", ".local/state", env), "gitpulse");
 }
 

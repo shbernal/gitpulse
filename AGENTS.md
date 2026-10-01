@@ -5,7 +5,7 @@
 - Key commands
   - `bun test`
   - `bun run typecheck`
-  - `bun run lint`, `bun run format`
+  - `bun run lint`, `bun run knip`, `bun run format`
   - `bun run dev -- owner/repo` (working-tree entrypoint, same as the published CLI)
   - `bun run visuals` after any change to human-readable output, then inspect the artifacts
 

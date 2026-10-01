@@ -64,7 +64,7 @@ jobs:
           fi
 
       - name: Lint
-        run: bun run lint
+        run: bun run lint && bun run knip
 
       - name: Typecheck
         run: bun run typecheck
