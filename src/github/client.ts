@@ -30,6 +30,8 @@ const defaultContributorFetchLimit = 100;
 const defaultUserRepositoryFetchLimit = 100;
 const githubPageSizeLimit = 100;
 const releaseSampleLimit = 100;
+/** Longest rate-limit pause worth waiting out; anything longer fails fast as `rate_limited`. */
+const maxRateLimitWaitSeconds = 10;
 
 export class GitHubApiError extends Error {
   readonly status?: number;
@@ -60,6 +62,14 @@ export class GitHubClient {
         warn: suppressGitHubApiVersionDeprecationWarnings,
       },
       userAgent: "gitpulse/0.1.0",
+      // The bundled retry plugin retries 5xx responses; rate limits belong to the throttle handlers,
+      // whose defaults would sleep until the limit resets, which can be an hour. Only short pauses
+      // are waited out, once.
+      retry: { doNotRetry: [400, 401, 403, 404, 410, 422, 429, 451] },
+      throttle: {
+        onRateLimit: retryShortRateLimitWait,
+        onSecondaryRateLimit: retryShortRateLimitWait,
+      },
     });
 
     // Octokit drops constructor-level request headers, so the API version is pinned per request.
@@ -187,6 +197,7 @@ export class GitHubClient {
       await this.octokit.rest.activity.starRepoForAuthenticatedUser({
         owner: ref.owner,
         repo: ref.name,
+        request: { retries: 0 },
       });
     } catch (error) {
       throw normalizeStarMutationError(error, `star ${formatRepoRef(ref)}`);
@@ -198,6 +209,7 @@ export class GitHubClient {
       await this.octokit.rest.activity.unstarRepoForAuthenticatedUser({
         owner: ref.owner,
         repo: ref.name,
+        request: { retries: 0 },
       });
     } catch (error) {
       throw normalizeStarMutationError(error, `unstar ${formatRepoRef(ref)}`);
@@ -443,6 +455,10 @@ function suppressGitHubApiVersionDeprecationWarnings(message?: unknown, ...args:
   console.warn(message, ...args);
 }
 
+function retryShortRateLimitWait(retryAfter: number, options: { request: { retryCount: number } }): boolean {
+  return options.request.retryCount === 0 && retryAfter <= maxRateLimitWaitSeconds;
+}
+
 function normalizeGitHubError(error: unknown, fallbackMessage: string): GitHubApiError {
   const candidate = error as {
     status?: number;
@@ -454,7 +470,6 @@ function normalizeGitHubError(error: unknown, fallbackMessage: string): GitHubAp
 
   const status = candidate.status;
   const headers = candidate.response?.headers ?? {};
-  const reset = headers["x-ratelimit-reset"];
   const remaining = headers["x-ratelimit-remaining"];
 
   if (status === 404) {
@@ -464,12 +479,13 @@ function normalizeGitHubError(error: unknown, fallbackMessage: string): GitHubAp
     });
   }
 
-  if (status === 403 && remaining === "0") {
-    return new GitHubApiError("GitHub API rate limit exceeded.", {
-      status,
-      code: "rate_limited",
-      rateLimitReset: reset ? new Date(Number(reset) * 1000).toISOString() : undefined,
-    });
+  const secondaryLimit = /secondary rate limit/i.test(candidate.message ?? "");
+
+  if (status === 429 || (status === 403 && (remaining === "0" || secondaryLimit))) {
+    return new GitHubApiError(
+      secondaryLimit ? "GitHub API secondary rate limit exceeded." : "GitHub API rate limit exceeded.",
+      { status, code: "rate_limited", rateLimitReset: rateLimitReset(headers) },
+    );
   }
 
   if (status === 401) {
@@ -483,6 +499,18 @@ function normalizeGitHubError(error: unknown, fallbackMessage: string): GitHubAp
     status,
     code: "github_error",
   });
+}
+
+/** `x-ratelimit-reset` is an epoch in seconds; secondary limits send a `retry-after` delay instead. */
+function rateLimitReset(headers: Record<string, string | undefined>): string | undefined {
+  const reset = Number(headers["x-ratelimit-reset"]);
+
+  if (reset > 0) {
+    return new Date(reset * 1000).toISOString();
+  }
+
+  const retryAfter = Number(headers["retry-after"]);
+  return retryAfter > 0 ? new Date(Date.now() + retryAfter * 1000).toISOString() : undefined;
 }
 
 /**

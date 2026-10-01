@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { GitHubApiError, GitHubClient, githubApiVersion } from "../src/github/client";
+import { collectSnapshot } from "../src/metrics/snapshot";
+import { renderRepoJson } from "../src/render/json";
 
 describe("GitHubClient release overview", () => {
   test("uses the latest stable release instead of the newest prerelease", async () => {
@@ -205,5 +207,85 @@ describe("GitHubClient request headers", () => {
 
     expect(sent?.get("x-github-api-version")).toBe(githubApiVersion);
     expect(sent?.get("accept")).toBe("application/vnd.github+json");
+  });
+});
+
+describe("GitHubClient rate limits", () => {
+  async function failureFor(status: number, headers: Record<string, string>, message = "Rate limited") {
+    const originalFetch = globalThis.fetch;
+    let requests = 0;
+    globalThis.fetch = (async () => {
+      requests += 1;
+      return new Response(JSON.stringify({ message }), {
+        status,
+        headers: { "content-type": "application/json", ...headers },
+      });
+    }) as unknown as typeof fetch;
+
+    try {
+      const error = await captureError(() => new GitHubClient("").getRepository({ owner: "acme", name: "widget" }));
+      return { error: error as GitHubApiError, requests };
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  }
+
+  test("reads a 429 with retry-after as a rate limit and does not wait it out", async () => {
+    const before = Date.now();
+    const { error, requests } = await failureFor(429, { "retry-after": "60" });
+    const reset = Date.parse(error.rateLimitReset ?? "");
+
+    expect(error.code).toBe("rate_limited");
+    expect(requests).toBe(1);
+    expect(reset - before).toBeGreaterThanOrEqual(59_000);
+    expect(reset - before).toBeLessThan(65_000);
+  });
+
+  test("reads a 403 secondary rate limit without a zero quota as a rate limit", async () => {
+    const { error } = await failureFor(
+      403,
+      { "retry-after": "120" },
+      "You have exceeded a secondary rate limit. Please wait a few minutes before you try again.",
+    );
+
+    expect(error.code).toBe("rate_limited");
+    expect(error.message).toBe("GitHub API secondary rate limit exceeded.");
+  });
+
+  test("reads an exhausted primary quota as a rate limit with its reset time", async () => {
+    const { error, requests } = await failureFor(403, {
+      "x-ratelimit-remaining": "0",
+      "x-ratelimit-reset": String(Math.floor(Date.now() / 1000) + 1800),
+    });
+
+    expect(error.code).toBe("rate_limited");
+    expect(requests).toBe(1);
+    expect(error.rateLimitReset).toBeDefined();
+  });
+
+  test("keeps an ordinary 403 as a GitHub error", async () => {
+    const { error } = await failureFor(403, { "x-ratelimit-remaining": "5" }, "Resource not accessible");
+
+    expect(error.code).toBe("github_error");
+  });
+
+  test("carries the rate limit code and reset time into the JSON envelope", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ message: "API rate limit exceeded" }), {
+        status: 403,
+        headers: { "content-type": "application/json", "x-ratelimit-remaining": "0", "x-ratelimit-reset": "1780000000" },
+      })) as unknown as typeof fetch;
+
+    try {
+      const result = await collectSnapshot(new GitHubClient(""), "acme/widget");
+      const json = JSON.parse(renderRepoJson(result));
+
+      expect(json.result.ok).toBe(false);
+      expect(json.result.error.code).toBe("rate_limited");
+      expect(json.result.error.message).toBe("GitHub API rate limit exceeded. Resets at 2026-05-28T20:26:40.000Z.");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });
