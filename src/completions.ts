@@ -7,7 +7,7 @@ _gitpulse()
   local theme_values="tokyo-night catppuccin-mocha nord gruvbox-dark dracula"
   local shared_flags="--json --color --theme --refresh --offline --max-cache-hours --contributor-fetch-limit"
   local repo_flags="$shared_flags --explain"
-  local starred_flags="--json --color --theme --refresh --offline --max-cache-hours --list --sort --direction"
+  local starred_flags="--json --color --theme --refresh --offline --max-cache-hours --list --limit --sort --direction"
   local star_flags="--json"
   local forks_flags="--json --color --theme --limit"
   local search_flags="--json --color --theme --refresh --offline --max-cache-hours --list --lucky --sort --order --limit"

@@ -209,6 +209,9 @@ export type StarredRepositoryList = {
   fetchedAt: string;
   sort: StarredRepositorySort;
   direction: StarredRepositoryDirection;
+  limit: number;
+  /** More stars exist past `limit`; absence from `repositories` says nothing. */
+  truncated: boolean;
   repositories: StarredRepositorySummary[];
 };
 

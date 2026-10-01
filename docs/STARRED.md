@@ -57,6 +57,9 @@ Supported options:
 - `--sort updated` orders by repository update time.
 - `--direction desc`, the default, shows newest first.
 - `--direction asc` reverses the order.
+- `--limit <count>` fetches at most that many stars, 1,000 by default and up to
+  5,000, at one request per 100. When more stars exist the list is marked
+  `truncated` in JSON, and the picker and `--list` say so on stderr.
 
 Gitpulse stores only the normalized repository list needed for selection and
 script output. Full project-health metrics are still collected only for the
@@ -70,6 +73,7 @@ Starred repository lists use the existing cache policy:
 - `--offline` reads only the starred-list cache, then the selected repository
   report follows normal offline repository snapshot behavior.
 - `--max-cache-hours` controls starred-list freshness.
+- A cached list fetched under a different `--limit` is refetched.
 - `gitpulse cache clear` removes starred-list and viewer star cache entries
   because they live under the normal Gitpulse cache root.
 
@@ -89,10 +93,12 @@ State lives in its own store, one entry per repository:
 ${XDG_CACHE_HOME:-~/.cache}/gitpulse/snapshots/github-viewer-stars/self.json
 ```
 
-Two writers fill it. A successful `gitpulse starred` list fetch replaces the
-whole store with that list's positives and records `listSyncedAt`; any
-repository missing from a synced list was not starred at that moment, so the
-negative case is cached too. A single-repository probe,
+Two writers fill it. A successful, complete `gitpulse starred` list fetch
+replaces the whole store with that list's positives and records
+`listSyncedAt`; any repository missing from a synced list was not starred at
+that moment, so the negative case is cached too. A truncated list only adds its
+positives and leaves `listSyncedAt` alone, since a missing repository may sit
+past the limit. A single-repository probe,
 `GET /user/starred/{owner}/{repo}`, writes one entry.
 
 ### Freshness Rule

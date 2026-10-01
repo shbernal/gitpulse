@@ -4,7 +4,7 @@ import type { StarredRepositoryDirection, StarredRepositoryList, StarredReposito
 import { starredRepositoriesCacheDir, starredRepositoriesCachePath } from "./paths";
 import { CacheError } from "./store";
 
-const starredRepositoriesCacheSchemaVersion = 1 as const;
+const starredRepositoriesCacheSchemaVersion = 2 as const;
 
 type Env = Record<string, string | undefined>;
 
@@ -105,6 +105,8 @@ function isCachedStarredRepositories(
     value.list.sort === options.sort &&
     value.list.direction === options.direction &&
     typeof value.list.fetchedAt === "string" &&
+    typeof value.list.limit === "number" &&
+    typeof value.list.truncated === "boolean" &&
     Array.isArray(value.list.repositories)
   );
 }

@@ -161,15 +161,37 @@ export class GitHubClient {
   async getAuthenticatedUserStarredRepositories(options: {
     sort: StarredRepositorySort;
     direction: StarredRepositoryDirection;
-  }): Promise<GitHubStarredRepository[]> {
+    fetchLimit: number;
+  }): Promise<{ repositories: GitHubStarredRepository[]; truncated: boolean }> {
     try {
-      const repositories = await this.octokit.paginate(this.octokit.rest.activity.listReposStarredByAuthenticatedUser, {
-        sort: options.sort,
-        direction: options.direction,
-        per_page: githubPageSizeLimit,
-      });
+      const perPage = Math.min(options.fetchLimit, githubPageSizeLimit);
+      const repositories: GitHubStarredRepository[] = [];
+      let page = 1;
+      let hasMorePages = false;
 
-      return repositories as GitHubStarredRepository[];
+      while (repositories.length < options.fetchLimit) {
+        const response = await this.octokit.rest.activity.listReposStarredByAuthenticatedUser({
+          sort: options.sort,
+          direction: options.direction,
+          per_page: perPage,
+          page,
+        });
+        const pageRepositories = response.data as GitHubStarredRepository[];
+
+        repositories.push(...pageRepositories);
+        hasMorePages = hasNextPage(response.headers.link);
+
+        if (!hasMorePages || pageRepositories.length === 0) {
+          break;
+        }
+
+        page += 1;
+      }
+
+      return {
+        repositories: repositories.slice(0, options.fetchLimit),
+        truncated: hasMorePages || repositories.length > options.fetchLimit,
+      };
     } catch (error) {
       throw normalizeGitHubError(error, "Could not fetch starred repositories.");
     }
