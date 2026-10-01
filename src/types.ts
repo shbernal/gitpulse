@@ -9,6 +9,7 @@ export type LanguageBreakdown = {
   percent: number;
 };
 
+/** @public Part of the published `RepoSnapshot` shape. */
 export type RepositoryFacts = {
   fullName: string;
   description: string | null;
@@ -34,6 +35,7 @@ export type RepositoryFacts = {
   sizeKb: number;
 };
 
+/** @public Part of the published `RepoSnapshot` shape. */
 export type ActivityMetrics = {
   ageDays: number;
   daysSinceLastPush: number | null;
@@ -401,7 +403,7 @@ export type SearchRepositoriesWithSource = {
 
 export type ViewerStarSource = "api" | "cache";
 
-export type ViewerStarUnknownReason = "unauthenticated" | "offline" | "error";
+type ViewerStarUnknownReason = "unauthenticated" | "offline" | "error";
 
 export type ViewerStar =
   | {

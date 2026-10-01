@@ -437,9 +437,12 @@ gitpulse owner/a owner/b --json
 JSON output should remain stable enough to support scripts.
 It should use an explicit envelope with a schema version and command name so the scripting surface can evolve deliberately.
 
-Failures carry an error `code` scripts can branch on. Every GitHub rate limit
-(an exhausted quota, a 429, or a secondary limit) reports `rate_limited` with the
-reset time in the message. Gitpulse waits out a rate-limit pause of ten seconds
+Failures carry an error `code` scripts can branch on: `invalid_input` for a
+malformed repository or login, `missing_cache` when `--offline` has nothing
+cached, `corrupt_cache` for an unreadable cache entry, and GitHub's `not_found`,
+`unauthorized` and `rate_limited`. Every GitHub rate limit (an exhausted quota,
+a 429, or a secondary limit) reports `rate_limited` with the reset time in the
+message. Gitpulse waits out a rate-limit pause of ten seconds
 or less once and fails fast on anything longer. Transient 5xx reads are
 retried; star and unstar writes are never retried.
 

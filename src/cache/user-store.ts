@@ -65,7 +65,7 @@ export async function writeCachedUserProfileSnapshot(
   return entry;
 }
 
-export function userProfileCacheKey(login: string): string {
+function userProfileCacheKey(login: string): string {
   return `github:user:${login.toLowerCase()}`;
 }
 

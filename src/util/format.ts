@@ -70,6 +70,6 @@ export function truncate(value: string, maxLength: number): string {
   return `${value.slice(0, maxLength - 3)}...`;
 }
 
-export function trimDecimal(value: number): string {
+function trimDecimal(value: number): string {
   return value.toFixed(1).replace(/\.0$/, "");
 }

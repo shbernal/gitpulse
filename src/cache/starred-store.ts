@@ -2,8 +2,9 @@ import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { StarredRepositoryDirection, StarredRepositoryList, StarredRepositorySort } from "../types";
 import { starredRepositoriesCacheDir, starredRepositoriesCachePath } from "./paths";
+import { CacheError } from "./store";
 
-export const starredRepositoriesCacheSchemaVersion = 1 as const;
+const starredRepositoriesCacheSchemaVersion = 1 as const;
 
 type Env = Record<string, string | undefined>;
 
@@ -22,13 +23,6 @@ export type CachedStarredRepositories = {
   list: StarredRepositoryList;
 };
 
-export class StarredRepositoriesCacheError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "StarredRepositoriesCacheError";
-  }
-}
-
 export async function readCachedStarredRepositories(
   options: StarredRepositoriesCacheOptions,
   env: Env = process.env,
@@ -40,7 +34,7 @@ export async function readCachedStarredRepositories(
     const parsed = JSON.parse(raw) as unknown;
 
     if (!isCachedStarredRepositories(parsed, options)) {
-      throw new StarredRepositoriesCacheError(`Invalid starred repository cache entry at ${filePath}.`);
+      throw new CacheError(`Invalid starred repository cache entry at ${filePath}.`);
     }
 
     return parsed;
@@ -50,7 +44,7 @@ export async function readCachedStarredRepositories(
     }
 
     if (error instanceof SyntaxError) {
-      throw new StarredRepositoriesCacheError(`Could not parse starred repository cache entry at ${filePath}.`);
+      throw new CacheError(`Could not parse starred repository cache entry at ${filePath}.`);
     }
 
     throw error;

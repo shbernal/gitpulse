@@ -2,8 +2,9 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { RepoRef } from "../types";
 import { viewerStarsCachePath } from "./paths";
+import { CacheError } from "./store";
 
-export const viewerStarsCacheSchemaVersion = 1 as const;
+const viewerStarsCacheSchemaVersion = 1 as const;
 const viewerStarsCacheKey = "github:viewer-stars:self";
 
 // Probe results accumulate one entry per inspected repository between full list syncs.
@@ -26,14 +27,7 @@ export type CachedViewerStars = {
   entries: Record<string, ViewerStarEntry>;
 };
 
-export class ViewerStarsCacheError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ViewerStarsCacheError";
-  }
-}
-
-export function viewerStarKey(ref: RepoRef): string {
+function viewerStarKey(ref: RepoRef): string {
   return `${ref.owner.toLowerCase()}/${ref.name.toLowerCase()}`;
 }
 
@@ -58,7 +52,7 @@ export async function readCachedViewerStars(env: Env = process.env): Promise<Cac
     const parsed = JSON.parse(await readFile(filePath, "utf8")) as unknown;
 
     if (!isCachedViewerStars(parsed)) {
-      throw new ViewerStarsCacheError(`Invalid viewer star cache entry at ${filePath}.`);
+      throw new CacheError(`Invalid viewer star cache entry at ${filePath}.`);
     }
 
     return parsed;
@@ -68,7 +62,7 @@ export async function readCachedViewerStars(env: Env = process.env): Promise<Cac
     }
 
     if (error instanceof SyntaxError) {
-      throw new ViewerStarsCacheError(`Could not parse viewer star cache entry at ${filePath}.`);
+      throw new CacheError(`Could not parse viewer star cache entry at ${filePath}.`);
     }
 
     throw error;

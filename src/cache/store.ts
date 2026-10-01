@@ -15,7 +15,10 @@ export type CachedSnapshot = {
   snapshot: RepoSnapshot;
 };
 
+/** An unreadable cache entry; it is refetched online and reported offline. */
 export class CacheError extends Error {
+  readonly code = "corrupt_cache";
+
   constructor(message: string) {
     super(message);
     this.name = "CacheError";
@@ -70,7 +73,7 @@ export async function writeCachedSnapshot(
   return entry;
 }
 
-export function cacheKey(ref: RepoRef): string {
+function cacheKey(ref: RepoRef): string {
   return `github:${ref.owner.toLowerCase()}/${ref.name.toLowerCase()}`;
 }
 

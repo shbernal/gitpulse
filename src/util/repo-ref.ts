@@ -3,7 +3,9 @@ import type { RepoRef } from "../types";
 const ownerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
 const repoPattern = /^[A-Za-z0-9._-]+$/;
 
-export class RepoRefError extends Error {
+class RepoRefError extends Error {
+  readonly code = "invalid_input";
+
   constructor(input: string) {
     super(`Invalid repository reference "${input}". Expected owner/repo.`);
     this.name = "RepoRefError";

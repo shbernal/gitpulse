@@ -2,8 +2,9 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { SearchRepositoryList, SearchRepositoryOrder, SearchRepositorySort } from "../types";
 import { searchRepositoriesCachePath } from "./paths";
+import { CacheError } from "./store";
 
-export const searchRepositoriesCacheSchemaVersion = 1 as const;
+const searchRepositoriesCacheSchemaVersion = 1 as const;
 
 type Env = Record<string, string | undefined>;
 
@@ -26,13 +27,6 @@ export type CachedSearchRepositories = {
   list: SearchRepositoryList;
 };
 
-export class SearchRepositoriesCacheError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "SearchRepositoriesCacheError";
-  }
-}
-
 export async function readCachedSearchRepositories(
   options: SearchRepositoriesCacheOptions,
   env: Env = process.env,
@@ -44,7 +38,7 @@ export async function readCachedSearchRepositories(
     const parsed = JSON.parse(raw) as unknown;
 
     if (!isCachedSearchRepositories(parsed, options)) {
-      throw new SearchRepositoriesCacheError(`Invalid repository search cache entry at ${filePath}.`);
+      throw new CacheError(`Invalid repository search cache entry at ${filePath}.`);
     }
 
     return parsed;
@@ -54,7 +48,7 @@ export async function readCachedSearchRepositories(
     }
 
     if (error instanceof SyntaxError) {
-      throw new SearchRepositoriesCacheError(`Could not parse repository search cache entry at ${filePath}.`);
+      throw new CacheError(`Could not parse repository search cache entry at ${filePath}.`);
     }
 
     throw error;
