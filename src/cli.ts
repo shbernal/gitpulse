@@ -309,7 +309,13 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
       await runCompleteUsers(options.current);
     });
 
-  await program.parseAsync(argv);
+  // Commands report their own expected failures; this keeps an unexpected one to a single line.
+  try {
+    await program.parseAsync(argv);
+  } catch (error) {
+    console.error(`gitpulse: ${errorMessage(error)}`);
+    process.exitCode = 1;
+  }
 }
 
 function addSharedOptions(command: Command): Command {
