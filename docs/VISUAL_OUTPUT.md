@@ -29,6 +29,10 @@ guides indicate that at least one line exceeds the configured width. The
 overflow so explanation detail, truncation, and layout pressure remain visible
 during review.
 
+Line lengths, the column guide, and table padding all use the renderer's
+`visibleLength` (`src/render/terminal.ts`), which counts terminal display
+columns: CJK and emoji graphemes take two columns, combining marks take none.
+
 Keep this workflow separate from JSON output. Visual review can change color,
 spacing, labels, and emphasis in terminal reports, but machine-readable JSON
 should remain plain, stable, and covered by normal tests.

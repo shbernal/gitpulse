@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { stripVTControlCharacters } from "node:util";
 import { renderComparisonJson, renderDocsJson, renderRepoJson, renderUserProfileJson } from "../src/render/json";
 import { renderComparison, renderDocs, renderRepo, renderUserProfile } from "../src/render/table";
-import { shouldUseColor } from "../src/render/terminal";
+import { padVisibleEnd, shouldUseColor, visibleLength } from "../src/render/terminal";
 import type { RepoSnapshot, SnapshotResult, UserProfileResult, UserProfileSnapshot } from "../src/types";
 
 describe("terminal rendering", () => {
@@ -181,6 +181,37 @@ describe("terminal rendering", () => {
     expect(output).not.toContain("+-");
     expect(output).toContain("Data Provenance");
     expect(output).toContain("\nData Provenance\nCompared 2 repositories");
+  });
+
+  test("measures terminal display width for wide characters", () => {
+    expect(visibleLength("rust")).toBe(4);
+    expect(visibleLength("日本語")).toBe(6);
+    expect(visibleLength("🚀 fast")).toBe(7);
+    expect(visibleLength("👨‍👩‍👧")).toBe(2);
+    expect(visibleLength("e\u0301")).toBe(1);
+    expect(visibleLength("\x1b[31m日本\x1b[0m")).toBe(4);
+    expect(visibleLength(padVisibleEnd("日本語", 10))).toBe(10);
+  });
+
+  test("keeps comparison columns aligned when a repository name is wide", () => {
+    const output = renderComparison(
+      [
+        { ok: true, snapshot: snapshot("acme/日本語") },
+        { ok: true, snapshot: snapshot("acme/two", { stars: 20, commitDays: 4 }) },
+      ],
+      { color: false },
+    );
+    const lines = section(output, "Scoreboard", "Compared Repos").split("\n");
+    const columnStart = (line: string, cell: string) => visibleLength(line.slice(0, line.indexOf(cell)));
+    const header = lines.find((line) => line.startsWith("Repository"))!;
+    const wide = lines.find((line) => line.startsWith("日本語"))!;
+    const narrow = lines.find((line) => line.startsWith("two"))!;
+
+    for (const [heading, cell] of [["Activity", "82/100"], ["Forks", "12"], ["State", "active"]]) {
+      expect(columnStart(wide, cell)).toBe(columnStart(header, heading));
+    }
+    expect(columnStart(narrow, "12")).toBe(columnStart(header, "Forks"));
+    expect(columnStart(wide, "active")).toBe(columnStart(narrow, "active"));
   });
 
   test("keeps owner prefixes in comparison output when repo names match", () => {
