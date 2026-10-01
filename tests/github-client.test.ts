@@ -438,3 +438,31 @@ describe("GitHubClient account repositories", () => {
     expect(urls[0].searchParams.get("type")).toBe("public");
   });
 });
+
+describe("GitHubClient starred repositories", () => {
+  test("stops at the fetch limit and reports truncation", async () => {
+    const { value, urls } = await withFakeGitHub(
+      (url) => {
+        const page = Number(url.searchParams.get("page"));
+        return { body: userRepos(100).map((repo) => ({ ...repo, page })), nextPage: page + 1, lastPage: 3 };
+      },
+      (client) =>
+        client.getAuthenticatedUserStarredRepositories({ sort: "created", direction: "desc", fetchLimit: 150 }),
+    );
+
+    expect(value.repositories).toHaveLength(150);
+    expect(value.truncated).toBe(true);
+    expect(urls.map((url) => url.pathname)).toEqual(["/user/starred", "/user/starred"]);
+  });
+
+  test("reports a complete list when the stars end before the limit", async () => {
+    const { value } = await withFakeGitHub(
+      () => ({ body: userRepos(40) }),
+      (client) =>
+        client.getAuthenticatedUserStarredRepositories({ sort: "created", direction: "desc", fetchLimit: 1000 }),
+    );
+
+    expect(value.repositories).toHaveLength(40);
+    expect(value.truncated).toBe(false);
+  });
+});

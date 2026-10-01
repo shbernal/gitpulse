@@ -266,6 +266,7 @@ The generated Bash completion completes:
   - `--offline`
   - `--max-cache-hours`
   - `--list`
+  - `--limit`
   - `--sort`
   - `--direction`
 - Search repository flags:

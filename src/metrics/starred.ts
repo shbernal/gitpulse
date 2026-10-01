@@ -12,6 +12,7 @@ import { toSnapshotError } from "./errors";
 export type StarredCollectionOptions = {
   sort: StarredRepositorySort;
   direction: StarredRepositoryDirection;
+  limit: number;
 };
 
 export async function collectStarredRepositories(
@@ -20,11 +21,17 @@ export async function collectStarredRepositories(
   options: StarredCollectionOptions,
 ): Promise<StarredRepositoryResult> {
   try {
-    const repositories = await client.getAuthenticatedUserStarredRepositories(options);
+    const { repositories, truncated } = await client.getAuthenticatedUserStarredRepositories({
+      sort: options.sort,
+      direction: options.direction,
+      fetchLimit: options.limit,
+    });
     const list: StarredRepositoryList = {
       fetchedAt: now.toISOString(),
       sort: options.sort,
       direction: options.direction,
+      limit: options.limit,
+      truncated,
       repositories: repositories.map(normalizeStarredRepository),
     };
 

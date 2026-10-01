@@ -23,6 +23,7 @@ describe("starred repository collection", () => {
     const result = await collectStarredRepositories(starredClient(), new Date("2026-05-16T00:00:00.000Z"), {
       sort: "created",
       direction: "desc",
+      limit: 1000,
     });
 
     expect(result.ok).toBe(true);
@@ -65,6 +66,7 @@ describe("starred repository cache resolution", () => {
         mode: "default",
         sort: "created",
         direction: "desc",
+        limit: 1000,
         now: new Date("2026-05-16T12:00:00.000Z"),
         env,
       });
@@ -83,6 +85,7 @@ describe("starred repository cache resolution", () => {
         mode: "offline",
         sort: "created",
         direction: "desc",
+        limit: 1000,
         now: new Date("2026-05-16T12:00:00.000Z"),
         env,
       });
@@ -108,6 +111,31 @@ describe("starred CLI", () => {
       );
 
       expect(output).toBe("acme/tool\ncharmbracelet/gum");
+    });
+  });
+
+  test("discloses a truncated list on stderr and in JSON", async () => {
+    await withTempEnv(async (env) => {
+      await writeCachedStarredRepositories(
+        { sort: "created", direction: "desc" },
+        { ...starredList([starredRepository("acme/tool")]), limit: 1, truncated: true },
+        new Date(),
+        env,
+      );
+
+      const run = (...flags: string[]) =>
+        withProcessEnv(env, () =>
+          main(["node", "gitpulse", "starred", "--list", "--offline", "--limit", "1", ...flags]),
+        );
+      let stdout = "";
+      const stderr = await captureStderr(async () => {
+        stdout = await captureStdout(() => run());
+      });
+      const json = JSON.parse(await captureStdout(() => run("--json")));
+
+      expect(stdout).toBe("acme/tool");
+      expect(stderr).toBe("gitpulse: Showing your first 1 starred repositories. Use --limit to fetch more.");
+      expect(json.result.list).toMatchObject({ limit: 1, truncated: true });
     });
   });
 
@@ -258,9 +286,20 @@ describe("viewer star resolution", () => {
     });
   });
 
+  test("a truncated list adds positives without claiming the rest are unstarred", async () => {
+    await withTempEnv(async (env) => {
+      await syncViewerStarsFromList(["acme/old"], true, new Date("2026-05-10T00:00:00.000Z"), env);
+      await syncViewerStarsFromList(["acme/tool"], false, new Date("2026-05-16T00:00:00.000Z"), env);
+      const cache = await readCachedViewerStars(env);
+
+      expect(cache?.listSyncedAt).toBe("2026-05-10T00:00:00.000Z");
+      expect(Object.keys(cache?.entries ?? {}).toSorted()).toEqual(["acme/old", "acme/tool"]);
+    });
+  });
+
   test("answers a repository missing from a synced starred list without probing", async () => {
     await withTempEnv(async (env) => {
-      await syncViewerStarsFromList(["acme/tool"], new Date("2026-05-16T00:00:00.000Z"), env);
+      await syncViewerStarsFromList(["acme/tool"], true, new Date("2026-05-16T00:00:00.000Z"), env);
 
       const viewerStar = await resolveViewerStar(
         refusingStarClient(),
@@ -343,6 +382,7 @@ describe("viewer star resolution", () => {
         mode: "refresh",
         sort: "created",
         direction: "desc",
+        limit: 1000,
         now: new Date("2026-05-16T00:00:00.000Z"),
         env,
       });
@@ -405,7 +445,7 @@ describe("star mutation", () => {
 
   test("an unstar leaves a fresh negative behind so the report stops claiming a star", async () => {
     await withTempEnv(async (env) => {
-      await syncViewerStarsFromList(["acme/tool"], new Date("2026-05-15T00:00:00.000Z"), env);
+      await syncViewerStarsFromList(["acme/tool"], true, new Date("2026-05-15T00:00:00.000Z"), env);
 
       await recordViewerStarMutation({ owner: "acme", name: "tool" }, false, {
         cacheEnabled: true,
@@ -535,24 +575,44 @@ async function captureStdout(fn: () => Promise<void>): Promise<string> {
   return output.join("\n");
 }
 
+async function captureStderr(fn: () => Promise<void>): Promise<string> {
+  const output: string[] = [];
+  const original = console.error;
+
+  console.error = (...args: unknown[]) => {
+    output.push(args.join(" "));
+  };
+
+  try {
+    await fn();
+  } finally {
+    console.error = original;
+  }
+
+  return output.join("\n");
+}
+
 function starredClient(overrides: Partial<GitHubClient> = {}): GitHubClient {
   return {
     async getAuthenticatedUserStarredRepositories() {
-      return [
-        {
-          full_name: "acme/tool",
-          name: "tool",
-          description: "A useful tool.",
-          html_url: "https://github.com/acme/tool",
-          pushed_at: "2026-05-15T00:00:00Z",
-          updated_at: "2026-05-15T00:00:00Z",
-          language: "TypeScript",
-          stargazers_count: 100,
-          forks_count: 5,
-          archived: false,
-          fork: false,
-        },
-      ];
+      return {
+        truncated: false,
+        repositories: [
+          {
+            full_name: "acme/tool",
+            name: "tool",
+            description: "A useful tool.",
+            html_url: "https://github.com/acme/tool",
+            pushed_at: "2026-05-15T00:00:00Z",
+            updated_at: "2026-05-15T00:00:00Z",
+            language: "TypeScript",
+            stargazers_count: 100,
+            forks_count: 5,
+            archived: false,
+            fork: false,
+          },
+        ],
+      };
     },
     ...overrides,
   } as unknown as GitHubClient;
@@ -592,6 +652,8 @@ function starredList(
     fetchedAt: "2026-05-16T00:00:00.000Z",
     sort: options.sort ?? "created",
     direction: options.direction ?? "desc",
+    limit: 1000,
+    truncated: false,
     repositories,
   };
 }

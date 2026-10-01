@@ -61,6 +61,7 @@ type CommandOptions = {
 
 type StarredCommandOptions = CommandOptions & {
   direction?: StarredRepositoryDirection;
+  limit: number;
   list?: boolean;
   sort?: StarredRepositorySort;
 };
@@ -167,6 +168,11 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
 
   addCacheOptions(program.command("starred").description("Pick one of your starred repositories to inspect"))
     .option("--list", "print starred repository names instead of opening a selector")
+    .addOption(
+      new Option("--limit <count>", `starred repositories to fetch, up to ${maxStarredFetchLimit}`)
+        .argParser((value) => parseBoundedInteger(value, maxStarredFetchLimit))
+        .default(defaultStarredFetchLimit),
+    )
     .addOption(starredSortOption())
     .addOption(starredDirectionOption())
     .action(async (_options: StarredCommandOptions, command: Command) => {
@@ -401,6 +407,10 @@ function parseMaxCacheHours(value: string): number {
 
   return hours;
 }
+
+// One request per 100 stars; the default covers most accounts in ten requests.
+const defaultStarredFetchLimit = 1000;
+const maxStarredFetchLimit = 5000;
 
 function parsePageLimit(value: string): number {
   return parseBoundedInteger(value, 100);
@@ -667,6 +677,7 @@ async function runStarred(options: StarredCommandOptions, selector: StarredRepos
     ...runtime.value.cache,
     sort: options.sort ?? "created",
     direction: options.direction ?? "desc",
+    limit: options.limit,
     now,
   });
   const result = starred.result;
@@ -680,6 +691,10 @@ async function runStarred(options: StarredCommandOptions, selector: StarredRepos
 
     process.exitCode = 1;
     return;
+  }
+
+  if (result.list.truncated && !runtime.value.json) {
+    console.error(`gitpulse: Showing your first ${result.list.limit} starred repositories. Use --limit to fetch more.`);
   }
 
   if (options.list) {

@@ -81,18 +81,25 @@ export async function writeViewerStarProbe(
   return writeCache({ ...current, entries: prune(entries) }, env);
 }
 
-// A full starred list replaces every known entry: it is authoritative for the positives, and it
-// makes previously probed repositories answerable from `listSyncedAt` alone.
+// A complete starred list replaces every known entry: it is authoritative for the positives, and it
+// makes previously probed repositories answerable from `listSyncedAt` alone. A truncated list only
+// adds positives, since a repository missing from it may simply sit past the limit.
 export async function syncViewerStarsFromList(
   fullNames: string[],
+  complete: boolean,
   now = new Date(),
   env: Env = process.env,
 ): Promise<CachedViewerStars> {
   const checkedAt = now.toISOString();
-  const entries: Record<string, ViewerStarEntry> = {};
+  const listed: Record<string, ViewerStarEntry> = {};
 
   for (const fullName of fullNames) {
-    entries[fullName.toLowerCase()] = { starred: true, checkedAt };
+    listed[fullName.toLowerCase()] = { starred: true, checkedAt };
+  }
+
+  if (!complete) {
+    const current = await readCachedViewerStarsOrEmpty(env);
+    return writeCache({ ...current, entries: { ...prune(current.entries), ...listed } }, env);
   }
 
   return writeCache(
@@ -101,7 +108,7 @@ export async function syncViewerStarsFromList(
       forge: "github",
       key: viewerStarsCacheKey,
       listSyncedAt: checkedAt,
-      entries,
+      entries: listed,
     },
     env,
   );
