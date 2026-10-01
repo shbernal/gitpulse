@@ -137,8 +137,13 @@ export function parseConfig(value: unknown): GitpulseConfig {
     }
 
     if (value.contributors.fetchLimit !== undefined) {
-      if (!isPositiveInteger(value.contributors.fetchLimit)) {
-        throw new ConfigError("Config field contributors.fetchLimit must be a positive integer.");
+      if (
+        !isPositiveInteger(value.contributors.fetchLimit) ||
+        value.contributors.fetchLimit > maxContributorFetchLimit
+      ) {
+        throw new ConfigError(
+          `Config field contributors.fetchLimit must be an integer between 1 and ${maxContributorFetchLimit}.`,
+        );
       }
 
       config.contributors.fetchLimit = value.contributors.fetchLimit;
@@ -177,6 +182,9 @@ function xdgConfigDir(env: Env): string {
 function isNonNegativeNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
+
+/** Contributor pagination costs one request per 100 rows; past 500 GitHub returns little worth paying for. */
+export const maxContributorFetchLimit = 500;
 
 function isPositiveInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;

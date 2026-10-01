@@ -356,6 +356,21 @@ describe("GitHubClient contributors", () => {
     expect(urls.map((url) => url.searchParams.get("page"))).toEqual(["1", "2", null]);
   });
 
+  test("pages through a 250-contributor repository in three requests", async () => {
+    const { value, urls } = await withFakeGitHub(
+      (url) => {
+        const page = Number(url.searchParams.get("page"));
+        const rows = people(250).slice((page - 1) * 100, page * 100);
+        return { body: rows, ...(page < 3 ? { nextPage: page + 1, lastPage: 3 } : {}) };
+      },
+      (client) => client.getContributors({ owner: "acme", name: "tool" }, 250),
+    );
+
+    expect(value.contributors).toHaveLength(250);
+    expect(value.totalCount).toBe(250);
+    expect(urls).toHaveLength(3);
+  });
+
   test("counts every contributor when all pages fit under the limit", async () => {
     const { value, urls } = await withFakeGitHub(
       (url) =>

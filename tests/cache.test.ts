@@ -56,6 +56,13 @@ describe("config parsing", () => {
     expect(() => parseConfig({ contributors: { fetchLimit: 0 } })).toThrow("contributors.fetchLimit");
   });
 
+  test("caps the contributor fetch limit", () => {
+    expect(parseConfig({ contributors: { fetchLimit: 500 } }).contributors.fetchLimit).toBe(500);
+    expect(() => parseConfig({ contributors: { fetchLimit: 100000 } })).toThrow(
+      "Config field contributors.fetchLimit must be an integer between 1 and 500.",
+    );
+  });
+
   test("parses output color and theme settings", () => {
     expect(parseConfig({ output: { color: "always", theme: "nord" } }).output).toEqual({
       color: "always",

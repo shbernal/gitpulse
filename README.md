@@ -185,7 +185,7 @@ Gitpulse reads from cache first and refreshes from GitHub when the snapshot is m
 gitpulse cli/cli --refresh                 # ignore cache, fetch, store
 gitpulse cli/cli --offline                 # local cache only, even if stale
 gitpulse cli/cli --max-cache-hours 24      # override the window for one run
-gitpulse cli/cli --contributor-fetch-limit 200
+gitpulse cli/cli --contributor-fetch-limit 200  # 1 to 500, one request per 100
 ```
 
 Files live in the usual XDG locations:
@@ -218,7 +218,7 @@ Manage them with `gitpulse cache clear`, `gitpulse history`, `gitpulse history c
 
 Repository facts, adoption counts, activity and release history, contributor counts and concentration, documentation presence through `gitpulse docs`, and public profile signals through `gitpulse user`. On top of those sit two explainable composites, activity freshness and Popularity Score.
 
-Some numbers deserve a footnote. Watcher counts come from `subscribers_count`, because GitHub's legacy `watchers_count` just mirrors the star count. Total contributors and total commits are inferred from REST pagination. Contributor concentration uses the first `contributors.fetchLimit` rows GitHub returns, sorted by contribution count, with anonymous authors included.
+Some numbers deserve a footnote. Watcher counts come from `subscribers_count`, because GitHub's legacy `watchers_count` just mirrors the star count. Total contributors and total commits are inferred from REST pagination. Contributor concentration uses the first `contributors.fetchLimit` rows GitHub returns (at most 500), sorted by contribution count, with anonymous authors included.
 
 Composites group evidence, they do not rank projects. Formulas and their caveats are in [Composite Metrics](docs/COMPOSITE_METRICS.md).
 
