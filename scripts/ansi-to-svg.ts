@@ -1,3 +1,5 @@
+import { visibleLength } from "../src/render/terminal";
+
 export type AnsiToSvgOptions = {
   columns?: number;
   defaultBackground?: string;
@@ -145,10 +147,6 @@ export function visibleLineLengths(input: string): number[] {
     .map((line) => visibleLength(line));
 }
 
-export function visibleLength(input: string): number {
-  return Array.from(stripAnsi(input)).length;
-}
-
 function parseAnsiLine(line: string, defaultLineStyle = defaultStyle): TextSegment[] {
   const segments: TextSegment[] = [];
   let style = { ...defaultLineStyle };
@@ -158,7 +156,7 @@ function parseAnsiLine(line: string, defaultLineStyle = defaultStyle): TextSegme
   for (const match of line.matchAll(sgrPattern)) {
     if (match.index > cursor) {
       const text = line.slice(cursor, match.index);
-      const width = Array.from(text).length;
+      const width = visibleLength(text);
       segments.push({ column, style: { ...style }, text, width });
       column += width;
     }
@@ -169,7 +167,7 @@ function parseAnsiLine(line: string, defaultLineStyle = defaultStyle): TextSegme
 
   if (cursor < line.length) {
     const text = line.slice(cursor);
-    const width = Array.from(text).length;
+    const width = visibleLength(text);
     segments.push({ column, style: { ...style }, text, width });
   }
 

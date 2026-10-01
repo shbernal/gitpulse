@@ -158,8 +158,58 @@ export function scoreTone(score: number): Tone {
   return "bad";
 }
 
+const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+const zeroWidthPattern = /^[\p{Mark}\p{Default_Ignorable_Code_Point}\p{Control}]+$/u;
+const emojiPresentationPattern = /\p{Emoji_Presentation}|\p{Extended_Pictographic}️/u;
+
+// East Asian Wide and Fullwidth blocks that occur in real repository names and descriptions.
+const wideRanges: ReadonlyArray<readonly [number, number]> = [
+  [0x1100, 0x115f],
+  [0x2e80, 0x303e],
+  [0x3041, 0x33ff],
+  [0x3400, 0x4dbf],
+  [0x4e00, 0x9fff],
+  [0xa000, 0xa4cf],
+  [0xa960, 0xa97f],
+  [0xac00, 0xd7a3],
+  [0xf900, 0xfaff],
+  [0xfe30, 0xfe4f],
+  [0xff00, 0xff60],
+  [0xffe0, 0xffe6],
+  [0x20000, 0x2fffd],
+  [0x30000, 0x3fffd],
+];
+
+function isWideCodePoint(codePoint: number): boolean {
+  return wideRanges.some(([start, end]) => codePoint >= start && codePoint <= end);
+}
+
+function graphemeWidth(grapheme: string): number {
+  if (zeroWidthPattern.test(grapheme)) {
+    return 0;
+  }
+
+  if (emojiPresentationPattern.test(grapheme) || isWideCodePoint(grapheme.codePointAt(0) ?? 0)) {
+    return 2;
+  }
+
+  return 1;
+}
+
+/** Terminal display columns of `value`, ignoring escape sequences. */
 export function visibleLength(value: string): number {
-  return stripVTControlCharacters(value).length;
+  const text = stripVTControlCharacters(value);
+
+  if (/^[\x20-\x7e]*$/.test(text)) {
+    return text.length;
+  }
+
+  let width = 0;
+  for (const { segment } of graphemes.segment(text)) {
+    width += graphemeWidth(segment);
+  }
+
+  return width;
 }
 
 export function padVisibleEnd(value: string, width: number): string {
