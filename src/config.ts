@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
-import { defaultThemeName, isThemeName, type ThemeName } from "./render/palettes";
+import { defaultThemeName, isThemeName, THEME_NAMES, type ThemeName } from "./render/palettes";
 import { COLOR_MODES, type ColorMode } from "./render/terminal";
 
 type Env = Record<string, string | undefined>;
@@ -152,7 +152,7 @@ export function parseConfig(value: unknown): GitpulseConfig {
 
     if (value.output.color !== undefined) {
       if (!isColorMode(value.output.color)) {
-        throw new ConfigError("Config field output.color must be one of: auto, always, never.");
+        throw new ConfigError(`Config field output.color must be one of: ${COLOR_MODES.join(", ")}.`);
       }
 
       config.output.color = value.output.color;
@@ -160,9 +160,7 @@ export function parseConfig(value: unknown): GitpulseConfig {
 
     if (value.output.theme !== undefined) {
       if (!isThemeName(value.output.theme)) {
-        throw new ConfigError(
-          "Config field output.theme must be one of: tokyo-night, catppuccin-mocha, nord, gruvbox-dark, dracula.",
-        );
+        throw new ConfigError(`Config field output.theme must be one of: ${THEME_NAMES.join(", ")}.`);
       }
 
       config.output.theme = value.output.theme;
