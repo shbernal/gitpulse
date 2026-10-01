@@ -137,7 +137,9 @@ function buildActivityFreshnessAnalysis(input: CompositeMetricsInput): Composite
       points: input.archived ? -30 : 10,
       maxPoints: 10,
       rule: input.archived ? "repository is archived" : "repository is not archived",
-      detail: input.archived ? "archived repositories are penalized" : "active repositories receive the archive-state bonus",
+      detail: input.archived
+        ? "archived repositories are penalized"
+        : "active repositories receive the archive-state bonus",
       inputs: {
         archived: input.archived,
       },
@@ -217,7 +219,7 @@ function freshnessContribution(input: {
   const bucket =
     input.days === null
       ? null
-      : input.buckets.find(([maxDays]) => input.days !== null && input.days <= maxDays) ?? null;
+      : (input.buckets.find(([maxDays]) => input.days !== null && input.days <= maxDays) ?? null);
   const points = bucket?.[1] ?? 0;
 
   return {
@@ -249,7 +251,11 @@ function unitContribution(id: string, label: string, value: number, weight: numb
   };
 }
 
-function freshnessRule(days: number | null, buckets: readonly FreshnessBucket[], bucket: FreshnessBucket | null): string {
+function freshnessRule(
+  days: number | null,
+  buckets: readonly FreshnessBucket[],
+  bucket: FreshnessBucket | null,
+): string {
   if (days === null) {
     return "missing date";
   }

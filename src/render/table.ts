@@ -92,8 +92,18 @@ export function renderRepo(snapshot: RepoSnapshot, options: RepoRenderOptions = 
     theme.section("Activity"),
     renderFieldGrid(
       [
-        { label: "Created", value: theme.value(formatDateWithAge(snapshot.repository.createdAt, snapshot.activity.ageDays)) },
-        { label: "Latest commit", value: formatDateWithAgeTone(snapshot.activity.latestCommitAt, snapshot.activity.daysSinceLatestCommit, theme) },
+        {
+          label: "Created",
+          value: theme.value(formatDateWithAge(snapshot.repository.createdAt, snapshot.activity.ageDays)),
+        },
+        {
+          label: "Latest commit",
+          value: formatDateWithAgeTone(
+            snapshot.activity.latestCommitAt,
+            snapshot.activity.daysSinceLatestCommit,
+            theme,
+          ),
+        },
         { label: "Latest stable", value: formatRelease(snapshot, theme) },
         { label: "Releases", value: theme.value(formatInteger(snapshot.activity.releaseCount)) },
       ],
@@ -159,7 +169,11 @@ export function renderDocs(snapshot: RepoSnapshot, options: RenderOptions = {}, 
   return output.join("\n").trimEnd();
 }
 
-export function renderUserProfile(snapshot: UserProfileSnapshot, options: RenderOptions = {}, source?: SnapshotSource): string {
+export function renderUserProfile(
+  snapshot: UserProfileSnapshot,
+  options: RenderOptions = {},
+  source?: SnapshotSource,
+): string {
   const theme = createTheme(options);
   const output = [
     theme.repo(`gitpulse user ${snapshot.profile.login}`),
@@ -171,8 +185,14 @@ export function renderUserProfile(snapshot: UserProfileSnapshot, options: Render
     renderFieldGrid(
       [
         { label: "Type", value: theme.value(snapshot.profile.type) },
-        { label: "Created", value: theme.value(formatDateWithAge(snapshot.profile.createdAt, snapshot.profile.ageDays)) },
-        { label: "Updated", value: formatDateWithAgeTone(snapshot.profile.updatedAt, snapshot.profile.daysSinceUpdated, theme) },
+        {
+          label: "Created",
+          value: theme.value(formatDateWithAge(snapshot.profile.createdAt, snapshot.profile.ageDays)),
+        },
+        {
+          label: "Updated",
+          value: formatDateWithAgeTone(snapshot.profile.updatedAt, snapshot.profile.daysSinceUpdated, theme),
+        },
         { label: "Followers", value: theme.value(formatCompactNumber(snapshot.profile.followers)) },
         { label: "Following", value: theme.value(formatCompactNumber(snapshot.profile.following)) },
         { label: "Public repos", value: theme.value(formatInteger(snapshot.profile.publicRepos)) },
@@ -233,7 +253,11 @@ export function renderForks(list: ForkList, options: RenderOptions = {}): string
   return output.join("\n").trimEnd();
 }
 
-export function renderComparison(results: SnapshotResult[], options: RenderOptions = {}, sources: SnapshotSource[] = []): string {
+export function renderComparison(
+  results: SnapshotResult[],
+  options: RenderOptions = {},
+  sources: SnapshotSource[] = [],
+): string {
   const theme = createTheme(options);
   const snapshots = results.filter((result): result is SnapshotSuccess => result.ok);
   const failures = results.filter((result) => !result.ok);
@@ -258,7 +282,9 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
       title: "Repo Facts",
       rows: [
         row("Created", snapshots, ({ snapshot }) => theme.value(formatMonthYear(snapshot.repository.createdAt))),
-        row("Primary language", snapshots, ({ snapshot }) => formatPrimaryLanguage(snapshot.repository.primaryLanguage, theme)),
+        row("Primary language", snapshots, ({ snapshot }) =>
+          formatPrimaryLanguage(snapshot.repository.primaryLanguage, theme),
+        ),
         row("License", snapshots, ({ snapshot }) => formatLicense(snapshot.repository.license, theme)),
         row("Archived", snapshots, ({ snapshot }) => formatBoolTone(snapshot.repository.archived, theme, "bad")),
         row("Fork", snapshots, ({ snapshot }) => formatBoolTone(snapshot.repository.fork, theme, "warn")),
@@ -271,16 +297,24 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
         row("Forks", snapshots, ({ snapshot }) => theme.value(formatCompactNumber(snapshot.repository.forks))),
         row("Watchers", snapshots, ({ snapshot }) => theme.value(formatCompactNumber(snapshot.repository.watchers))),
         row("Total contributors", snapshots, ({ snapshot }) => formatContributorCount(snapshot, theme)),
-        row("Top contributor share", snapshots, ({ snapshot }) => valueOrMissing(formatPercent(snapshot.contributors.topContributorShare), theme)),
+        row("Top contributor share", snapshots, ({ snapshot }) =>
+          valueOrMissing(formatPercent(snapshot.contributors.topContributorShare), theme),
+        ),
       ],
     },
     {
       title: "Activity",
       rows: [
-        row("Latest commit", snapshots, ({ snapshot }) => formatRelativeDaysTone(snapshot.activity.daysSinceLatestCommit, theme)),
-        row("Latest stable", snapshots, ({ snapshot }) => formatRelativeDaysTone(snapshot.activity.daysSinceLatestRelease, theme)),
+        row("Latest commit", snapshots, ({ snapshot }) =>
+          formatRelativeDaysTone(snapshot.activity.daysSinceLatestCommit, theme),
+        ),
+        row("Latest stable", snapshots, ({ snapshot }) =>
+          formatRelativeDaysTone(snapshot.activity.daysSinceLatestRelease, theme),
+        ),
         row("Release paths", snapshots, ({ snapshot }) => formatReleasePathLabels(snapshot, theme)),
-        row("Total number of commits", snapshots, ({ snapshot }) => valueOrMissing(formatInteger(snapshot.activity.totalCommitCount), theme)),
+        row("Total number of commits", snapshots, ({ snapshot }) =>
+          valueOrMissing(formatInteger(snapshot.activity.totalCommitCount), theme),
+        ),
         row("Release count", snapshots, ({ snapshot }) => formatReleaseCount(snapshot, theme)),
         row("Open issues", snapshots, ({ snapshot }) => theme.value(formatInteger(snapshot.repository.openIssues))),
         row("Open PRs", snapshots, ({ snapshot }) => theme.value(formatInteger(snapshot.repository.openPullRequests))),
@@ -310,14 +344,20 @@ export function renderComparison(results: SnapshotResult[], options: RenderOptio
     "",
   ];
 
-  output.push(...sections.flatMap((section) => [theme.section(section.title), renderTable(headers, section.rows, theme), ""]));
+  output.push(
+    ...sections.flatMap((section) => [theme.section(section.title), renderTable(headers, section.rows, theme), ""]),
+  );
 
   const warnings = snapshots.flatMap(({ snapshot }, index) =>
     snapshot.warnings.map((warning) => `${repoLabels[index]}: ${warning}`),
   );
 
   if (failures.length > 0) {
-    output.push(theme.section("Fetch errors"), ...failures.map((failure) => `  - ${failure.input}: ${theme.error(failure.error.message)}`), "");
+    output.push(
+      theme.section("Fetch errors"),
+      ...failures.map((failure) => `  - ${failure.input}: ${theme.error(failure.error.message)}`),
+      "",
+    );
   }
 
   output.push(...renderDataProvenance(theme, { comparedCount: snapshots.length, sourceSummary, warnings }));
@@ -358,7 +398,11 @@ function renderTable(headers: string[], rows: string[][], theme: Theme): string 
   const widths = headers.map((header, index) =>
     Math.max(visibleLength(header), ...rows.map((tableRow) => visibleLength(tableRow[index] ?? ""))),
   );
-  const renderRow = (cells: string[]) => cells.map((cell, index) => padVisibleEnd(cell, widths[index])).join("  ").trimEnd();
+  const renderRow = (cells: string[]) =>
+    cells
+      .map((cell, index) => padVisibleEnd(cell, widths[index]))
+      .join("  ")
+      .trimEnd();
   const separator = widths.map((width) => "-".repeat(width)).join("  ");
 
   return [theme.bold(renderRow(headers)), theme.muted(separator), ...rows.map(renderRow)].join("\n");
@@ -464,8 +508,10 @@ function formatUserLanguages(snapshot: UserProfileSnapshot, theme: Theme): strin
 
   const visibleLanguages = snapshot.repositories.primaryLanguages.slice(0, 3);
   const hiddenCount = snapshot.repositories.primaryLanguages.length - visibleLanguages.length;
-  const parts = visibleLanguages
-    .map((language) => `${theme.language(language.name)} ${theme.value(`${formatInteger(language.repositoryCount)} (${formatPercent(language.percent)})`)}`);
+  const parts = visibleLanguages.map(
+    (language) =>
+      `${theme.language(language.name)} ${theme.value(`${formatInteger(language.repositoryCount)} (${formatPercent(language.percent)})`)}`,
+  );
   if (hiddenCount > 0) {
     parts.push(theme.muted(`+${hiddenCount} more`));
   }
@@ -503,7 +549,8 @@ function formatSnapshotSource(source: SnapshotSource): string {
   }
 
   const label = source.kind === "stale-cache" ? "stale cache" : "cache";
-  const refreshError = source.kind === "stale-cache" && source.refreshError ? `; refresh failed: ${source.refreshError.message}` : "";
+  const refreshError =
+    source.kind === "stale-cache" && source.refreshError ? `; refresh failed: ${source.refreshError.message}` : "";
   return `${label}, fetched ${formatCacheAge(source.ageHours)}${refreshError}`;
 }
 
@@ -514,11 +561,15 @@ function formatComparisonSourceSummary(sources: SnapshotSource[]): string | null
 
   const apiCount = sources.filter((source) => source.kind === "api").length;
   const cacheAges = sources.flatMap((source) => (source.kind === "cache" ? [source.ageHours] : []));
-  const staleSources = sources.filter((source): source is Extract<SnapshotSource, { kind: "stale-cache" }> => source.kind === "stale-cache");
+  const staleSources = sources.filter(
+    (source): source is Extract<SnapshotSource, { kind: "stale-cache" }> => source.kind === "stale-cache",
+  );
   const noneCount = sources.filter((source) => source.kind === "none").length;
   const parts = [
     apiCount > 0 ? countLabel("api", apiCount, sources.length) : null,
-    cacheAges.length > 0 ? `${countLabel("cache", cacheAges.length, sources.length)}, fetched ${formatCacheAgeRange(cacheAges)}` : null,
+    cacheAges.length > 0
+      ? `${countLabel("cache", cacheAges.length, sources.length)}, fetched ${formatCacheAgeRange(cacheAges)}`
+      : null,
     staleSources.length > 0
       ? `${countLabel("stale cache", staleSources.length, sources.length)}, fetched ${formatCacheAgeRange(staleSources.map((source) => source.ageHours))}${
           staleSources.some((source) => source.refreshError) ? " (refresh failed)" : ""
@@ -554,7 +605,9 @@ function formatCacheAgeRange(ageHours: number[]): string {
     return `${firstDuration.value}-${lastDuration.value}${firstDuration.unit} ago`;
   }
 
-  return firstDuration.unit && lastDuration.unit ? `${firstDuration.text}-${lastDuration.text} ago` : `${firstDuration.text}-${lastDuration.text}`;
+  return firstDuration.unit && lastDuration.unit
+    ? `${firstDuration.text}-${lastDuration.text} ago`
+    : `${firstDuration.text}-${lastDuration.text}`;
 }
 
 function formatCacheAge(ageHours: number): string {
@@ -568,7 +621,11 @@ function formatCacheAgeDuration(ageHours: number): { text: string; value: string
   }
 
   if (ageHours < 1) {
-    return { text: `${Math.max(1, Math.round(ageHours * 60))}m`, value: String(Math.max(1, Math.round(ageHours * 60))), unit: "m" };
+    return {
+      text: `${Math.max(1, Math.round(ageHours * 60))}m`,
+      value: String(Math.max(1, Math.round(ageHours * 60))),
+      unit: "m",
+    };
   }
 
   if (ageHours < 48) {
@@ -583,11 +640,7 @@ function formatAgeNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-function row(
-  label: string,
-  snapshots: SnapshotSuccess[],
-  selector: (item: SnapshotSuccess) => string,
-): string[] {
+function row(label: string, snapshots: SnapshotSuccess[], selector: (item: SnapshotSuccess) => string): string[] {
   return [label, ...snapshots.map(selector)];
 }
 
@@ -621,12 +674,19 @@ function renderMetricAnalysis(label: string, analysis: CompositeMetricAnalysis, 
   }
 
   const tone = scoreTone(analysis.score);
-  const labelWidth = Math.max("Raw total".length, ...analysis.contributions.map((contribution) => contribution.label.length));
+  const labelWidth = Math.max(
+    "Raw total".length,
+    ...analysis.contributions.map((contribution) => contribution.label.length),
+  );
   const pointWidth = Math.max(
     `${formatPoints(analysis.rawScore, analysis.maxScore ?? 0)}`.length,
-    ...analysis.contributions.map((contribution) => formatPoints(contribution.points, contribution.maxPoints ?? 0).length),
+    ...analysis.contributions.map(
+      (contribution) => formatPoints(contribution.points, contribution.maxPoints ?? 0).length,
+    ),
   );
-  const rows = analysis.contributions.map((contribution) => renderContribution(contribution, theme, labelWidth, pointWidth));
+  const rows = analysis.contributions.map((contribution) =>
+    renderContribution(contribution, theme, labelWidth, pointWidth),
+  );
   const rawPoints = padVisibleEnd(theme.value(formatPoints(analysis.rawScore, analysis.maxScore ?? 0)), pointWidth);
   const scoreLabel = analysis.label ?? "";
 
@@ -642,12 +702,17 @@ function renderMetricAnalysis(label: string, analysis: CompositeMetricAnalysis, 
 }
 
 function renderIndexMetricAnalysis(label: string, analysis: CompositeMetricAnalysis, theme: Theme): string[] {
-  const labelWidth = Math.max("Weighted total".length, ...analysis.contributions.map((contribution) => contribution.label.length));
+  const labelWidth = Math.max(
+    "Weighted total".length,
+    ...analysis.contributions.map((contribution) => contribution.label.length),
+  );
   const unitWidth = Math.max(
     formatPopularityUnits(analysis.units).length,
     ...analysis.contributions.map((contribution) => formatPopularityUnits(contribution.points).length),
   );
-  const rows = analysis.contributions.map((contribution) => renderUnitContribution(contribution, theme, labelWidth, unitWidth));
+  const rows = analysis.contributions.map((contribution) =>
+    renderUnitContribution(contribution, theme, labelWidth, unitWidth),
+  );
   const totalUnits = padVisibleEnd(theme.value(formatPopularityUnits(analysis.units)), unitWidth);
   const rawUnits = analysis.units === undefined ? "n/a" : formatInteger(analysis.units);
 
@@ -662,7 +727,12 @@ function renderIndexMetricAnalysis(label: string, analysis: CompositeMetricAnaly
   ];
 }
 
-function renderContribution(contribution: CompositeContribution, theme: Theme, labelWidth: number, pointWidth: number): string {
+function renderContribution(
+  contribution: CompositeContribution,
+  theme: Theme,
+  labelWidth: number,
+  pointWidth: number,
+): string {
   const points = padVisibleEnd(theme.value(formatPoints(contribution.points, contribution.maxPoints ?? 0)), pointWidth);
   return [
     padVisibleEnd(theme.label(contribution.label), labelWidth),
@@ -671,7 +741,12 @@ function renderContribution(contribution: CompositeContribution, theme: Theme, l
   ].join("  ");
 }
 
-function renderUnitContribution(contribution: CompositeContribution, theme: Theme, labelWidth: number, unitWidth: number): string {
+function renderUnitContribution(
+  contribution: CompositeContribution,
+  theme: Theme,
+  labelWidth: number,
+  unitWidth: number,
+): string {
   const units = padVisibleEnd(theme.value(formatPopularityUnits(contribution.points)), unitWidth);
   return [
     padVisibleEnd(theme.label(contribution.label), labelWidth),
@@ -763,14 +838,18 @@ function formatReleasePathLabels(snapshot: RepoSnapshot, theme: Theme): string {
 function formatReleaseTrack(track: ReleaseTrack, theme: Theme): string {
   const latest = theme.value(track.latestName || track.latestTag);
   const count = `${formatInteger(track.releaseCount)} ${track.releaseCount === 1 ? "release" : "releases"}`;
-  const detail = track.prerelease ? `${count}, ${theme.muted("updated")} ${formatRelativeDaysTone(track.daysSinceLatest, theme)}` : count;
+  const detail = track.prerelease
+    ? `${count}, ${theme.muted("updated")} ${formatRelativeDaysTone(track.daysSinceLatest, theme)}`
+    : count;
 
   return `${track.label}: ${latest} (${detail})`;
 }
 
 function formatReleaseSample(summary: ReleaseSummary): string | null {
   const drafts =
-    summary.draftCount > 0 ? `${formatInteger(summary.draftCount)} ${summary.draftCount === 1 ? "draft" : "drafts"} excluded` : null;
+    summary.draftCount > 0
+      ? `${formatInteger(summary.draftCount)} ${summary.draftCount === 1 ? "draft" : "drafts"} excluded`
+      : null;
 
   if (!summary.truncated) {
     return drafts;
@@ -785,7 +864,9 @@ function formatReleaseCount(snapshot: RepoSnapshot, theme: Theme): string {
   const summary = snapshot.activity.releaseSummary;
   const total = formatInteger(summary.totalCount);
 
-  return summary.truncated ? `${theme.value(total)} ${theme.muted(`(${formatInteger(summary.sampledCount)} sampled)`)}` : theme.value(total);
+  return summary.truncated
+    ? `${theme.value(total)} ${theme.muted(`(${formatInteger(summary.sampledCount)} sampled)`)}`
+    : theme.value(total);
 }
 
 function formatDocumentation(signal: DocumentationSignal, theme: Theme): string {
@@ -801,7 +882,9 @@ function formatTopContributor(snapshot: RepoSnapshot, theme: Theme): string {
 
   const contributionCount = snapshot.contributors.topContributor.contributions;
   const share = formatPercent(snapshot.contributors.topContributorShare);
-  const details = [`${theme.value(formatInteger(contributionCount))} ${contributionCount === 1 ? "commit" : "commits"}`];
+  const details = [
+    `${theme.value(formatInteger(contributionCount))} ${contributionCount === 1 ? "commit" : "commits"}`,
+  ];
 
   if (share !== "n/a") {
     details.push(theme.value(share));
@@ -818,7 +901,9 @@ function formatContributorCount(snapshot: RepoSnapshot, theme: Theme): string {
   }
 
   const fetchedCount = formatInteger(snapshot.contributors.fetchedCount);
-  return snapshot.contributors.truncated ? `${theme.value(fetchedCount)} ${theme.muted("fetched")}` : theme.value(fetchedCount);
+  return snapshot.contributors.truncated
+    ? `${theme.value(fetchedCount)} ${theme.muted("fetched")}`
+    : theme.value(fetchedCount);
 }
 
 function formatMetricCompact(metric: CompositeMetric, theme: Theme): string {
@@ -877,7 +962,12 @@ function renderRepositoryStateRows(snapshot: RepoSnapshot, theme: Theme): Array<
 }
 
 function hasRepositoryState(snapshot: RepoSnapshot): boolean {
-  return snapshot.repository.archived || snapshot.repository.disabled || snapshot.repository.fork || snapshot.repository.template;
+  return (
+    snapshot.repository.archived ||
+    snapshot.repository.disabled ||
+    snapshot.repository.fork ||
+    snapshot.repository.template
+  );
 }
 
 function formatDateWithAgeTone(isoDate: string | null | undefined, days: number | null, theme: Theme): string {

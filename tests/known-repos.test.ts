@@ -127,7 +127,12 @@ describe("known repositories", () => {
 describe("known users", () => {
   test("aggregates known users from cache", async () => {
     await withTempEnv(async (env) => {
-      await writeCachedUserProfileSnapshot("octocat", userSnapshot("OctoCat"), new Date("2026-05-16T12:00:00.000Z"), env);
+      await writeCachedUserProfileSnapshot(
+        "octocat",
+        userSnapshot("OctoCat"),
+        new Date("2026-05-16T12:00:00.000Z"),
+        env,
+      );
 
       expect(await readKnownUsers(env)).toEqual([
         {
@@ -172,7 +177,12 @@ describe("known users", () => {
         },
         env,
       );
-      await writeCachedUserProfileSnapshot("octocat", userSnapshot("OctoCat"), new Date("2026-05-16T12:00:00.000Z"), env);
+      await writeCachedUserProfileSnapshot(
+        "octocat",
+        userSnapshot("OctoCat"),
+        new Date("2026-05-16T12:00:00.000Z"),
+        env,
+      );
 
       expect(await readKnownUsers(env)).toEqual([
         {
@@ -325,7 +335,12 @@ describe("CLI shorthand wiring", () => {
   test("resolves exact local shorthand for root, docs, and inferred comparison output", async () => {
     await withTempEnv(async (env) => {
       await writeCachedSnapshot({ owner: "acme", name: "tool" }, snapshot("acme/tool"), new Date(), env);
-      await writeCachedSnapshot({ owner: "charmbracelet", name: "gum" }, snapshot("charmbracelet/gum"), new Date(), env);
+      await writeCachedSnapshot(
+        { owner: "charmbracelet", name: "gum" },
+        snapshot("charmbracelet/gum"),
+        new Date(),
+        env,
+      );
 
       const rootOutput = await withProcessEnv(env, () =>
         captureStdout(() => main(["node", "gitpulse", "tool", "--offline", "--color", "never"])),

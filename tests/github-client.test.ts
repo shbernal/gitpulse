@@ -127,7 +127,9 @@ describe("GitHubClient star mutations", () => {
     );
 
     expect((error as GitHubApiError).code).toBe("not_found");
-    expect(error?.message).toBe("Could not unstar acme/ghost. The repository does not exist, or the token cannot see it.");
+    expect(error?.message).toBe(
+      "Could not unstar acme/ghost. The repository does not exist, or the token cannot see it.",
+    );
   });
 
   test("keeps a rate limit answer intact", async () => {
@@ -274,7 +276,11 @@ describe("GitHubClient rate limits", () => {
     globalThis.fetch = (async () =>
       new Response(JSON.stringify({ message: "API rate limit exceeded" }), {
         status: 403,
-        headers: { "content-type": "application/json", "x-ratelimit-remaining": "0", "x-ratelimit-reset": "1780000000" },
+        headers: {
+          "content-type": "application/json",
+          "x-ratelimit-remaining": "0",
+          "x-ratelimit-reset": "1780000000",
+        },
       })) as unknown as typeof fetch;
 
     try {

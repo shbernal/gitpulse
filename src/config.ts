@@ -160,7 +160,9 @@ export function parseConfig(value: unknown): GitpulseConfig {
 
     if (value.output.theme !== undefined) {
       if (!isThemeName(value.output.theme)) {
-        throw new ConfigError("Config field output.theme must be one of: tokyo-night, catppuccin-mocha, nord, gruvbox-dark, dracula.");
+        throw new ConfigError(
+          "Config field output.theme must be one of: tokyo-night, catppuccin-mocha, nord, gruvbox-dark, dracula.",
+        );
       }
 
       config.output.theme = value.output.theme;

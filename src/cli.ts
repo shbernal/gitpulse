@@ -313,8 +313,7 @@ export async function main(argv = process.argv, dependencies: CliDependencies = 
 }
 
 function addSharedOptions(command: Command): Command {
-  return addCacheOptions(command)
-    .addOption(contributorFetchLimitOption());
+  return addCacheOptions(command).addOption(contributorFetchLimitOption());
 }
 
 function addCacheOptions(command: Command): Command {
@@ -349,9 +348,10 @@ function maxCacheHoursOption(): Option {
 }
 
 function contributorFetchLimitOption(): Option {
-  return new Option("--contributor-fetch-limit <count>", "override how many contributors are fetched for concentration metrics").argParser(
-    parsePositiveInteger,
-  );
+  return new Option(
+    "--contributor-fetch-limit <count>",
+    "override how many contributors are fetched for concentration metrics",
+  ).argParser(parsePositiveInteger);
 }
 
 function starredSortOption(): Option {
@@ -373,9 +373,7 @@ function searchSortOption(): Option {
 }
 
 function searchOrderOption(): Option {
-  return new Option("--order <order>", "repository search order: asc, desc")
-    .choices(["asc", "desc"])
-    .default("desc");
+  return new Option("--order <order>", "repository search order: asc, desc").choices(["asc", "desc"]).default("desc");
 }
 
 function searchLimitOption(): Option {
@@ -385,9 +383,7 @@ function searchLimitOption(): Option {
 }
 
 function forksLimitOption(): Option {
-  return new Option("--limit <count>", "forks to show, up to one API page")
-    .argParser(parsePageLimit)
-    .default(10);
+  return new Option("--limit <count>", "forks to show, up to one API page").argParser(parsePageLimit).default(10);
 }
 
 function parseMaxCacheHours(value: string): number {
@@ -804,9 +800,7 @@ async function runStarMutation(
 
 function formatStarMutation(mutation: StarMutation): string {
   if (!mutation.changed) {
-    return mutation.starred
-      ? `${mutation.repository} was already starred`
-      : `${mutation.repository} was not starred`;
+    return mutation.starred ? `${mutation.repository} was already starred` : `${mutation.repository} was not starred`;
   }
 
   return mutation.starred ? `Starred ${mutation.repository}` : `Unstarred ${mutation.repository}`;
@@ -1161,7 +1155,9 @@ function resolveRenderOptions(config: Awaited<ReturnType<typeof loadConfig>>, op
   };
 }
 
-async function resolveRepositoryInputs(inputs: string[]): Promise<{ ok: true; values: string[] } | { ok: false; message: string }> {
+async function resolveRepositoryInputs(
+  inputs: string[],
+): Promise<{ ok: true; values: string[] } | { ok: false; message: string }> {
   if (inputs.every((input) => input.includes("/"))) {
     return { ok: true, values: inputs };
   }

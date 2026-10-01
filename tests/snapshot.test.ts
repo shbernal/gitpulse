@@ -52,7 +52,9 @@ describe("collectSnapshot", () => {
     expect(result.snapshot.contributors.fetchedCount).toBe(1);
     expect(result.snapshot.contributors.totalCount).toBe(15);
     expect(result.snapshot.contributors.fetchLimit).toBe(5);
-    expect(result.snapshot.warnings).toContain("Contributor concentration metrics are based on the first 5 contributors.");
+    expect(result.snapshot.warnings).toContain(
+      "Contributor concentration metrics are based on the first 5 contributors.",
+    );
   });
 
   test("summarizes stable and prerelease paths from sampled releases", async () => {

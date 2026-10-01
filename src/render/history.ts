@@ -10,13 +10,15 @@ export function renderHistory(events: HistoryEvent[], options: RenderOptions = {
   }
 
   const headers = ["Target", "Last consulted", "Command", "Source", "Status"];
-  const tableRows = rows.slice(0, 25).map((row) => [
-    theme.repo(row.repository),
-    theme.value(formatHistoryTimestamp(row.timestamp)),
-    row.command,
-    formatHistorySource(row.source, theme),
-    row.ok ? theme.tone("ok", "good") : theme.tone("failed", "bad"),
-  ]);
+  const tableRows = rows
+    .slice(0, 25)
+    .map((row) => [
+      theme.repo(row.repository),
+      theme.value(formatHistoryTimestamp(row.timestamp)),
+      row.command,
+      formatHistorySource(row.source, theme),
+      row.ok ? theme.tone("ok", "good") : theme.tone("failed", "bad"),
+    ]);
 
   return [theme.bold("gitpulse history"), "", renderPlainTable(headers, tableRows)].join("\n");
 }
@@ -28,7 +30,10 @@ function latestHistoryRows(events: HistoryEvent[]): Array<{
   source: string;
   ok: boolean;
 }> {
-  const rows = new Map<string, { repository: string; timestamp: string; command: string; source: string; ok: boolean }>();
+  const rows = new Map<
+    string,
+    { repository: string; timestamp: string; command: string; source: string; ok: boolean }
+  >();
 
   for (const event of [...events].reverse()) {
     for (const entry of event.entries) {
@@ -53,7 +58,11 @@ function renderPlainTable(headers: string[], rows: string[][]): string {
   const widths = headers.map((header, index) =>
     Math.max(visibleLength(header), ...rows.map((row) => visibleLength(row[index] ?? ""))),
   );
-  const renderRow = (cells: string[]) => cells.map((cell, index) => padVisibleEnd(cell, widths[index])).join("  ").trimEnd();
+  const renderRow = (cells: string[]) =>
+    cells
+      .map((cell, index) => padVisibleEnd(cell, widths[index]))
+      .join("  ")
+      .trimEnd();
   const separator = widths.map((width) => "-".repeat(width)).join("  ");
 
   return [renderRow(headers), separator, ...rows.map(renderRow)].join("\n");

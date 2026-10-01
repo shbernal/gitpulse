@@ -77,7 +77,10 @@ export function buildHistoryEvent(
   const entries = snapshots.map((snapshot, index) => {
     const entry: HistoryEntry = {
       input: inputs[index] ?? "",
-      repository: snapshot.result.ok && "repository" in snapshot.result.snapshot ? snapshot.result.snapshot.repository.fullName : null,
+      repository:
+        snapshot.result.ok && "repository" in snapshot.result.snapshot
+          ? snapshot.result.snapshot.repository.fullName
+          : null,
       source: snapshot.source.kind,
       ok: snapshot.result.ok,
     };

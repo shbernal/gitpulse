@@ -60,7 +60,10 @@ export async function resolveUserProfileSnapshot(
 
   if (options.mode === "offline") {
     return {
-      result: createUserProfileFailure(input, new Error(`No cached user profile snapshot for ${input}. Run without --offline first.`)),
+      result: createUserProfileFailure(
+        input,
+        new Error(`No cached user profile snapshot for ${input}. Run without --offline first.`),
+      ),
       source: { kind: "none" },
     };
   }

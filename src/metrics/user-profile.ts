@@ -80,7 +80,9 @@ function buildUserProfileSnapshot(input: {
   now: Date;
 }): UserProfileSnapshot {
   const profile = buildProfileFacts(input.profile, input.now);
-  const repositorySummaries = input.repositories.repositories.map((repository) => buildRepositorySummary(repository, input.now));
+  const repositorySummaries = input.repositories.repositories.map((repository) =>
+    buildRepositorySummary(repository, input.now),
+  );
   const footprint = buildRepositoryFootprint(profile.publicRepos, repositorySummaries, input.repositories);
   const warnings = [...input.warnings];
 
@@ -148,7 +150,9 @@ function buildRepositoryFootprint(
   overview: UserRepositoryOverview,
 ): UserRepositoryFootprint {
   const recentlyPushed = repositories
-    .filter((repository) => repository.daysSinceLastPush !== null && repository.daysSinceLastPush <= recentPushWindowDays)
+    .filter(
+      (repository) => repository.daysSinceLastPush !== null && repository.daysSinceLastPush <= recentPushWindowDays,
+    )
     .sort(compareRecentRepositories);
 
   return {
@@ -248,9 +252,7 @@ function emptyToNull(value: string | null): string | null {
 function errorToSnapshotError(error: unknown): SnapshotError {
   if (error instanceof GitHubApiError) {
     return {
-      message: error.rateLimitReset
-        ? `${error.message} Resets at ${error.rateLimitReset}.`
-        : error.message,
+      message: error.rateLimitReset ? `${error.message} Resets at ${error.rateLimitReset}.` : error.message,
       status: error.status,
       code: error.code,
     };

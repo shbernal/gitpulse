@@ -122,7 +122,18 @@ describe("starred CLI", () => {
 
       const output = await withProcessEnv(env, () =>
         captureStdout(() =>
-          main(["node", "gitpulse", "starred", "--list", "--json", "--offline", "--sort", "updated", "--direction", "asc"]),
+          main([
+            "node",
+            "gitpulse",
+            "starred",
+            "--list",
+            "--json",
+            "--offline",
+            "--sort",
+            "updated",
+            "--direction",
+            "asc",
+          ]),
         ),
       );
       const parsed = JSON.parse(output);
@@ -190,13 +201,17 @@ describe("viewer star resolution", () => {
     await withTempEnv(async (env) => {
       await writeViewerStarProbe({ owner: "acme", name: "tool" }, true, new Date("2026-05-01T00:00:00.000Z"), env);
 
-      const viewerStar = await resolveViewerStar(refusingStarClient(), { owner: "acme", name: "tool" }, {
-        cacheEnabled: true,
-        freshnessHours: 24,
-        mode: "default",
-        now: new Date("2026-05-16T00:00:00.000Z"),
-        env,
-      });
+      const viewerStar = await resolveViewerStar(
+        refusingStarClient(),
+        { owner: "acme", name: "tool" },
+        {
+          cacheEnabled: true,
+          freshnessHours: 24,
+          mode: "default",
+          now: new Date("2026-05-16T00:00:00.000Z"),
+          env,
+        },
+      );
 
       expect(viewerStar).toMatchObject({ known: true, starred: true, source: "cache" });
     });
@@ -206,13 +221,17 @@ describe("viewer star resolution", () => {
     await withTempEnv(async (env) => {
       await writeViewerStarProbe({ owner: "acme", name: "tool" }, false, new Date("2026-05-01T00:00:00.000Z"), env);
 
-      const viewerStar = await resolveViewerStar(starProbeClient(true), { owner: "acme", name: "tool" }, {
-        cacheEnabled: true,
-        freshnessHours: 24,
-        mode: "default",
-        now: new Date("2026-05-16T00:00:00.000Z"),
-        env,
-      });
+      const viewerStar = await resolveViewerStar(
+        starProbeClient(true),
+        { owner: "acme", name: "tool" },
+        {
+          cacheEnabled: true,
+          freshnessHours: 24,
+          mode: "default",
+          now: new Date("2026-05-16T00:00:00.000Z"),
+          env,
+        },
+      );
 
       expect(viewerStar).toMatchObject({ known: true, starred: true, source: "api" });
       expect((await readCachedViewerStars(env))?.entries["acme/tool"].starred).toBe(true);
@@ -223,13 +242,17 @@ describe("viewer star resolution", () => {
     await withTempEnv(async (env) => {
       await writeViewerStarProbe({ owner: "acme", name: "tool" }, false, new Date("2026-05-16T00:00:00.000Z"), env);
 
-      const viewerStar = await resolveViewerStar(refusingStarClient(), { owner: "acme", name: "tool" }, {
-        cacheEnabled: true,
-        freshnessHours: 24,
-        mode: "default",
-        now: new Date("2026-05-16T06:00:00.000Z"),
-        env,
-      });
+      const viewerStar = await resolveViewerStar(
+        refusingStarClient(),
+        { owner: "acme", name: "tool" },
+        {
+          cacheEnabled: true,
+          freshnessHours: 24,
+          mode: "default",
+          now: new Date("2026-05-16T06:00:00.000Z"),
+          env,
+        },
+      );
 
       expect(viewerStar).toMatchObject({ known: true, starred: false, source: "cache" });
     });
@@ -239,13 +262,17 @@ describe("viewer star resolution", () => {
     await withTempEnv(async (env) => {
       await syncViewerStarsFromList(["acme/tool"], new Date("2026-05-16T00:00:00.000Z"), env);
 
-      const viewerStar = await resolveViewerStar(refusingStarClient(), { owner: "other", name: "repo" }, {
-        cacheEnabled: true,
-        freshnessHours: 24,
-        mode: "default",
-        now: new Date("2026-05-16T06:00:00.000Z"),
-        env,
-      });
+      const viewerStar = await resolveViewerStar(
+        refusingStarClient(),
+        { owner: "other", name: "repo" },
+        {
+          cacheEnabled: true,
+          freshnessHours: 24,
+          mode: "default",
+          now: new Date("2026-05-16T06:00:00.000Z"),
+          env,
+        },
+      );
 
       expect(viewerStar).toMatchObject({ known: true, starred: false, source: "cache" });
     });
@@ -253,13 +280,17 @@ describe("viewer star resolution", () => {
 
   test("reports unknown rather than guessing when offline with no cached answer", async () => {
     await withTempEnv(async (env) => {
-      const viewerStar = await resolveViewerStar(refusingStarClient(), { owner: "acme", name: "tool" }, {
-        cacheEnabled: true,
-        freshnessHours: 24,
-        mode: "offline",
-        now: new Date("2026-05-16T00:00:00.000Z"),
-        env,
-      });
+      const viewerStar = await resolveViewerStar(
+        refusingStarClient(),
+        { owner: "acme", name: "tool" },
+        {
+          cacheEnabled: true,
+          freshnessHours: 24,
+          mode: "offline",
+          now: new Date("2026-05-16T00:00:00.000Z"),
+          env,
+        },
+      );
 
       expect(viewerStar).toEqual({ known: false, reason: "offline" });
     });
@@ -267,13 +298,17 @@ describe("viewer star resolution", () => {
 
   test("reports unknown without an API call when unauthenticated", async () => {
     await withTempEnv(async (env) => {
-      const viewerStar = await resolveViewerStar(refusingStarClient({ authenticated: false }), { owner: "acme", name: "tool" }, {
-        cacheEnabled: true,
-        freshnessHours: 24,
-        mode: "default",
-        now: new Date("2026-05-16T00:00:00.000Z"),
-        env,
-      });
+      const viewerStar = await resolveViewerStar(
+        refusingStarClient({ authenticated: false }),
+        { owner: "acme", name: "tool" },
+        {
+          cacheEnabled: true,
+          freshnessHours: 24,
+          mode: "default",
+          now: new Date("2026-05-16T00:00:00.000Z"),
+          env,
+        },
+      );
 
       expect(viewerStar).toEqual({ known: false, reason: "unauthenticated" });
     });
@@ -283,13 +318,17 @@ describe("viewer star resolution", () => {
     await withTempEnv(async (env) => {
       await writeViewerStarProbe({ owner: "acme", name: "tool" }, false, new Date("2026-05-01T00:00:00.000Z"), env);
 
-      const viewerStar = await resolveViewerStar(refusingStarClient(), { owner: "acme", name: "tool" }, {
-        cacheEnabled: true,
-        freshnessHours: 24,
-        mode: "default",
-        now: new Date("2026-05-16T00:00:00.000Z"),
-        env,
-      });
+      const viewerStar = await resolveViewerStar(
+        refusingStarClient(),
+        { owner: "acme", name: "tool" },
+        {
+          cacheEnabled: true,
+          freshnessHours: 24,
+          mode: "default",
+          now: new Date("2026-05-16T00:00:00.000Z"),
+          env,
+        },
+      );
 
       expect(viewerStar).toMatchObject({ known: true, starred: false, source: "cache" });
     });
@@ -375,13 +414,17 @@ describe("star mutation", () => {
         env,
       });
 
-      const viewerStar = await resolveViewerStar(refusingStarClient(), { owner: "acme", name: "tool" }, {
-        cacheEnabled: true,
-        freshnessHours: 24,
-        mode: "default",
-        now: new Date("2026-05-16T01:00:00.000Z"),
-        env,
-      });
+      const viewerStar = await resolveViewerStar(
+        refusingStarClient(),
+        { owner: "acme", name: "tool" },
+        {
+          cacheEnabled: true,
+          freshnessHours: 24,
+          mode: "default",
+          now: new Date("2026-05-16T01:00:00.000Z"),
+          env,
+        },
+      );
 
       expect(viewerStar).toMatchObject({ known: true, starred: false, source: "cache" });
     });

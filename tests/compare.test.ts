@@ -9,7 +9,9 @@ describe("buildComparisonSummary", () => {
       { ok: true, snapshot: snapshot("b/two", 50, 1, 10, false) },
     ];
 
-    expect(buildComparisonSummary(results)).toContain("one has the largest star count among the compared repositories.");
+    expect(buildComparisonSummary(results)).toContain(
+      "one has the largest star count among the compared repositories.",
+    );
     expect(buildComparisonSummary(results)).toContain("two has the most recent default-branch commit.");
     expect(buildComparisonSummary(results)).toContain("None of the compared repositories are archived.");
   });
@@ -20,13 +22,21 @@ describe("buildComparisonSummary", () => {
       { ok: true, snapshot: snapshot("b/tool", 50, 1, 10, true) },
     ];
 
-    expect(buildComparisonSummary(results)).toContain("a/tool has the largest star count among the compared repositories.");
+    expect(buildComparisonSummary(results)).toContain(
+      "a/tool has the largest star count among the compared repositories.",
+    );
     expect(buildComparisonSummary(results)).toContain("b/tool has the most recent default-branch commit.");
     expect(buildComparisonSummary(results)).toContain("b/tool is archived.");
   });
 });
 
-function snapshot(fullName: string, stars: number, commitDays: number, contributors: number, archived: boolean): RepoSnapshot {
+function snapshot(
+  fullName: string,
+  stars: number,
+  commitDays: number,
+  contributors: number,
+  archived: boolean,
+): RepoSnapshot {
   const [owner, name] = fullName.split("/");
 
   return {

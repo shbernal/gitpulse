@@ -37,11 +37,11 @@ describe("visual output harness", () => {
 
     expect(svg).toContain("<svg");
     expect(svg).toContain("<title>Single repository report</title>");
-    expect(svg).toContain("font-weight=\"700\"");
-    expect(svg).not.toContain("text-decoration=\"underline\"");
-    expect(svg).toContain("opacity=\"0.62\"");
+    expect(svg).toContain('font-weight="700"');
+    expect(svg).not.toContain('text-decoration="underline"');
+    expect(svg).toContain('opacity="0.62"');
     expect(svg).toContain("Terminal-first project health snapshots");
-    expect(svg).toContain("stroke-dasharray=\"4 5\"");
+    expect(svg).toContain('stroke-dasharray="4 5"');
     expect(Number(svg.match(/width=\"(\d+)\"/)?.[1])).toBeGreaterThan(0);
     expect(Number(svg.match(/height=\"(\d+)\"/)?.[1])).toBeGreaterThan(0);
   });

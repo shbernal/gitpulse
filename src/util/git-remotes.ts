@@ -66,7 +66,10 @@ export function parseGitHubRemoteUrl(url: string): string | null {
     return null;
   }
 
-  const path = location.path.replace(/^\/+/, "").replace(/\/+$/, "").replace(/\.git$/, "");
+  const path = location.path
+    .replace(/^\/+/, "")
+    .replace(/\/+$/, "")
+    .replace(/\.git$/, "");
 
   try {
     return formatRepoRef(parseRepoRef(path));
@@ -97,9 +100,7 @@ export function selectGitHubRemote(remotes: GitHubRemote[]): GitRepositoryInfere
 
 export function formatInferenceFailure(inference: GitRepositoryInference): string {
   if (inference.kind === "ambiguous") {
-    const candidates = inference.candidates
-      .map((remote) => `  ${remote.name}\t${remote.fullName}`)
-      .join("\n");
+    const candidates = inference.candidates.map((remote) => `  ${remote.name}\t${remote.fullName}`).join("\n");
 
     return `several GitHub remotes in this checkout, none named origin or upstream:\n${candidates}\nPass owner/name.`;
   }

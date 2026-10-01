@@ -35,12 +35,12 @@ large/tool        6.20       1.6m PU
 
 Reference sets should be small, explicit, and category-specific. Examples:
 
-| Set | Purpose |
-| --- | --- |
+| Set               | Purpose                                              |
+| ----------------- | ---------------------------------------------------- |
 | `developer-tools` | CLIs, package managers, terminal tools, build tools. |
-| `frameworks` | Web, mobile, and application frameworks. |
-| `databases` | Databases, search engines, storage systems. |
-| `libraries` | Popular dependency libraries across ecosystems. |
+| `frameworks`      | Web, mobile, and application frameworks.             |
+| `databases`       | Databases, search engines, storage systems.          |
+| `libraries`       | Popular dependency libraries across ecosystems.      |
 
 Each set should be stored as plain repository refs:
 

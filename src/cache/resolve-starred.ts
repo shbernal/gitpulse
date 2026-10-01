@@ -77,7 +77,11 @@ export async function resolveStarredRepositories(
       await tryWriteCache(options, apiResult.list, now, options.env);
       // A full list is the cheapest source of truth for per-repository star state, so it seeds the
       // store `gitpulse owner/name` reads.
-      await trySyncViewerStars(apiResult.list.repositories.map((repository) => repository.fullName), now, options.env);
+      await trySyncViewerStars(
+        apiResult.list.repositories.map((repository) => repository.fullName),
+        now,
+        options.env,
+      );
     }
 
     return {
@@ -111,12 +115,7 @@ async function tryWriteCache(
   env: Env | undefined,
 ): Promise<void> {
   try {
-    await writeCachedStarredRepositories(
-      { sort: options.sort, direction: options.direction },
-      list,
-      now,
-      env,
-    );
+    await writeCachedStarredRepositories({ sort: options.sort, direction: options.direction }, list, now, env);
   } catch {
     // Cache writes must not prevent a live API result from being shown.
   }

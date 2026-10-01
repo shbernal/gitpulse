@@ -49,7 +49,8 @@ export async function resolveSnapshot(
 
     if (
       options.mode === "offline" ||
-      (isFreshCache(cached.entry.cachedAt, options.maxCacheHours, now) && snapshotMatchesOptions(cached.entry.snapshot, options))
+      (isFreshCache(cached.entry.cachedAt, options.maxCacheHours, now) &&
+        snapshotMatchesOptions(cached.entry.snapshot, options))
     ) {
       return {
         result: { ok: true, snapshot: cached.entry.snapshot },
@@ -99,7 +100,9 @@ export async function resolveSnapshot(
 }
 
 function snapshotMatchesOptions(snapshot: RepoSnapshot, options: SnapshotResolverOptions): boolean {
-  return options.contributorFetchLimit === undefined || snapshot.contributors.fetchLimit === options.contributorFetchLimit;
+  return (
+    options.contributorFetchLimit === undefined || snapshot.contributors.fetchLimit === options.contributorFetchLimit
+  );
 }
 
 async function tryWriteCache(

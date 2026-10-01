@@ -78,7 +78,9 @@ function alignRows(rows: string[][]): string {
   );
 
   return rows
-    .map((row) => row.map((cell, index) => (index === row.length - 1 ? cell : padVisibleEnd(cell, widths[index]))).join("  "))
+    .map((row) =>
+      row.map((cell, index) => (index === row.length - 1 ? cell : padVisibleEnd(cell, widths[index]))).join("  "),
+    )
     .join("\n");
 }
 
