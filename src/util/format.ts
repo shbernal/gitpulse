@@ -58,18 +58,6 @@ export function formatBool(value: boolean): string {
   return value ? "yes" : "no";
 }
 
-export function truncate(value: string, maxLength: number): string {
-  if (value.length <= maxLength) {
-    return value;
-  }
-
-  if (maxLength <= 3) {
-    return value.slice(0, maxLength);
-  }
-
-  return `${value.slice(0, maxLength - 3)}...`;
-}
-
 function trimDecimal(value: number): string {
   return value.toFixed(1).replace(/\.0$/, "");
 }

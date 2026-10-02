@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { formatDate, formatMonthYear, formatRelativeDays } from "../src/util/dates";
-import { formatCompactNumber, formatPercent, formatSizeKb, truncate } from "../src/util/format";
+import { formatCompactNumber, formatPercent, formatSizeKb } from "../src/util/format";
 
 describe("format helpers", () => {
   test("formats compact numbers", () => {
@@ -35,10 +35,5 @@ describe("format helpers", () => {
     expect(formatRelativeDays(365)).toBe("1 year ago");
     expect(formatRelativeDays(2_850)).toBe("8 years ago");
     expect(formatRelativeDays(null)).toBe("n/a");
-  });
-
-  test("truncates long strings", () => {
-    expect(truncate("abcdef", 4)).toBe("a...");
-    expect(truncate("abcdef", 3)).toBe("abc");
   });
 });

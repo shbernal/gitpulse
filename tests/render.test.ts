@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { stripVTControlCharacters } from "node:util";
 import { renderComparisonJson, renderDocsJson, renderRepoJson, renderUserProfileJson } from "../src/render/json";
 import { renderComparison, renderDocs, renderRepo, renderUserProfile } from "../src/render/table";
-import { padVisibleEnd, shouldUseColor, visibleLength } from "../src/render/terminal";
+import { padVisibleEnd, shouldUseColor, truncateVisible, visibleLength } from "../src/render/terminal";
 import type { RepoSnapshot, SnapshotResult, UserProfileResult, UserProfileSnapshot } from "../src/types";
 
 describe("terminal rendering", () => {
@@ -207,6 +207,16 @@ describe("terminal rendering", () => {
     expect(visibleLength("e\u0301")).toBe(1);
     expect(visibleLength("\x1b[31m日本\x1b[0m")).toBe(4);
     expect(visibleLength(padVisibleEnd("日本語", 10))).toBe(10);
+  });
+
+  test("truncates by display width on grapheme boundaries", () => {
+    expect(truncateVisible("abcdef", 6)).toBe("abcdef");
+    expect(truncateVisible("abcdef", 4)).toBe("a...");
+    expect(truncateVisible("abcdef", 3)).toBe("abc");
+    expect(truncateVisible("日本語の説明", 8)).toBe("日本...");
+    expect(truncateVisible("🚀🚀🚀🚀", 6)).toBe("🚀...");
+    expect(truncateVisible("👨‍👩‍👧👨‍👩‍👧👨‍👩‍👧", 5)).toBe("👨‍👩‍👧...");
+    expect(truncateVisible("cafe\u0301 bar", 7)).toBe("cafe\u0301...");
   });
 
   test("keeps comparison columns aligned when a repository name is wide", () => {

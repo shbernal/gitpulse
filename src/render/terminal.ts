@@ -214,6 +214,27 @@ export function visibleLength(value: string): number {
   return width;
 }
 
+/** Cuts `value` to at most `maxWidth` display columns on grapheme boundaries, ending in "..." when cut. */
+export function truncateVisible(value: string, maxWidth: number): string {
+  if (visibleLength(value) <= maxWidth) {
+    return value;
+  }
+
+  const ellipsis = maxWidth > 3 ? "..." : "";
+  const budget = maxWidth - ellipsis.length;
+  let width = 0;
+  let kept = "";
+  for (const { segment } of graphemes.segment(value)) {
+    width += graphemeWidth(segment);
+    if (width > budget) {
+      break;
+    }
+    kept += segment;
+  }
+
+  return `${kept}${ellipsis}`;
+}
+
 export function padVisibleEnd(value: string, width: number): string {
   const padding = width - visibleLength(value);
   return padding > 0 ? `${value}${" ".repeat(padding)}` : value;

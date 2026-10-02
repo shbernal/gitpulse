@@ -18,9 +18,9 @@ import {
   type CompositeMetricAnalysis,
 } from "../metrics/composite";
 import { formatDateWithAge, formatMonthYear, formatRelativeDays } from "../util/dates";
-import { formatBool, formatCompactNumber, formatInteger, formatPercent, formatSizeKb, truncate } from "../util/format";
+import { formatBool, formatCompactNumber, formatInteger, formatPercent, formatSizeKb } from "../util/format";
 import { formatComparisonRepoLabels, formatRepoRef } from "../util/repo-ref";
-import { createTheme, padVisibleEnd, scoreTone, type RenderOptions, visibleLength } from "./terminal";
+import { createTheme, padVisibleEnd, scoreTone, type RenderOptions, truncateVisible, visibleLength } from "./terminal";
 
 type Field = {
   label: string;
@@ -172,8 +172,8 @@ export function renderUserProfile(
   const theme = createTheme(options);
   const output = [
     theme.repo(`gitpulse user ${snapshot.profile.login}`),
-    ...(snapshot.profile.name ? [`  ${truncate(snapshot.profile.name, 120)}`] : []),
-    ...(snapshot.profile.bio ? [`  ${truncate(snapshot.profile.bio, 120)}`] : []),
+    ...(snapshot.profile.name ? [`  ${truncateVisible(snapshot.profile.name, 120)}`] : []),
+    ...(snapshot.profile.bio ? [`  ${truncateVisible(snapshot.profile.bio, 120)}`] : []),
     `  ${snapshot.profile.url}`,
     "",
     theme.section("Profile"),
@@ -458,7 +458,9 @@ function renderRepositoryHeader(snapshot: RepoSnapshot, theme: Theme): string[] 
 }
 
 function renderRepositoryDescription(snapshot: RepoSnapshot): string[] {
-  return snapshot.repository.description ? [truncate(snapshot.repository.description, DESCRIPTION_MAX_LENGTH)] : [];
+  return snapshot.repository.description
+    ? [truncateVisible(snapshot.repository.description, DESCRIPTION_MAX_LENGTH)]
+    : [];
 }
 
 function renderComparisonRepositoryDescriptions(snapshots: SnapshotSuccess[], theme: Theme): string[] {
