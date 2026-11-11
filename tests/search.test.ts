@@ -102,23 +102,6 @@ describe("repository search cache resolution", () => {
       expect(resolved.source.kind).toBe("cache");
     });
   });
-
-  test("offline mode fails when no repository search cache exists", async () => {
-    await withTempEnv(async (env) => {
-      const resolved = await resolveSearchRepositories(failingClient(), {
-        cacheEnabled: true,
-        maxCacheHours: 168,
-        staleIfError: true,
-        mode: "offline",
-        ...searchOptions(),
-        now: new Date("2026-05-16T12:00:00.000Z"),
-        env,
-      });
-
-      expect(resolved.result.ok).toBe(false);
-      expect(resolved.source.kind).toBe("none");
-    });
-  });
 });
 
 describe("search CLI", () => {

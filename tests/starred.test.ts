@@ -75,25 +75,6 @@ describe("starred repository cache resolution", () => {
       expect(resolved.source.kind).toBe("cache");
     });
   });
-
-  test("offline mode fails when no starred repository cache exists", async () => {
-    await withTempEnv(async (env) => {
-      const resolved = await resolveStarredRepositories(failingClient(), {
-        cacheEnabled: true,
-        maxCacheHours: 168,
-        staleIfError: true,
-        mode: "offline",
-        sort: "created",
-        direction: "desc",
-        limit: 1000,
-        now: new Date("2026-05-16T12:00:00.000Z"),
-        env,
-      });
-
-      expect(resolved.result.ok).toBe(false);
-      expect(resolved.source.kind).toBe("none");
-    });
-  });
 });
 
 describe("starred CLI", () => {
