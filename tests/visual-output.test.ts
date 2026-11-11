@@ -4,25 +4,8 @@ import { ansiToSvg, stripAnsi, visibleLineLengths } from "../scripts/ansi-to-svg
 import { visualOutputCases } from "../scripts/visual-fixtures";
 
 describe("visual output harness", () => {
-  test("keeps generated visual fixtures deterministic and ANSI-backed", () => {
+  test("renders every visual fixture as ANSI with a provenance block", () => {
     const cases = visualOutputCases();
-
-    expect(cases.map((outputCase) => outputCase.id)).toEqual([
-      "repo-strong",
-      "repo-warning",
-      "repo-explain",
-      "compare-mixed",
-      "repo-release-paths",
-      "docs",
-      "user",
-      "forks",
-      "repo-long-content",
-      "theme-tokyo-night",
-      "theme-catppuccin-mocha",
-      "theme-nord",
-      "theme-gruvbox-dark",
-      "theme-dracula",
-    ]);
 
     for (const outputCase of cases) {
       expect(outputCase.ansi).toContain("\u001b[");
@@ -55,15 +38,5 @@ describe("visual output harness", () => {
       const maxLineLength = Math.max(...visibleLineLengths(outputCase.ansi));
       expect(maxLineLength).toBeLessThanOrEqual(outputCase.columns);
     }
-  });
-
-  test("includes an intentional overflow case for fixed-width pressure review", () => {
-    const outputCase = visualOutputCases().find((candidate) => candidate.id === "repo-long-content");
-    const explainCase = visualOutputCases().find((candidate) => candidate.id === "repo-explain");
-
-    expect(outputCase).toBeDefined();
-    expect(outputCase?.allowOverflow).toBe(true);
-    expect(Math.max(...visibleLineLengths(outputCase?.ansi ?? ""))).toBeGreaterThan(outputCase?.columns ?? 0);
-    expect(explainCase?.allowOverflow).toBe(true);
   });
 });

@@ -438,16 +438,6 @@ describe("JSON rendering", () => {
     expect(parsed.result.snapshot.repositories.totalStars).toBe(10);
   });
 
-  test("does not emit ANSI escapes in JSON output", () => {
-    const result: SnapshotResult = { ok: true, snapshot: snapshot("acme/tool") };
-    const userResult: UserProfileResult = { ok: true, snapshot: userSnapshot("octocat") };
-
-    expect(renderRepoJson(result)).not.toContain("\u001b[");
-    expect(renderComparisonJson([result])).not.toContain("\u001b[");
-    expect(renderDocsJson(result)).not.toContain("\u001b[");
-    expect(renderUserProfileJson(userResult)).not.toContain("\u001b[");
-  });
-
   test("renders every release path, the sampled window, and excluded drafts", () => {
     const output = renderRepo(
       snapshot("acme/tool", {

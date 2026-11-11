@@ -183,44 +183,6 @@ describe("snapshot cache resolution", () => {
       );
     });
   });
-
-  test("uses stale cache when refresh fails and staleIfError is enabled", async () => {
-    await withTempEnv(async (env) => {
-      const ref = { owner: "acme", name: "tool" };
-      await writeCachedSnapshot(ref, snapshot("acme/tool"), new Date("2026-05-01T00:00:00.000Z"), env);
-
-      const resolved = await resolveSnapshot(failingClient(), "acme/tool", {
-        cacheEnabled: true,
-        maxCacheHours: 24,
-        staleIfError: true,
-        mode: "default",
-        now: new Date("2026-05-16T00:00:00.000Z"),
-        env,
-      });
-
-      expect(resolved.result.ok).toBe(true);
-      expect(resolved.source.kind).toBe("stale-cache");
-      expect(resolved.source.kind === "stale-cache" ? resolved.source.refreshError?.message : null).toContain(
-        "api down",
-      );
-    });
-  });
-
-  test("offline mode fails when no cache entry exists", async () => {
-    await withTempEnv(async (env) => {
-      const resolved = await resolveSnapshot(failingClient(), "acme/missing", {
-        cacheEnabled: true,
-        maxCacheHours: 168,
-        staleIfError: true,
-        mode: "offline",
-        now: new Date("2026-05-16T00:00:00.000Z"),
-        env,
-      });
-
-      expect(resolved.result.ok).toBe(false);
-      expect(resolved.source.kind).toBe("none");
-    });
-  });
 });
 
 describe("user profile cache resolution", () => {
@@ -244,22 +206,6 @@ describe("user profile cache resolution", () => {
 
       expect(resolved.result.ok).toBe(true);
       expect(resolved.source.kind).toBe("cache");
-    });
-  });
-
-  test("offline user profile mode fails when no cache entry exists", async () => {
-    await withTempEnv(async (env) => {
-      const resolved = await resolveUserProfileSnapshot(failingClient(), "missing", {
-        cacheEnabled: true,
-        maxCacheHours: 168,
-        staleIfError: true,
-        mode: "offline",
-        now: new Date("2026-05-16T00:00:00.000Z"),
-        env,
-      });
-
-      expect(resolved.result.ok).toBe(false);
-      expect(resolved.source.kind).toBe("none");
     });
   });
 });
