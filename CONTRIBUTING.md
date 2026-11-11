@@ -39,7 +39,7 @@ bun run build:bin     # standalone executable at dist/gitpulse
 bun run visuals       # render human-readable output to artifacts/
 ```
 
-`bun install` sets up lefthook: pre-commit formats staged files and runs lint and typecheck, pre-push runs `bun test`. CI runs lint, knip, a format check, typecheck, tests and `bun run build` on every push to `master` and every pull request.
+There are no git hooks. CI runs lint, knip, a format check, typecheck, tests and `bun run build` on every push to `master` and every pull request.
 
 ## Layout
 
@@ -80,6 +80,8 @@ Changing anything human-readable means running `bun run visuals` and looking at 
 ## Commits
 
 One independent change per commit. A behavior change and its spec update belong together, a rename and a new feature do not.
+
+Commit messages carry no AI attribution: no `Co-authored-by:` trailer for a tool, no "Generated with" line. CI rejects a commit that has one, so turn your harness's commit attribution off. The disclosure goes in the pull request instead.
 
 ## Compatibility
 
