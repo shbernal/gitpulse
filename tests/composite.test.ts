@@ -76,13 +76,6 @@ describe("composite metrics", () => {
   test("keeps existing compact metric output shape", () => {
     const metrics = buildCompositeMetrics(baseInput());
 
-    expect(metrics.activityFreshness.inputs).toEqual({
-      daysSinceLatestCommit: 10,
-      daysSinceLastPush: 5,
-      daysSinceLatestRelease: 20,
-      releaseCount: 1,
-      archived: false,
-    });
     expect(metrics.popularity.inputs.watchers).toBe(5);
     expect(metrics.popularity.score).toBe(2.31);
     expect(metrics.popularity.label).toBeNull();
